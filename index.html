@@ -470,7 +470,8 @@
                 metrics: [
                     { id: 'mean', label: 'Mean', color: '#4f46e5' }, { id: 'sum', label: 'Sum', color: '#10b981' }, { id: 'count', label: 'Count', color: '#f59e0b' },
                     { id: 'min', label: 'Min', color: '#ef4444' }, { id: 'q1', label: 'Q1', color: '#8b5cf6' }, { id: 'median', label: 'Median', color: '#ec4899' },
-                    { id: 'q3', label: 'Q3', color: '#06b6d4' }, { id: 'max', label: 'Max', color: '#1e293b' }
+                    { id: 'q3', label: 'Q3', color: '#06b6d4' }, { id: 'max', label: 'Max', color: '#1e293b' },
+                    { id: 'first', label: 'First', color: '#6366f1' }, { id: 'last', label: 'Last', color: '#6366f1' }
                 ],
 
                 async initDB() {
@@ -762,23 +763,18 @@
 
                         switch (config.period) {
                             case 'day':
-                                // Today start is already set
                                 break;
                             case 'week':
-                                // Set to Sunday of current week
                                 startOfPeriod.setDate(now.getDate() - now.getDay());
                                 break;
                             case 'month':
-                                // Set to 1st of month
                                 startOfPeriod.setDate(1);
                                 break;
                             case 'quarter':
-                                // Find 1st month of current quarter
                                 const quarterMonth = Math.floor(now.getMonth() / 3) * 3;
                                 startOfPeriod.setMonth(quarterMonth, 1);
                                 break;
                             case 'year':
-                                // Set to Jan 1st
                                 startOfPeriod.setMonth(0, 1);
                                 break;
                         }
@@ -787,7 +783,7 @@
 
                     if (!subset.length) { this.currentSeries.summaryDisplay = null; return; }
                     const vals = subset.map(e => e.value).sort((a,b) => a-b);
-                    const stats = this.calculateStats(vals);
+                    const stats = this.calculateStats(vals, subset.map(e => e.value));
                     const label = this.metrics.find(m => m.id === config.stat)?.label || 'Value';
                     
                     const rawVal = stats[config.stat];
@@ -807,18 +803,23 @@
                 get activeStats() {
                     if (!this.currentSeriesEntries.length) return [];
                     const vals = this.currentSeriesEntries.map(e => e.value).sort((a,b) => a-b);
-                    const s = this.calculateStats(vals);
+                    const s = this.calculateStats(vals, this.currentSeriesEntries.map(e => e.value));
                     return this.metrics.filter(m => this.analysisSelection.includes(m.id)).map(m => ({ 
                         label: m.label, 
-                        value: this.currentSeries.type === 'time' ? this.formatDuration(s[m.id]) : s[m.id].toLocaleString() 
+                        value: this.currentSeries.type === 'time' ? this.formatDuration(s[m.id]) : (s[m.id] ? s[m.id].toLocaleString() : '0')
                     }));
                 },
 
-                calculateStats(v) {
+                calculateStats(v, originalOrder = []) {
                     if (!v.length) return {};
                     const sum = v.reduce((a,b) => a+b, 0);
                     const getQ = (q) => { const p = (v.length-1)*q; const b = Math.floor(p); const r = p-b; return v[b+1] !== undefined ? v[b] + r*(v[b+1]-v[b]) : v[b]; };
-                    return { mean: sum/v.length, sum, count: v.length, min: v[0], q1: getQ(0.25), median: getQ(0.5), q3: getQ(0.75), max: v[v.length-1] };
+                    return { 
+                        mean: sum/v.length, sum, count: v.length, min: v[0], 
+                        q1: getQ(0.25), median: getQ(0.5), q3: getQ(0.75), max: v[v.length-1],
+                        first: originalOrder.length ? originalOrder[0] : v[0],
+                        last: originalOrder.length ? originalOrder[originalOrder.length - 1] : v[v.length - 1]
+                    };
                 },
 
                 get calendarDays() {
@@ -967,7 +968,12 @@
                     });
                     const keys = Object.keys(gs).sort(), res = { labels: keys, datasets: {} };
                     this.metrics.forEach(m => res.datasets[m.id] = []);
-                    keys.forEach(k => { const s = this.calculateStats(gs[k].sort((a,b)=>a-b)); this.metrics.forEach(m => res.datasets[m.id].push(s[m.id])); });
+                    keys.forEach(k => { 
+                        const rawValuesInGroup = gs[k];
+                        const sortedValuesInGroup = [...gs[k]].sort((a,b) => a-b);
+                        const s = this.calculateStats(sortedValuesInGroup, rawValuesInGroup); 
+                        this.metrics.forEach(m => res.datasets[m.id].push(s[m.id])); 
+                    });
                     return res;
                 },
 
