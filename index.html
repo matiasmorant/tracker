@@ -36,20 +36,19 @@
         
         <template x-if="view === 'list'">
             <div class="space-y-6">
-                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                    <div class="flex-1 relative">
-                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
-                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                        </span>
-                        <input type="text" x-model="searchQuery" placeholder="Search series..." class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
-                    </div>
-                    <div class="flex gap-2">
-                        <select x-model="filterGroup" class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
-                            <option value="">All Groups</option>
-                            <template x-for="group in groups" :key="group">
-                                <option :value="group" x-text="group"></option>
-                            </template>
-                        </select>
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Filter by Groups</p>
+                    <div class="flex flex-wrap gap-2">
+                        <template x-for="group in groups" :key="group">
+                            <label class="inline-flex items-center px-3 py-1 rounded-full border cursor-pointer transition-colors text-sm" 
+                                :class="selectedGroups.includes(group) ? 'bg-indigo-100 border-indigo-300 text-indigo-700' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'">
+                                <input type="checkbox" :value="group" x-model="selectedGroups" class="hidden">
+                                <span x-text="group"></span>
+                            </label>
+                        </template>
+                        <template x-if="groups.length === 0">
+                            <span class="text-sm text-slate-400 italic">No groups defined yet</span>
+                        </template>
                     </div>
                 </div>
 
@@ -60,7 +59,9 @@
                                 <th class="px-6 py-4 cursor-pointer hover:text-indigo-600 transition-colors" @click="sortBy('name')">
                                     Series Name <span x-show="sortField === 'name'" x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
                                 </th>
-                                <th class="px-6 py-4">Group</th>
+                                <th class="px-6 py-4 cursor-pointer hover:text-indigo-600 transition-colors" @click="sortBy('group')">
+                                    Group <span x-show="sortField === 'group'" x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                                </th>
                                 <th class="px-6 py-4">Summary</th>
                                 <th class="px-6 py-4 text-right">Actions</th>
                             </tr>
@@ -74,9 +75,17 @@
                                     </td>
                                     <td class="px-6 py-4 text-sm text-slate-500" x-text="series.description || 'No description'"></td>
                                     <td class="px-6 py-4 text-right" @click.stop>
-                                        <button @click="openAddEntryModal(series)" class="text-indigo-600 hover:text-indigo-800 text-sm font-semibold">
-                                            Add Entry
-                                        </button>
+                                        <div class="flex items-center justify-end space-x-3">
+                                            <button @click="openAddEntryModal(series)" title="Add Entry" class="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                                            </button>
+                                            <button @click="editSeries(series)" title="Edit Series" class="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded-lg">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                            </button>
+                                            <button @click="deleteSeries(series.id)" title="Delete Series" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             </template>
@@ -94,7 +103,12 @@
                             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
                             Back to Dashboard
                         </button>
-                        <h2 class="text-3xl font-bold text-slate-800" x-text="currentSeries.name"></h2>
+                        <div class="flex items-center space-x-3">
+                            <h2 class="text-3xl font-bold text-slate-800" x-text="currentSeries.name"></h2>
+                            <button @click="editSeries(currentSeries)" class="text-slate-400 hover:text-indigo-600">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                            </button>
+                        </div>
                         <p class="text-slate-500 mt-1" x-text="currentSeries.description"></p>
                     </div>
                     <div class="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
@@ -185,7 +199,6 @@
                                 </button>
                             </div>
                         </div>
-                        <span class="text-xs text-slate-400 font-medium italic">Click a day to add or edit data</span>
                     </div>
                     <div class="grid grid-cols-7 border-b border-slate-100">
                         <template x-for="day in ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']">
@@ -194,21 +207,11 @@
                     </div>
                     <div class="grid grid-cols-7">
                         <template x-for="day in calendarDays" :key="day.dateString">
-                            <div 
-                                @click="handleCalendarDayClick(day)"
-                                :class="[
-                                    day.isCurrentMonth ? 'bg-white' : 'bg-slate-50 text-slate-300',
-                                    'h-32 border-b border-r border-slate-100 p-2 transition-colors cursor-pointer hover:bg-indigo-50 group'
-                                ]"
-                            >
-                                <div class="flex justify-between items-start">
-                                    <span :class="day.isToday ? 'bg-indigo-600 text-white w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold' : 'text-xs font-medium'" x-text="day.day"></span>
-                                </div>
-                                <div class="mt-2 space-y-1 overflow-y-auto max-h-20 custom-scrollbar">
+                            <div @click="handleCalendarDayClick(day)" :class="[day.isCurrentMonth ? 'bg-white' : 'bg-slate-50 text-slate-300', 'h-32 border-b border-r border-slate-100 p-2 cursor-pointer hover:bg-indigo-50']">
+                                <span :class="day.isToday ? 'bg-indigo-600 text-white w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold' : 'text-xs font-medium'" x-text="day.day"></span>
+                                <div class="mt-2 space-y-1">
                                     <template x-for="entry in day.entries" :key="entry.id">
-                                        <div class="bg-indigo-100 text-indigo-700 text-[10px] px-2 py-1 rounded border border-indigo-200 font-bold truncate">
-                                            <span x-text="entry.value"></span>
-                                        </div>
+                                        <div class="bg-indigo-100 text-indigo-700 text-[10px] px-2 py-1 rounded border border-indigo-200 font-bold truncate" x-text="entry.value"></div>
                                     </template>
                                 </div>
                             </div>
@@ -238,8 +241,8 @@
                                         <td class="px-6 py-4 text-sm text-indigo-600 font-bold" x-text="entry.value"></td>
                                         <td class="px-6 py-4 text-sm text-slate-500" x-text="entry.notes || '-'"></td>
                                         <td class="px-6 py-4 text-right space-x-3">
-                                            <button @click="editEntry(entry)" class="text-slate-400 hover:text-indigo-600 transition-colors">Edit</button>
-                                            <button @click="deleteEntry(entry.id)" class="text-slate-400 hover:text-red-600 transition-colors">Delete</button>
+                                            <button @click="editEntry(entry)" class="text-slate-400 hover:text-indigo-600">Edit</button>
+                                            <button @click="deleteEntry(entry.id)" class="text-slate-400 hover:text-red-600">Delete</button>
                                         </td>
                                     </tr>
                                 </template>
@@ -266,9 +269,7 @@
                             <label class="block text-sm font-medium text-slate-700">Group</label>
                             <input type="text" x-model="seriesForm.group" list="group-list" class="w-full mt-1 px-4 py-2 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500">
                             <datalist id="group-list">
-                                <template x-for="g in groups" :key="g">
-                                    <option :value="g"></option>
-                                </template>
+                                <template x-for="g in groups" :key="g"><option :value="g"></option></template>
                             </datalist>
                         </div>
                         <div>
@@ -278,8 +279,8 @@
                     </div>
                 </div>
                 <div class="px-6 py-4 bg-slate-50 flex justify-end space-x-3">
-                    <button @click="modals.series = false" class="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">Cancel</button>
-                    <button @click="saveSeries()" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition-colors">Save Series</button>
+                    <button @click="modals.series = false" class="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg">Cancel</button>
+                    <button @click="saveSeries()" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm">Save Series</button>
                 </div>
             </div>
         </div>
@@ -308,8 +309,8 @@
                     </div>
                 </div>
                 <div class="px-6 py-4 bg-slate-50 flex justify-end space-x-3">
-                    <button @click="modals.entry = false" class="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">Cancel</button>
-                    <button @click="saveEntry()" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition-colors">Save Entry</button>
+                    <button @click="modals.entry = false" class="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg">Cancel</button>
+                    <button @click="saveEntry()" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm">Save Entry</button>
                 </div>
             </div>
         </div>
@@ -325,7 +326,6 @@
     <script>
         function app() {
             let chartInstance = null;
-
             return {
                 view: 'list',
                 detailSubView: 'chart',
@@ -335,8 +335,7 @@
                 currentSeries: null,
                 currentSeriesEntries: [],
                 
-                searchQuery: '',
-                filterGroup: '',
+                selectedGroups: [], // Multiple group filter
                 sortField: 'name',
                 sortOrder: 'asc',
 
@@ -348,7 +347,6 @@
                 entryForm: { timestamp: '', value: '', notes: '' },
                 toast: { show: false, message: '' },
 
-                // Analysis & Visualization state
                 chartSettings: { period: 'none' },
                 analysisSelection: ['mean', 'median', 'count'],
                 metrics: [
@@ -366,9 +364,7 @@
                     const request = indexedDB.open('ChronosDB', 1);
                     request.onupgradeneeded = (e) => {
                         const db = e.target.result;
-                        if (!db.objectStoreNames.contains('series')) {
-                            db.createObjectStore('series', { keyPath: 'id', autoIncrement: true });
-                        }
+                        if (!db.objectStoreNames.contains('series')) db.createObjectStore('series', { keyPath: 'id', autoIncrement: true });
                         if (!db.objectStoreNames.contains('entries')) {
                             const entriesStore = db.createObjectStore('entries', { keyPath: 'id', autoIncrement: true });
                             entriesStore.createIndex('seriesId', 'seriesId', { unique: false });
@@ -388,14 +384,11 @@
 
                 get filteredSeries() {
                     let result = this.series.filter(s => {
-                        const matchesSearch = s.name.toLowerCase().includes(this.searchQuery.toLowerCase()) || 
-                                              (s.description && s.description.toLowerCase().includes(this.searchQuery.toLowerCase()));
-                        const matchesGroup = this.filterGroup === '' || s.group === this.filterGroup;
-                        return matchesSearch && matchesGroup;
+                        return this.selectedGroups.length === 0 || this.selectedGroups.includes(s.group || '');
                     });
                     return result.sort((a, b) => {
-                        let fieldA = a[this.sortField]?.toLowerCase() || '';
-                        let fieldB = b[this.sortField]?.toLowerCase() || '';
+                        let fieldA = (a[this.sortField] || '').toString().toLowerCase();
+                        let fieldB = (b[this.sortField] || '').toString().toLowerCase();
                         if (fieldA < fieldB) return this.sortOrder === 'asc' ? -1 : 1;
                         if (fieldA > fieldB) return this.sortOrder === 'asc' ? 1 : -1;
                         return 0;
@@ -403,7 +396,7 @@
                 },
 
                 get groups() {
-                    return [...new Set(this.series.map(s => s.group).filter(g => g))];
+                    return [...new Set(this.series.map(s => s.group || ''))].sort();
                 },
 
                 sortBy(field) {
@@ -417,6 +410,36 @@
                     this.modals.series = true;
                 },
 
+                editSeries(series) {
+                    this.editingSeries = series;
+                    this.seriesForm = { ...series };
+                    this.modals.series = true;
+                },
+
+                async deleteSeries(id) {
+                    if (!confirm('Are you sure? This will delete the series and ALL associated data points.')) return;
+                    
+                    const tx = this.db.transaction(['series', 'entries'], 'readwrite');
+                    tx.objectStore('series').delete(id);
+                    
+                    const entryStore = tx.objectStore('entries');
+                    const index = entryStore.index('seriesId');
+                    const request = index.openCursor(IDBKeyRange.only(id));
+                    request.onsuccess = (event) => {
+                        const cursor = event.target.result;
+                        if (cursor) {
+                            cursor.delete();
+                            cursor.continue();
+                        }
+                    };
+
+                    tx.oncomplete = () => {
+                        this.loadSeries();
+                        if (this.currentSeries?.id === id) this.view = 'list';
+                        this.showToast('Series and data deleted');
+                    };
+                },
+
                 async saveSeries() {
                     if (!this.seriesForm.name) return this.showToast('Name is required');
                     const tx = this.db.transaction('series', 'readwrite');
@@ -424,6 +447,7 @@
                     if (this.editingSeries) data.id = this.editingSeries.id;
                     tx.objectStore('series').put(data).onsuccess = () => {
                         this.loadSeries();
+                        if (this.currentSeries?.id === data.id) this.currentSeries = data;
                         this.modals.series = false;
                         this.showToast('Series saved');
                     };
@@ -436,16 +460,13 @@
                     this.loadEntries(series.id);
                 },
 
+                // Rest of the methods (loadEntries, chart logic, stats) remain unchanged
                 async loadEntries(seriesId) {
                     const tx = this.db.transaction('entries', 'readonly');
                     const request = tx.objectStore('entries').index('seriesId').getAll(IDBKeyRange.only(seriesId));
                     request.onsuccess = () => {
                         this.currentSeriesEntries = request.result.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-                        if (this.detailSubView === 'chart') {
-                            this.$nextTick(() => {
-                                this.initChart();
-                            });
-                        }
+                        if (this.detailSubView === 'chart') this.$nextTick(() => this.initChart());
                     };
                 },
 
@@ -465,19 +486,9 @@
                         const pos = (values.length - 1) * q;
                         const base = Math.floor(pos);
                         const rest = pos - base;
-                        if (values[base + 1] !== undefined) return values[base] + rest * (values[base + 1] - values[base]);
-                        return values[base];
+                        return values[base + 1] !== undefined ? values[base] + rest * (values[base + 1] - values[base]) : values[base];
                     };
-                    return {
-                        mean: sum / values.length,
-                        sum: sum,
-                        count: values.length,
-                        min: values[0],
-                        q1: getQuartile(0.25),
-                        median: getQuartile(0.5),
-                        q3: getQuartile(0.75),
-                        max: values[values.length - 1]
-                    };
+                    return { mean: sum/values.length, sum, count: values.length, min: values[0], q1: getQuartile(0.25), median: getQuartile(0.5), q3: getQuartile(0.75), max: values[values.length-1] };
                 },
 
                 get calendarDays() {
@@ -485,53 +496,28 @@
                     const month = this.calendarDate.getMonth();
                     const firstDay = new Date(year, month, 1).getDay();
                     const daysInMonth = new Date(year, month + 1, 0).getDate();
-                    
                     const days = [];
                     const prevMonthLastDay = new Date(year, month, 0).getDate();
-                    
-                    for (let i = firstDay - 1; i >= 0; i--) {
-                        const d = new Date(year, month - 1, prevMonthLastDay - i);
-                        days.push(this.createDayObject(d, false));
-                    }
-                    for (let i = 1; i <= daysInMonth; i++) {
-                        const d = new Date(year, month, i);
-                        days.push(this.createDayObject(d, true));
-                    }
+                    for (let i = firstDay - 1; i >= 0; i--) days.push(this.createDayObject(new Date(year, month - 1, prevMonthLastDay - i), false));
+                    for (let i = 1; i <= daysInMonth; i++) days.push(this.createDayObject(new Date(year, month, i), true));
                     const remaining = 42 - days.length;
-                    for (let i = 1; i <= remaining; i++) {
-                        const d = new Date(year, month + 1, i);
-                        days.push(this.createDayObject(d, false));
-                    }
+                    for (let i = 1; i <= remaining; i++) days.push(this.createDayObject(new Date(year, month + 1, i), false));
                     return days;
                 },
 
                 createDayObject(date, isCurrentMonth) {
                     const dateString = date.toISOString().split('T')[0];
-                    const entries = this.currentSeriesEntries.filter(e => e.timestamp.startsWith(dateString));
-                    return {
-                        date,
-                        dateString,
-                        day: date.getDate(),
-                        isCurrentMonth,
-                        isToday: new Date().toDateString() === date.toDateString(),
-                        entries
-                    };
+                    return { date, dateString, day: date.getDate(), isCurrentMonth, isToday: new Date().toDateString() === date.toDateString(), entries: this.currentSeriesEntries.filter(e => e.timestamp.startsWith(dateString)) };
                 },
 
                 handleCalendarDayClick(day) {
-                    if (day.entries.length > 0) {
-                        this.editEntry(day.entries[0]);
-                    } else {
+                    if (day.entries.length > 0) this.editEntry(day.entries[0]);
+                    else {
                         this.activeSeriesForEntry = this.currentSeries;
-                        this.editingEntry = null;
                         const now = new Date();
                         const timestamp = new Date(day.date);
                         timestamp.setHours(now.getHours(), now.getMinutes());
-                        this.entryForm = { 
-                            timestamp: timestamp.toISOString().slice(0, 16), 
-                            value: '', 
-                            notes: '' 
-                        };
+                        this.entryForm = { timestamp: timestamp.toISOString().slice(0, 16), value: '', notes: '' };
                         this.modals.entry = true;
                     }
                 },
@@ -539,11 +525,7 @@
                 prevMonth() { this.calendarDate = new Date(this.calendarDate.setMonth(this.calendarDate.getMonth() - 1)); },
                 nextMonth() { this.calendarDate = new Date(this.calendarDate.setMonth(this.calendarDate.getMonth() + 1)); },
                 formatMonth(date) { return date.toLocaleDateString([], { month: 'long', year: 'numeric' }); },
-
-                changeSubView(view) {
-                    this.detailSubView = view;
-                    if (view === 'chart') this.initChart();
-                },
+                changeSubView(view) { this.detailSubView = view; if (view === 'chart') this.initChart(); },
 
                 openAddEntryModal(series) {
                     this.activeSeriesForEntry = series;
@@ -564,41 +546,18 @@
                     };
                 },
 
-                editEntry(entry) {
-                    this.activeSeriesForEntry = this.currentSeries;
-                    this.editingEntry = entry;
-                    this.entryForm = { ...entry };
-                    this.modals.entry = true;
-                },
-
-                async deleteEntry(id) {
-                    if (!confirm('Delete this entry?')) return;
-                    const tx = this.db.transaction('entries', 'readwrite');
-                    tx.objectStore('entries').delete(id);
-                    tx.oncomplete = () => this.loadEntries(this.currentSeries.id);
-                },
+                editEntry(entry) { this.activeSeriesForEntry = this.currentSeries; this.editingEntry = entry; this.entryForm = { ...entry }; this.modals.entry = true; },
+                async deleteEntry(id) { if (!confirm('Delete this entry?')) return; const tx = this.db.transaction('entries', 'readwrite'); tx.objectStore('entries').delete(id); tx.oncomplete = () => this.loadEntries(this.currentSeries.id); },
 
                 initChart() {
                     this.$nextTick(() => {
                         const canvas = document.getElementById('seriesChart');
                         if (!canvas) return;
-                        const ctx = canvas.getContext('2d');
                         if (chartInstance) chartInstance.destroy();
-                        chartInstance = new Chart(ctx, {
+                        chartInstance = new Chart(canvas.getContext('2d'), {
                             type: 'line',
                             data: { labels: [], datasets: [] },
-                            options: { 
-                                responsive: true, 
-                                maintainAspectRatio: false,
-                                plugins: {
-                                    legend: { display: true, position: 'top' },
-                                    tooltip: { mode: 'index', intersect: false }
-                                },
-                                scales: {
-                                    y: { beginAtZero: false, grid: { color: '#f1f5f9' } },
-                                    x: { grid: { display: false } }
-                                }
-                            }
+                            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: false } } }
                         });
                         this.updateChart();
                     });
@@ -606,38 +565,18 @@
 
                 updateChart() {
                     if (!chartInstance) return;
-                    
-                    let labels = [];
-                    let datasets = [];
-
+                    let labels = [], datasets = [];
                     if (this.chartSettings.period === 'none') {
                         labels = this.currentSeriesEntries.map(e => this.formatDate(e.timestamp, true));
-                        datasets.push({
-                            label: 'Raw Values',
-                            data: this.currentSeriesEntries.map(e => e.value),
-                            borderColor: '#4f46e5',
-                            backgroundColor: 'rgba(79, 70, 229, 0.1)',
-                            fill: true,
-                            tension: 0.3,
-                            pointRadius: 4
-                        });
+                        datasets.push({ label: 'Raw Values', data: this.currentSeriesEntries.map(e => e.value), borderColor: '#4f46e5', backgroundColor: 'rgba(79, 70, 229, 0.1)', fill: true, tension: 0.3 });
                     } else {
                         const aggregated = this.getAggregatedData();
                         labels = aggregated.labels;
-
                         this.analysisSelection.forEach(metricId => {
                             const metricInfo = this.metrics.find(m => m.id === metricId);
-                            datasets.push({
-                                label: metricInfo.label,
-                                data: aggregated.datasets[metricId],
-                                borderColor: metricInfo.color,
-                                backgroundColor: 'transparent',
-                                tension: 0.3,
-                                pointRadius: 3
-                            });
+                            datasets.push({ label: metricInfo.label, data: aggregated.datasets[metricId], borderColor: metricInfo.color, tension: 0.3 });
                         });
                     }
-
                     chartInstance.data.labels = labels;
                     chartInstance.data.datasets = datasets;
                     chartInstance.update();
@@ -650,32 +589,20 @@
                         let key;
                         switch(this.chartSettings.period) {
                             case 'day': key = entry.timestamp.split('T')[0]; break;
-                            case 'week': 
-                                const d = new Date(date);
-                                d.setDate(d.getDate() - d.getDay());
-                                key = d.toISOString().split('T')[0];
-                                break;
+                            case 'week': const d = new Date(date); d.setDate(d.getDate() - d.getDay()); key = d.toISOString().split('T')[0]; break;
                             case 'month': key = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`; break;
-                            case 'quarter': key = `${date.getFullYear()}-Q${Math.floor(date.getMonth() / 3) + 1}`; break;
                             case 'year': key = `${date.getFullYear()}`; break;
                         }
                         if (!groups[key]) groups[key] = [];
                         groups[key].push(entry.value);
                     });
-
                     const sortedKeys = Object.keys(groups).sort();
                     const result = { labels: sortedKeys, datasets: {} };
-
                     this.metrics.forEach(m => result.datasets[m.id] = []);
-
                     sortedKeys.forEach(key => {
-                        const values = groups[key].sort((a, b) => a - b);
-                        const stats = this.calculateStats(values);
-                        this.metrics.forEach(m => {
-                            result.datasets[m.id].push(stats[m.id]);
-                        });
+                        const stats = this.calculateStats(groups[key].sort((a, b) => a - b));
+                        this.metrics.forEach(m => result.datasets[m.id].push(stats[m.id]));
                     });
-
                     return result;
                 },
 
@@ -684,11 +611,7 @@
                     return short ? date.toLocaleDateString([], { month: 'short', day: 'numeric' }) : date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
                 },
 
-                showToast(msg) {
-                    this.toast.message = msg;
-                    this.toast.show = true;
-                    setTimeout(() => this.toast.show = false, 3000);
-                }
+                showToast(msg) { this.toast.message = msg; this.toast.show = true; setTimeout(() => this.toast.show = false, 3000); }
             }
         }
     </script>
