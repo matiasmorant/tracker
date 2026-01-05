@@ -97,25 +97,83 @@
                         <h2 class="text-3xl font-bold text-slate-800" x-text="currentSeries.name"></h2>
                         <p class="text-slate-500 mt-1" x-text="currentSeries.description"></p>
                     </div>
-                    <div class="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm">
-                        <button @click="changeSubView('chart')" :class="detailSubView === 'chart' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all">
+                    <div class="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+                        <button @click="changeSubView('chart')" :class="detailSubView === 'chart' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap">
                             Visualization
                         </button>
-                        <button @click="changeSubView('calendar')" :class="detailSubView === 'calendar' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all">
+                        <button @click="changeSubView('analysis')" :class="detailSubView === 'analysis' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap">
+                            Analysis
+                        </button>
+                        <button @click="changeSubView('calendar')" :class="detailSubView === 'calendar' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap">
                             Calendar
                         </button>
-                        <button @click="changeSubView('history')" :class="detailSubView === 'history' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all">
+                        <button @click="changeSubView('history')" :class="detailSubView === 'history' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap">
                             History
                         </button>
                     </div>
                 </div>
 
-                <div x-show="detailSubView === 'chart'" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200" x-init="initChart()">
-                    <div class="flex justify-between items-center mb-6">
+                <div x-show="detailSubView === 'chart'" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                         <h3 class="text-lg font-semibold">Trend Analysis</h3>
+                        <div class="flex flex-wrap gap-2">
+                            <select x-model="chartSettings.period" @change="updateChart()" class="text-xs border border-slate-200 rounded-md px-2 py-1 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500">
+                                <option value="none">Raw Data</option>
+                                <option value="day">Day Mean</option>
+                                <option value="week">Weekly</option>
+                                <option value="month">Monthly</option>
+                                <option value="quarter">Quarterly</option>
+                                <option value="year">Yearly</option>
+                            </select>
+                            <select x-show="chartSettings.period !== 'none'" x-model="chartSettings.metric" @change="updateChart()" class="text-xs border border-slate-200 rounded-md px-2 py-1 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500">
+                                <template x-for="m in metrics" :key="m.id">
+                                    <option :value="m.id" x-text="m.label"></option>
+                                </template>
+                            </select>
+                        </div>
                     </div>
                     <div class="relative h-96">
                         <canvas id="seriesChart"></canvas>
+                    </div>
+                </div>
+
+                <div x-show="detailSubView === 'analysis'" class="space-y-6" x-cloak>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="md:col-span-1 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                            <h3 class="font-bold text-slate-800 mb-4">Select Metrics</h3>
+                            <div class="space-y-2">
+                                <template x-for="m in metrics" :key="m.id">
+                                    <label class="flex items-center space-x-3 p-2 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors border border-transparent hover:border-slate-100">
+                                        <input type="checkbox" :value="m.id" x-model="analysisSelection" class="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                                        <span class="text-sm font-medium text-slate-700" x-text="m.label"></span>
+                                    </label>
+                                </template>
+                            </div>
+                        </div>
+                        <div class="md:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                            <div class="p-4 bg-slate-50 border-b border-slate-200 font-semibold text-slate-700">Summary Statistics</div>
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-slate-50/50 border-b border-slate-200 text-slate-500 uppercase text-[10px] tracking-widest">
+                                    <tr>
+                                        <th class="px-6 py-4">Statistic</th>
+                                        <th class="px-6 py-4">Value</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    <template x-for="stat in activeStats" :key="stat.label">
+                                        <tr class="hover:bg-slate-50/50 transition-colors">
+                                            <td class="px-6 py-4 font-medium text-slate-600" x-text="stat.label"></td>
+                                            <td class="px-6 py-4 text-indigo-600 font-bold text-lg" x-text="stat.value"></td>
+                                        </tr>
+                                    </template>
+                                    <template x-if="activeStats.length === 0">
+                                        <tr>
+                                            <td colspan="2" class="px-6 py-10 text-center text-slate-400 italic">Select metrics to display analysis</td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
@@ -295,6 +353,20 @@
                 entryForm: { timestamp: '', value: '', notes: '' },
                 toast: { show: false, message: '' },
 
+                // Analysis & Visualization state
+                chartSettings: { period: 'none', metric: 'mean' },
+                analysisSelection: ['mean', 'median', 'count'],
+                metrics: [
+                    { id: 'mean', label: 'Mean' },
+                    { id: 'sum', label: 'Sum' },
+                    { id: 'count', label: 'Count' },
+                    { id: 'min', label: 'Quartile 0 (Min)' },
+                    { id: 'q1', label: 'Quartile 1' },
+                    { id: 'median', label: 'Quartile 2 (Median)' },
+                    { id: 'q3', label: 'Quartile 3' },
+                    { id: 'max', label: 'Quartile 4 (Max)' }
+                ],
+
                 async initDB() {
                     const request = indexedDB.open('ChronosDB', 1);
                     request.onupgradeneeded = (e) => {
@@ -377,6 +449,38 @@
                     };
                 },
 
+                // Analysis Logic
+                get activeStats() {
+                    if (!this.currentSeriesEntries.length) return [];
+                    const sortedValues = this.currentSeriesEntries.map(e => e.value).sort((a, b) => a - b);
+                    const stats = this.calculateStats(sortedValues);
+                    return this.metrics
+                        .filter(m => this.analysisSelection.includes(m.id))
+                        .map(m => ({ label: m.label, value: stats[m.id].toLocaleString(undefined, { maximumFractionDigits: 2 }) }));
+                },
+
+                calculateStats(values) {
+                    if (!values.length) return {};
+                    const sum = values.reduce((a, b) => a + b, 0);
+                    const getQuartile = (q) => {
+                        const pos = (values.length - 1) * q;
+                        const base = Math.floor(pos);
+                        const rest = pos - base;
+                        if (values[base + 1] !== undefined) return values[base] + rest * (values[base + 1] - values[base]);
+                        return values[base];
+                    };
+                    return {
+                        mean: sum / values.length,
+                        sum: sum,
+                        count: values.length,
+                        min: values[0],
+                        q1: getQuartile(0.25),
+                        median: getQuartile(0.5),
+                        q3: getQuartile(0.75),
+                        max: values[values.length - 1]
+                    };
+                },
+
                 // Calendar Logic
                 get calendarDays() {
                     const year = this.calendarDate.getFullYear();
@@ -387,17 +491,14 @@
                     const days = [];
                     const prevMonthLastDay = new Date(year, month, 0).getDate();
                     
-                    // Previous month filler
                     for (let i = firstDay - 1; i >= 0; i--) {
                         const d = new Date(year, month - 1, prevMonthLastDay - i);
                         days.push(this.createDayObject(d, false));
                     }
-                    // Current month
                     for (let i = 1; i <= daysInMonth; i++) {
                         const d = new Date(year, month, i);
                         days.push(this.createDayObject(d, true));
                     }
-                    // Next month filler
                     const remaining = 42 - days.length;
                     for (let i = 1; i <= remaining; i++) {
                         const d = new Date(year, month + 1, i);
@@ -421,11 +522,10 @@
 
                 handleCalendarDayClick(day) {
                     if (day.entries.length > 0) {
-                        this.editEntry(day.entries[0]); // Edit existing
+                        this.editEntry(day.entries[0]);
                     } else {
                         this.activeSeriesForEntry = this.currentSeries;
                         this.editingEntry = null;
-                        // Set time to current time but on the clicked date
                         const now = new Date();
                         const timestamp = new Date(day.date);
                         timestamp.setHours(now.getHours(), now.getMinutes());
@@ -480,6 +580,7 @@
                     tx.oncomplete = () => this.loadEntries(this.currentSeries.id);
                 },
 
+                // Visualization Logic
                 initChart() {
                     this.$nextTick(() => {
                         const canvas = document.getElementById('seriesChart');
@@ -491,15 +592,28 @@
                             data: {
                                 labels: [],
                                 datasets: [{
-                                    label: this.currentSeries?.name || 'Value',
+                                    label: 'Value',
                                     data: [],
                                     borderColor: '#4f46e5',
                                     backgroundColor: 'rgba(79, 70, 229, 0.1)',
                                     fill: true,
-                                    tension: 0.3
+                                    tension: 0.3,
+                                    pointRadius: 4,
+                                    pointHoverRadius: 6
                                 }]
                             },
-                            options: { responsive: true, maintainAspectRatio: false }
+                            options: { 
+                                responsive: true, 
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: { display: true, position: 'top' },
+                                    tooltip: { mode: 'index', intersect: false }
+                                },
+                                scales: {
+                                    y: { beginAtZero: false, grid: { color: '#f1f5f9' } },
+                                    x: { grid: { display: false } }
+                                }
+                            }
                         });
                         this.updateChart();
                     });
@@ -507,9 +621,55 @@
 
                 updateChart() {
                     if (!chartInstance) return;
-                    chartInstance.data.labels = this.currentSeriesEntries.map(e => this.formatDate(e.timestamp, true));
-                    chartInstance.data.datasets[0].data = this.currentSeriesEntries.map(e => e.value);
+                    
+                    let labels, data, labelText;
+
+                    if (this.chartSettings.period === 'none') {
+                        labels = this.currentSeriesEntries.map(e => this.formatDate(e.timestamp, true));
+                        data = this.currentSeriesEntries.map(e => e.value);
+                        labelText = 'Raw Values';
+                    } else {
+                        const aggregated = this.getAggregatedData();
+                        labels = aggregated.map(a => a.label);
+                        data = aggregated.map(a => a.value);
+                        const metricLabel = this.metrics.find(m => m.id === this.chartSettings.metric).label;
+                        labelText = `${metricLabel} (${this.chartSettings.period})`;
+                    }
+
+                    chartInstance.data.labels = labels;
+                    chartInstance.data.datasets[0].data = data;
+                    chartInstance.data.datasets[0].label = labelText;
                     chartInstance.update();
+                },
+
+                getAggregatedData() {
+                    const groups = {};
+                    this.currentSeriesEntries.forEach(entry => {
+                        const date = new Date(entry.timestamp);
+                        let key;
+                        switch(this.chartSettings.period) {
+                            case 'day': key = entry.timestamp.split('T')[0]; break;
+                            case 'week': 
+                                const d = new Date(date);
+                                d.setDate(d.getDate() - d.getDay()); // Start of week (Sun)
+                                key = d.toISOString().split('T')[0];
+                                break;
+                            case 'month': key = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`; break;
+                            case 'quarter': key = `${date.getFullYear()}-Q${Math.floor(date.getMonth() / 3) + 1}`; break;
+                            case 'year': key = `${date.getFullYear()}`; break;
+                        }
+                        if (!groups[key]) groups[key] = [];
+                        groups[key].push(entry.value);
+                    });
+
+                    return Object.keys(groups).sort().map(key => {
+                        const values = groups[key].sort((a, b) => a - b);
+                        const stats = this.calculateStats(values);
+                        return { 
+                            label: key, 
+                            value: stats[this.chartSettings.metric] 
+                        };
+                    });
                 },
 
                 formatDate(iso, short = false) {
