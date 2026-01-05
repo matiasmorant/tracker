@@ -279,7 +279,7 @@
                 <div x-show="detailSubView === 'config'" class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200" x-cloak>
                     <div class="max-w-2xl">
                         <h3 class="text-xl font-bold mb-2">Dashboard Summary Configuration</h3>
-                        <p class="text-slate-500 mb-8">Choose which statistics appear in the main dashboard table for this series.</p>
+                        <p class="text-slate-500 mb-8">Choose which statistics appear in the main dashboard table for this series. Changes are saved automatically.</p>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
                             <div>
                                 <label class="block text-sm font-bold text-slate-700 mb-4 uppercase tracking-wider">Target Metric</label>
@@ -287,7 +287,7 @@
                                     <template x-for="m in metrics" :key="m.id">
                                         <label class="flex items-center space-x-3 p-3 border rounded-xl cursor-pointer hover:bg-slate-50 transition-colors" 
                                             :class="currentSeries.config?.stat === m.id ? 'border-indigo-600 bg-indigo-50/50 ring-1 ring-indigo-600' : 'border-slate-200'">
-                                            <input type="radio" :value="m.id" x-model="currentSeries.config.stat" class="w-4 h-4 text-indigo-600 border-slate-300 focus:ring-indigo-500">
+                                            <input type="radio" :value="m.id" x-model="currentSeries.config.stat" @change="saveSeriesConfig()" class="w-4 h-4 text-indigo-600 border-slate-300 focus:ring-indigo-500">
                                             <span class="text-sm font-bold text-slate-700" x-text="m.label"></span>
                                         </label>
                                     </template>
@@ -296,7 +296,7 @@
                             <div class="space-y-8">
                                 <div>
                                     <label class="block text-sm font-bold text-slate-700 mb-4 uppercase tracking-wider">Calculation Period</label>
-                                    <select x-model="currentSeries.config.period" class="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 bg-white shadow-sm">
+                                    <select x-model="currentSeries.config.period" @change="saveSeriesConfig()" class="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 bg-white shadow-sm">
                                         <option value="all">All Data Points</option>
                                         <option value="7">Last 7 Days</option>
                                         <option value="30">Last 30 Days</option>
@@ -310,7 +310,6 @@
                                         <span class="text-2xl font-black text-indigo-600" x-text="currentSeries.summaryDisplay || 'N/A'"></span>
                                     </div>
                                 </div>
-                                <button @click="saveSeriesConfig()" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-md active:scale-[0.98]">Save Configuration</button>
                             </div>
                         </div>
                     </div>
@@ -478,12 +477,10 @@
                     request.onsuccess = (e) => { this.db = e.target.result; this.loadGroups(); this.loadSeries(); };
                 },
 
-                // UTILITY: GET CURRENT ISO STRING IN CUSTOM FORMAT
                 getFormattedISO(date = new Date()) {
                     return date.toISOString().replace('T', ' ');
                 },
 
-                // CSV IMPORT & EXPORT
                 exportCSV() {
                     let csv = "Tags\r\n\r\n";
                     this.groups.forEach(g => { csv += `${g.name}\r\nColor,0\r\n\r\n`; });
@@ -538,12 +535,11 @@
                             const entriesStore = tx.objectStore('entries');
                             const groupsStore = tx.objectStore('groups');
 
-                            // Detect and Create Tags/Groups first if they don't exist
                             let inTags = false;
                             for (let row of data) {
                                 let first = row[0]?.trim();
                                 if (first === "Tags") { inTags = true; continue; }
-                                if (inTags && first === "") break; // Stop when section ends
+                                if (inTags && first === "") break; 
                                 if (inTags && first && first !== "Color") {
                                     groupsStore.put({ name: first });
                                 }
@@ -557,7 +553,6 @@
                                 if (!inParameters) continue;
 
                                 if (firstCell === "" && row[1]) {
-                                    // Normalize the timestamp format during import
                                     let ts = row[1].replace('T', ' ');
                                     currentEntries.push({ timestamp: ts, value: parseFloat(row[2]) });
                                 } 
@@ -599,7 +594,6 @@
                     });
                 },
 
-                // JSON IMPORT & EXPORT
                 async exportData() {
                     try {
                         const tx = this.db.transaction(['series', 'groups', 'entries'], 'readonly');
@@ -771,7 +765,6 @@
                     const tx = this.db.transaction('series', 'readwrite');
                     tx.objectStore('series').put(JSON.parse(JSON.stringify(this.currentSeries))).onsuccess = () => {
                         this.loadSeries();
-                        this.showToast('Dashboard configuration updated');
                     };
                 },
 
@@ -839,7 +832,6 @@
                     } else { finalVal = parseFloat(this.entryForm.value); }
                     if (isNaN(finalVal)) return;
 
-                    // Ensure format 2025-07-13 18:36:00.000Z
                     let cleanTimestamp = this.entryForm.timestamp.replace('T', ' ');
 
                     const tx = this.db.transaction(['entries', 'series'], 'readwrite');
