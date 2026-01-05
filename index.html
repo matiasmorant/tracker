@@ -194,9 +194,11 @@
                         <template x-for="day in calendarDays" :key="day.dateString">
                             <div @click="handleCalendarDayClick(day)" :class="[day.isCurrentMonth ? 'bg-white' : 'bg-slate-50 text-slate-300', 'h-32 border-b border-r border-slate-100 p-2 cursor-pointer hover:bg-indigo-50']">
                                 <span :class="day.isToday ? 'bg-indigo-600 text-white w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold' : 'text-xs font-medium'" x-text="day.day"></span>
-                                <div class="mt-2 space-y-1">
+                                <div class="mt-2 space-y-1 overflow-y-auto max-h-20 custom-scrollbar">
                                     <template x-for="entry in day.entries" :key="entry.id">
-                                        <div class="bg-indigo-100 text-indigo-700 text-[10px] px-2 py-1 rounded border border-indigo-200 font-bold truncate" x-text="entry.value"></div>
+                                        <div @click.stop="editEntry(entry)" 
+                                            class="bg-indigo-100 text-indigo-700 text-[10px] px-2 py-1 rounded border border-indigo-200 font-bold truncate hover:bg-indigo-200 transition-colors" 
+                                            x-text="entry.value"></div>
                                     </template>
                                 </div>
                             </div>
@@ -475,8 +477,13 @@
                 },
 
                 handleCalendarDayClick(d) {
-                    if (d.entries.length) this.editEntry(d.entries[0]);
-                    else { this.activeSeriesForEntry = this.currentSeries; const now = new Date(); d.date.setHours(now.getHours(), now.getMinutes()); this.entryForm = { timestamp: d.date.toISOString().slice(0,16), value: '', notes: '' }; this.modals.entry = true; }
+                    this.activeSeriesForEntry = this.currentSeries;
+                    this.editingEntry = null;
+                    const now = new Date();
+                    const targetDate = new Date(d.date);
+                    targetDate.setHours(now.getHours(), now.getMinutes());
+                    this.entryForm = { timestamp: targetDate.toISOString().slice(0,16), value: '', notes: '' };
+                    this.modals.entry = true;
                 },
 
                 prevMonth() { this.calendarDate = new Date(this.calendarDate.setMonth(this.calendarDate.getMonth()-1)); },
