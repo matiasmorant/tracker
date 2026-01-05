@@ -25,6 +25,12 @@
                 <h1 class="text-xl font-bold tracking-tight text-slate-800">Chronos</h1>
             </div>
             <div class="flex items-center space-x-4">
+                <button @click="exportData()" class="text-slate-600 hover:text-indigo-600 text-sm font-medium">Export JSON</button>
+                <label class="text-slate-600 hover:text-indigo-600 text-sm font-medium cursor-pointer">
+                    Import JSON
+                    <input type="file" accept=".json" class="hidden" @change="importData($event)">
+                </label>
+                <div class="w-px h-4 bg-slate-200 mx-2"></div>
                 <button @click="modals.manageGroups = true" class="text-slate-600 hover:text-indigo-600 text-sm font-medium">Manage Groups</button>
                 <button @click="openNewSeriesModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm">
                     + New Series
@@ -451,7 +457,75 @@
                     request.onsuccess = (e) => { this.db = e.target.result; this.loadGroups(); this.loadSeries(); };
                 },
 
-                // HELPERS
+                // IMPORT & EXPORT LOGIC
+                async exportData() {
+                    try {
+                        const tx = this.db.transaction(['series', 'groups', 'entries'], 'readonly');
+                        const [series, groups, entries] = await Promise.all([
+                            new Promise(resolve => tx.objectStore('series').getAll().onsuccess = e => resolve(e.target.result)),
+                            new Promise(resolve => tx.objectStore('groups').getAll().onsuccess = e => resolve(e.target.result)),
+                            new Promise(resolve => tx.objectStore('entries').getAll().onsuccess = e => resolve(e.target.result))
+                        ]);
+
+                        const exportObj = {
+                            appName: "Chronos",
+                            timestamp: new Date().toISOString(),
+                            data: { series, groups, entries }
+                        };
+
+                        const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `chronos_export_${new Date().toISOString().split('T')[0]}.json`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        this.showToast('Backup downloaded');
+                    } catch (err) {
+                        this.showToast('Export failed');
+                    }
+                },
+
+                async importData(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+
+                    const reader = new FileReader();
+                    reader.onload = async (e) => {
+                        try {
+                            const importObj = JSON.parse(e.target.result);
+                            if (!importObj.data) throw new Error("Invalid format");
+
+                            if (!confirm("This will merge imported data with your current library. Continue?")) return;
+
+                            const tx = this.db.transaction(['series', 'groups', 'entries'], 'readwrite');
+                            
+                            const storeItems = (storeName, items) => {
+                                const store = tx.objectStore(storeName);
+                                (items || []).forEach(item => {
+                                    delete item.id; // Force new auto-increment IDs to avoid collisions
+                                    store.add(item);
+                                });
+                            };
+
+                            storeItems('groups', importObj.data.groups);
+                            storeItems('series', importObj.data.series);
+                            storeItems('entries', importObj.data.entries);
+
+                            tx.oncomplete = () => {
+                                this.loadGroups();
+                                this.loadSeries();
+                                this.showToast('Data merged successfully');
+                                event.target.value = ''; 
+                            };
+                        } catch (err) {
+                            alert("Error importing file. Ensure it is a valid Chronos JSON export.");
+                        }
+                    };
+                    reader.readAsText(file);
+                },
+
+                // HELPERS & CRUD
                 secondsToDHMS(seconds) {
                     const d = Math.floor(seconds / (3600*24));
                     const h = Math.floor(seconds % (3600*24) / 3600);
