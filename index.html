@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/papaparse@latest/papaparse.min.js"></script>
     <style>
         [x-cloak] { display: none !important; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
@@ -25,11 +26,21 @@
                 <h1 class="text-xl font-bold tracking-tight text-slate-800">Chronos</h1>
             </div>
             <div class="flex items-center space-x-4">
-                <button @click="exportData()" class="text-slate-600 hover:text-indigo-600 text-sm font-medium">Export JSON</button>
-                <label class="text-slate-600 hover:text-indigo-600 text-sm font-medium cursor-pointer">
-                    Import JSON
-                    <input type="file" accept=".json" class="hidden" @change="importData($event)">
-                </label>
+                <div class="flex items-center space-x-2">
+                    <button @click="exportData()" class="text-slate-600 hover:text-indigo-600 text-sm font-medium">Export JSON</button>
+                    <label class="text-slate-600 hover:text-indigo-600 text-sm font-medium cursor-pointer">
+                        Import JSON
+                        <input type="file" accept=".json" class="hidden" @change="importData($event)">
+                    </label>
+                </div>
+                <div class="w-px h-4 bg-slate-200 mx-1"></div>
+                <div class="flex items-center space-x-2">
+                    <button @click="exportCSV()" class="text-slate-600 hover:text-indigo-600 text-sm font-medium">Export CSV</button>
+                    <label class="text-slate-600 hover:text-indigo-600 text-sm font-medium cursor-pointer">
+                        Import CSV
+                        <input type="file" accept=".csv" class="hidden" @change="importCSV($event)">
+                    </label>
+                </div>
                 <div class="w-px h-4 bg-slate-200 mx-2"></div>
                 <button @click="modals.manageGroups = true" class="text-slate-600 hover:text-indigo-600 text-sm font-medium">Manage Groups</button>
                 <button @click="openNewSeriesModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm">
@@ -40,7 +51,6 @@
     </header>
 
     <main class="max-w-7xl mx-auto px-4 py-8">
-        
         <template x-if="view === 'list'">
             <div class="space-y-6">
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
@@ -241,7 +251,7 @@
                             <tbody class="divide-y divide-slate-100">
                                 <template x-for="entry in currentSeriesEntries" :key="entry.id">
                                     <tr class="hover:bg-slate-50">
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium" x-text="formatDate(entry.timestamp)"></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium" x-text="entry.timestamp"></td>
                                         <td class="px-6 py-4 text-sm text-indigo-600 font-bold" x-text="currentSeries.type === 'time' ? formatDuration(entry.value) : entry.value"></td>
                                         <td class="px-6 py-4 text-sm text-slate-500" x-text="entry.notes || '-'"></td>
                                         <td class="px-6 py-4 text-right space-x-3">
@@ -368,8 +378,8 @@
                     <h3 class="text-xl font-bold text-slate-900" x-text="editingEntry ? 'Edit Entry' : 'Add New Entry'"></h3>
                     <div class="mt-6 space-y-4">
                         <div>
-                            <label class="block text-sm font-medium text-slate-700">Date & Time</label>
-                            <input type="datetime-local" x-model="entryForm.timestamp" class="w-full mt-1 px-4 py-2 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500">
+                            <label class="block text-sm font-medium text-slate-700">Date & Time (UTC ISO Format)</label>
+                            <input type="text" x-model="entryForm.timestamp" placeholder="2025-07-13 18:36:00.000Z" class="w-full mt-1 px-4 py-2 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500">
                         </div>
                         
                         <div>
@@ -457,7 +467,128 @@
                     request.onsuccess = (e) => { this.db = e.target.result; this.loadGroups(); this.loadSeries(); };
                 },
 
-                // IMPORT & EXPORT LOGIC
+                // UTILITY: GET CURRENT ISO STRING IN CUSTOM FORMAT
+                getFormattedISO(date = new Date()) {
+                    return date.toISOString().replace('T', ' ');
+                },
+
+                // CSV IMPORT & EXPORT
+                exportCSV() {
+                    let csv = "Tags\r\n\r\n";
+                    this.groups.forEach(g => { csv += `${g.name}\r\nColor,0\r\n\r\n`; });
+
+                    csv += "Units\r\n\r\n";
+                    this.series.forEach(s => { csv += `Unit for ${s.name}\r\nType,${s.type === 'time' ? 'duration' : 'number'}\r\nUp as green,true\r\n\r\n`; });
+
+                    csv += "Parameters\r\n\r\n";
+                    
+                    const fetchAllEntries = () => {
+                        return new Promise(async (resolve) => {
+                            const tx = this.db.transaction('entries', 'readonly');
+                            tx.objectStore('entries').getAll().onsuccess = (e) => resolve(e.target.result);
+                        });
+                    };
+
+                    fetchAllEntries().then(allEntries => {
+                        this.series.forEach(s => {
+                            csv += `${s.name}\r\nUnit,Unit for ${s.name}\r\nColor,0\r\nIs archived,false\r\n`;
+                            if (s.group) csv += `Tags,${s.group}\r\n`;
+                            
+                            const entries = allEntries.filter(e => e.seriesId === s.id).sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
+                            entries.forEach(e => {
+                                csv += `,${e.timestamp},${e.value},\r\n`;
+                            });
+                            csv += "\r\n";
+                        });
+
+                        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                        const link = document.createElement("a");
+                        link.href = URL.createObjectURL(blob);
+                        link.setAttribute("download", `chronos_export_${new Date().toISOString().split('T')[0]}.csv`);
+                        link.click();
+                        this.showToast('CSV Exported');
+                    });
+                },
+
+                importCSV(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+
+                    Papa.parse(file, {
+                        complete: async (results) => {
+                            const data = results.data;
+                            let inParameters = false;
+                            let currentSeriesName = null;
+                            let currentSeriesTags = "";
+                            let currentEntries = [];
+                            
+                            const tx = this.db.transaction(['series', 'groups', 'entries'], 'readwrite');
+                            const seriesStore = tx.objectStore('series');
+                            const entriesStore = tx.objectStore('entries');
+                            const groupsStore = tx.objectStore('groups');
+
+                            // Detect and Create Tags/Groups first if they don't exist
+                            let inTags = false;
+                            for (let row of data) {
+                                let first = row[0]?.trim();
+                                if (first === "Tags") { inTags = true; continue; }
+                                if (inTags && first === "") break; // Stop when section ends
+                                if (inTags && first && first !== "Color") {
+                                    groupsStore.put({ name: first });
+                                }
+                            }
+
+                            for (let i = 0; i < data.length; i++) {
+                                const row = data[i];
+                                const firstCell = row[0]?.trim();
+
+                                if (firstCell === "Parameters") { inParameters = true; continue; }
+                                if (!inParameters) continue;
+
+                                if (firstCell === "" && row[1]) {
+                                    // Normalize the timestamp format during import
+                                    let ts = row[1].replace('T', ' ');
+                                    currentEntries.push({ timestamp: ts, value: parseFloat(row[2]) });
+                                } 
+                                else if (firstCell === "Tags") {
+                                    currentSeriesTags = row[1];
+                                }
+                                else if (firstCell && !["Unit", "Color", "Is archived", "Tags"].includes(firstCell)) {
+                                    if (currentSeriesName) {
+                                        await this.saveImportedSeries(seriesStore, entriesStore, currentSeriesName, currentSeriesTags, currentEntries);
+                                    }
+                                    currentSeriesName = firstCell;
+                                    currentSeriesTags = "";
+                                    currentEntries = [];
+                                }
+                            }
+                            if (currentSeriesName) {
+                                await this.saveImportedSeries(seriesStore, entriesStore, currentSeriesName, currentSeriesTags, currentEntries);
+                            }
+
+                            tx.oncomplete = () => {
+                                this.loadSeries();
+                                this.loadGroups();
+                                this.showToast("CSV Imported Successfully");
+                            };
+                        }
+                    });
+                },
+
+                async saveImportedSeries(seriesStore, entriesStore, name, group, entries) {
+                    return new Promise(resolve => {
+                        const seriesData = { name, group, type: 'number', config: { stat: 'mean', period: 'all' } };
+                        seriesStore.add(seriesData).onsuccess = (e) => {
+                            const newId = e.target.result;
+                            entries.forEach(entry => {
+                                entriesStore.add({ ...entry, seriesId: newId });
+                            });
+                            resolve();
+                        };
+                    });
+                },
+
+                // JSON IMPORT & EXPORT
                 async exportData() {
                     try {
                         const tx = this.db.transaction(['series', 'groups', 'entries'], 'readonly');
@@ -467,65 +598,43 @@
                             new Promise(resolve => tx.objectStore('entries').getAll().onsuccess = e => resolve(e.target.result))
                         ]);
 
-                        const exportObj = {
-                            appName: "Chronos",
-                            timestamp: new Date().toISOString(),
-                            data: { series, groups, entries }
-                        };
-
+                        const exportObj = { appName: "Chronos", timestamp: new Date().toISOString(), data: { series, groups, entries } };
                         const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' });
                         const url = URL.createObjectURL(blob);
                         const a = document.createElement('a');
                         a.href = url;
                         a.download = `chronos_export_${new Date().toISOString().split('T')[0]}.json`;
                         a.click();
-                        URL.revokeObjectURL(url);
-                        this.showToast('Backup downloaded');
-                    } catch (err) {
-                        this.showToast('Export failed');
-                    }
+                        this.showToast('JSON Exported');
+                    } catch (err) { this.showToast('Export failed'); }
                 },
 
                 async importData(event) {
                     const file = event.target.files[0];
                     if (!file) return;
-
                     const reader = new FileReader();
                     reader.onload = async (e) => {
                         try {
                             const importObj = JSON.parse(e.target.result);
-                            if (!importObj.data) throw new Error("Invalid format");
-
-                            if (!confirm("This will merge imported data with your current library. Continue?")) return;
-
+                            if (!confirm("Merge imported data?")) return;
                             const tx = this.db.transaction(['series', 'groups', 'entries'], 'readwrite');
-                            
                             const storeItems = (storeName, items) => {
                                 const store = tx.objectStore(storeName);
-                                (items || []).forEach(item => {
-                                    delete item.id; // Force new auto-increment IDs to avoid collisions
-                                    store.add(item);
+                                (items || []).forEach(item => { 
+                                    delete item.id; 
+                                    if(item.timestamp) item.timestamp = item.timestamp.replace('T', ' ');
+                                    store.add(item); 
                                 });
                             };
-
                             storeItems('groups', importObj.data.groups);
                             storeItems('series', importObj.data.series);
                             storeItems('entries', importObj.data.entries);
-
-                            tx.oncomplete = () => {
-                                this.loadGroups();
-                                this.loadSeries();
-                                this.showToast('Data merged successfully');
-                                event.target.value = ''; 
-                            };
-                        } catch (err) {
-                            alert("Error importing file. Ensure it is a valid Chronos JSON export.");
-                        }
+                            tx.oncomplete = () => { this.loadGroups(); this.loadSeries(); this.showToast('Data merged'); };
+                        } catch (err) { alert("Invalid JSON file"); }
                     };
                     reader.readAsText(file);
                 },
 
-                // HELPERS & CRUD
                 secondsToDHMS(seconds) {
                     const d = Math.floor(seconds / (3600*24));
                     const h = Math.floor(seconds % (3600*24) / 3600);
@@ -694,7 +803,7 @@
                     const now = new Date();
                     const targetDate = new Date(d.date);
                     targetDate.setHours(now.getHours(), now.getMinutes());
-                    this.entryForm = { timestamp: targetDate.toISOString().slice(0,16), value: '', notes: '', dhms: { d:0, h:0, m:0, s:0 } };
+                    this.entryForm = { timestamp: this.getFormattedISO(targetDate), value: '', notes: '', dhms: { d:0, h:0, m:0, s:0 } };
                     this.modals.entry = true;
                 },
 
@@ -706,34 +815,26 @@
                 openAddEntryModal(s) { 
                     this.activeSeriesForEntry = s; 
                     this.editingEntry = null; 
-                    this.entryForm = { timestamp: new Date().toISOString().slice(0,16), value: '', notes: '', dhms: { d:0, h:0, m:0, s:0 } }; 
+                    this.entryForm = { timestamp: this.getFormattedISO(), value: '', notes: '', dhms: { d:0, h:0, m:0, s:0 } }; 
                     this.modals.entry = true; 
                 },
                 
                 async saveEntry() {
                     if (!this.entryForm.timestamp) return;
-                    
                     let finalVal;
                     if (this.activeSeriesForEntry.type === 'time') {
                         const {d, h, m, s} = this.entryForm.dhms;
                         finalVal = (parseInt(d||0)*86400) + (parseInt(h||0)*3600) + (parseInt(m||0)*60) + parseInt(s||0);
-                    } else {
-                        finalVal = parseFloat(this.entryForm.value);
-                    }
-
+                    } else { finalVal = parseFloat(this.entryForm.value); }
                     if (isNaN(finalVal)) return;
+
+                    // Ensure format 2025-07-13 18:36:00.000Z
+                    let cleanTimestamp = this.entryForm.timestamp.replace('T', ' ');
 
                     const tx = this.db.transaction(['entries', 'series'], 'readwrite');
                     const entryStore = tx.objectStore('entries');
-                    const data = { 
-                        timestamp: this.entryForm.timestamp, 
-                        notes: this.entryForm.notes, 
-                        seriesId: this.activeSeriesForEntry.id, 
-                        value: finalVal 
-                    };
-                    
+                    const data = { timestamp: cleanTimestamp, notes: this.entryForm.notes, seriesId: this.activeSeriesForEntry.id, value: finalVal };
                     if (this.editingEntry) data.id = this.editingEntry.id;
-                    
                     entryStore.put(data).onsuccess = () => {
                         this.loadEntries(this.activeSeriesForEntry.id);
                         this.loadSeries();
@@ -763,40 +864,13 @@
                         if (!ctx) return;
                         if (chartInstance) chartInstance.destroy();
                         chartInstance = new Chart(ctx, {
-                            type: 'line',
-                            data: { datasets: [] },
+                            type: 'line', data: { datasets: [] },
                             options: { 
                                 responsive: true, maintainAspectRatio: false,
-                                plugins: {
-                                    tooltip: {
-                                        callbacks: {
-                                            label: (context) => {
-                                                let val = context.parsed.y;
-                                                return this.currentSeries.type === 'time' ? `Value: ${this.formatDuration(val)}` : `Value: ${val}`;
-                                            }
-                                        }
-                                    }
-                                },
+                                plugins: { tooltip: { callbacks: { label: (c) => this.currentSeries.type === 'time' ? `Value: ${this.formatDuration(c.parsed.y)}` : `Value: ${c.parsed.y}` } } },
                                 scales: { 
-                                    y: { 
-                                        type: this.chartSettings.logScale ? 'logarithmic' : 'linear',
-                                        ticks: {
-                                            callback: (value) => {
-                                                return this.currentSeries.type === 'time' ? this.formatDuration(value) : value;
-                                            }
-                                        }
-                                    },
-                                    x: { 
-                                        type: 'linear',
-                                        ticks: {
-                                            callback: (value) => {
-                                                const labels = this.currentLabels || [];
-                                                if (Number.isInteger(value)) return labels[value] || '';
-                                                return '';
-                                            },
-                                            stepSize: 1
-                                        }
-                                    }
+                                    y: { type: this.chartSettings.logScale ? 'logarithmic' : 'linear', ticks: { callback: (v) => this.currentSeries.type === 'time' ? this.formatDuration(v) : v } },
+                                    x: { type: 'linear', ticks: { callback: (v) => this.currentLabels[v] || '', stepSize: 1 } }
                                 } 
                             }
                         });
@@ -810,52 +884,28 @@
                     let labels = [], datasets = [];
                     const rId = this.chartSettings.runningMetric;
                     const win = this.chartSettings.window;
-
                     let baseSourceData = [];
-
                     if (this.chartSettings.period === 'none') {
-                        labels = this.currentSeriesEntries.map(e => this.formatDate(e.timestamp, true));
+                        labels = this.currentSeriesEntries.map(e => e.timestamp.split(' ')[0]);
                         baseSourceData = this.currentSeriesEntries.map(e => e.value);
-                        datasets.push({ 
-                            label: 'Raw', 
-                            data: baseSourceData.map((v, i) => ({ x: i, y: v })), 
-                            borderColor: '#4f46e5', tension: 0.3 
-                        });
+                        datasets.push({ label: 'Raw', data: baseSourceData.map((v, i) => ({ x: i, y: v })), borderColor: '#4f46e5', tension: 0.3 });
                     } else {
                         const agg = this.getAggData(); labels = agg.labels;
                         this.analysisSelection.forEach(mId => { 
                             const m = this.metrics.find(x => x.id === mId); 
-                            const data = agg.datasets[mId];
-                            datasets.push({ 
-                                label: m.label, 
-                                data: data.map((v, i) => ({ x: i, y: v })), 
-                                borderColor: m.color, tension: 0.3 
-                            }); 
+                            datasets.push({ label: m.label, data: agg.datasets[mId].map((v, i) => ({ x: i, y: v })), borderColor: m.color, tension: 0.3 }); 
                         });
                         baseSourceData = agg.datasets['mean'];
                     }
-
                     this.currentLabels = labels;
-
                     if (rId && win >= 2 && baseSourceData.length > 0) {
                         const runningData = [];
                         for (let i = 0; i <= baseSourceData.length - win; i++) {
                             const slice = baseSourceData.slice(i, i + win).filter(v => v !== null).sort((a, b) => a - b);
-                            if (slice.length === win) {
-                                runningData.push({
-                                    x: i + (win - 1) / 2,
-                                    y: this.calculateStats(slice)[rId]
-                                });
-                            }
+                            if (slice.length === win) runningData.push({ x: i + (win - 1) / 2, y: this.calculateStats(slice)[rId] });
                         }
-
-                        datasets.push({
-                            label: `Centered ${win}-pt ${this.metrics.find(m => m.id === rId).label}`,
-                            data: runningData,
-                            borderColor: '#f59e0b', borderDash: [5, 5], borderWidth: 2, pointRadius: 0, tension: 0.4
-                        });
+                        datasets.push({ label: `Centered ${win}-pt ${this.metrics.find(m => m.id === rId).label}`, data: runningData, borderColor: '#f59e0b', borderDash: [5, 5], borderWidth: 2, pointRadius: 0, tension: 0.4 });
                     }
-
                     chartInstance.data.datasets = datasets; 
                     chartInstance.update();
                 },
@@ -865,7 +915,7 @@
                     this.currentSeriesEntries.forEach(e => {
                         const d = new Date(e.timestamp); let k;
                         switch(this.chartSettings.period) {
-                            case 'day': k = e.timestamp.split('T')[0]; break;
+                            case 'day': k = e.timestamp.split(' ')[0]; break;
                             case 'week': const w = new Date(d); w.setDate(w.getDate()-w.getDay()); k = w.toISOString().split('T')[0]; break;
                             case 'month': k = `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}`; break;
                             case 'year': k = `${d.getFullYear()}`; break;
@@ -878,7 +928,6 @@
                     return res;
                 },
 
-                formatDate(iso, s = false) { const d = new Date(iso); return s ? d.toLocaleDateString([], { month: 'short', day: 'numeric' }) : d.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }); },
                 showToast(m) { this.toast.message = m; this.toast.show = true; setTimeout(() => this.toast.show = false, 3000); }
             }
         }
