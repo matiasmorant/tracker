@@ -8,6 +8,7 @@
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/papaparse@latest/papaparse.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
         [x-cloak] { display: none !important; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
@@ -134,11 +135,21 @@
                         </div>
                     </div>
                     <div class="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
-                        <button @click="changeSubView('chart')" :class="detailSubView === 'chart' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap">Visualization</button>
-                        <button @click="changeSubView('analysis')" :class="detailSubView === 'analysis' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap">Analysis</button>
-                        <button @click="changeSubView('calendar')" :class="detailSubView === 'calendar' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap">Calendar</button>
-                        <button @click="changeSubView('history')" :class="detailSubView === 'history' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap">History</button>
-                        <button @click="changeSubView('config')" :class="detailSubView === 'config' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap">Configuration</button>
+                        <button @click="changeSubView('chart')" :class="detailSubView === 'chart' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'" class="px-5 py-2 rounded-lg text-lg transition-all" title="Visualization">
+                            <i class="fa-solid fa-chart-line"></i>
+                        </button>
+                        <button @click="changeSubView('analysis')" :class="detailSubView === 'analysis' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'" class="px-5 py-2 rounded-lg text-lg transition-all" title="Analysis">
+                            <i class="fa-solid fa-square-root-variable"></i>
+                        </button>
+                        <button @click="changeSubView('calendar')" :class="detailSubView === 'calendar' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'" class="px-5 py-2 rounded-lg text-lg transition-all" title="Calendar">
+                            <i class="fa-solid fa-calendar-days"></i>
+                        </button>
+                        <button @click="changeSubView('history')" :class="detailSubView === 'history' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'" class="px-5 py-2 rounded-lg text-lg transition-all" title="History">
+                            <i class="fa-solid fa-table-list"></i>
+                        </button>
+                        <button @click="changeSubView('config')" :class="detailSubView === 'config' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'" class="px-5 py-2 rounded-lg text-lg transition-all" title="Configuration">
+                            <i class="fa-solid fa-gear"></i>
+                        </button>
                     </div>
                 </div>
 
