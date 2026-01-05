@@ -602,7 +602,6 @@
                     if (this.editingEntry) data.id = this.editingEntry.id;
                     
                     entryStore.put(data).onsuccess = () => {
-                        // After entry saved, refresh series summaries for dashboard
                         entryStore.index('seriesId').getAll(IDBKeyRange.only(this.activeSeriesForEntry.id)).onsuccess = (e) => {
                             const entries = e.target.result;
                             this.currentSeriesEntries = entries.sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
@@ -623,7 +622,6 @@
                         tx.objectStore('entries').delete(id); 
                         tx.oncomplete = () => {
                             this.loadEntries(this.currentSeries.id);
-                            // Chain a save to update the display
                             setTimeout(() => this.saveSeriesConfig(), 100);
                         };
                     } 
@@ -646,39 +644,41 @@
                     if (!chartInstance) return;
                     chartInstance.options.scales.y.type = this.chartSettings.logScale ? 'logarithmic' : 'linear';
                     let labels = [], datasets = [];
+                    const rId = this.chartSettings.runningMetric;
+                    const win = this.chartSettings.window;
+
                     if (this.chartSettings.period === 'none') {
                         labels = this.currentSeriesEntries.map(e => this.formatDate(e.timestamp, true));
                         datasets.push({ label: 'Raw', data: this.currentSeriesEntries.map(e => e.value), borderColor: '#4f46e5', tension: 0.3 });
                     } else {
                         const agg = this.getAggData(); labels = agg.labels;
-                        this.analysisSelection.forEach(mId => { const m = this.metrics.find(x => x.id === mId); datasets.push({ label: m.label, data: agg.datasets[mId], borderColor: m.color, tension: 0.3 }); });
+                        this.analysisSelection.forEach(mId => { 
+                            const m = this.metrics.find(x => x.id === mId); 
+                            datasets.push({ label: m.label, data: agg.datasets[mId], borderColor: m.color, tension: 0.3 }); 
+                        });
                     }
 
-                    // Compute Running Statistics
-                    if (this.chartSettings.runningMetric && this.chartSettings.window > 1) {
-                        const rId = this.chartSettings.runningMetric;
-                        const win = this.chartSettings.window;
-                        
-                        // Select source based on period (Raw vs Aggregated)
-                        const sourceLabel = this.chartSettings.period === 'none' ? 'Raw' : this.metrics.find(m => m.id === rId).label;
-                        const source = datasets.find(d => d.label === sourceLabel);
-
-                        if (source) {
+                    if (rId && win > 1) {
+                        const runningDatasets = [];
+                        datasets.forEach(source => {
                             const runningData = source.data.map((_, idx, arr) => {
                                 if (idx < win - 1) return null;
-                                const slice = arr.slice(idx - win + 1, idx + 1).filter(v => v !== null).sort((a,b)=>a-b);
+                                const slice = arr.slice(idx - win + 1, idx + 1).filter(v => v !== null && v !== undefined).sort((a,b)=>a-b);
+                                if (slice.length === 0) return null;
                                 return this.calculateStats(slice)[rId];
                             });
 
-                            datasets.push({
-                                label: `Running ${this.metrics.find(m => m.id === rId).label} (w:${win})`,
+                            runningDatasets.push({
+                                label: `Running ${this.metrics.find(m => m.id === rId).label} (${source.label})`,
                                 data: runningData,
-                                borderColor: '#64748b',
+                                borderColor: source.borderColor,
                                 borderDash: [5, 5],
+                                borderWidth: 2,
                                 pointRadius: 0,
                                 tension: 0.4
                             });
-                        }
+                        });
+                        datasets.push(...runningDatasets);
                     }
 
                     chartInstance.data.labels = labels; chartInstance.data.datasets = datasets; chartInstance.update();
