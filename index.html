@@ -129,7 +129,7 @@
                         <div class="flex flex-wrap items-center gap-4">
                             <label class="flex items-center space-x-2 text-sm text-slate-600 cursor-pointer">
                                 <input type="checkbox" x-model="chartSettings.logScale" @change="updateChart()" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
-                                <span>Logarithmic Scale</span>
+                                <span>Log Scale</span>
                             </label>
                             <select x-model="chartSettings.period" @change="updateChart()" class="text-xs border border-slate-200 rounded-md px-2 py-1 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500">
                                 <option value="none">Raw Data</option>
@@ -138,6 +138,17 @@
                                 <option value="month">Monthly</option>
                                 <option value="year">Yearly</option>
                             </select>
+
+                            <div class="flex items-center space-x-2 border-l pl-4 border-slate-200">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Running Stat</span>
+                                <select x-model="chartSettings.runningMetric" @change="updateChart()" class="text-xs border border-slate-200 rounded-md px-2 py-1 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500">
+                                    <option value="">None</option>
+                                    <template x-for="m in metrics" :key="m.id">
+                                        <option :value="m.id" x-text="m.label"></option>
+                                    </template>
+                                </select>
+                                <input type="number" x-model.number="chartSettings.window" @input="updateChart()" min="2" placeholder="Win" class="w-16 text-xs border border-slate-200 rounded-md px-2 py-1 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500">
+                            </div>
                         </div>
                     </div>
                     <div class="relative h-96">
@@ -392,7 +403,7 @@
                 editingSeries: null, seriesForm: { name: '', group: '', config: { stat: 'mean', period: 'all' } },
                 editingEntry: null, activeSeriesForEntry: null, entryForm: { timestamp: '', value: '', notes: '' },
                 toast: { show: false, message: '' },
-                chartSettings: { period: 'none', logScale: false },
+                chartSettings: { period: 'none', logScale: false, runningMetric: '', window: 7 },
                 analysisSelection: ['mean', 'median', 'count'],
                 metrics: [
                     { id: 'mean', label: 'Mean', color: '#4f46e5' }, { id: 'sum', label: 'Sum', color: '#10b981' }, { id: 'count', label: 'Count', color: '#f59e0b' },
@@ -642,6 +653,34 @@
                         const agg = this.getAggData(); labels = agg.labels;
                         this.analysisSelection.forEach(mId => { const m = this.metrics.find(x => x.id === mId); datasets.push({ label: m.label, data: agg.datasets[mId], borderColor: m.color, tension: 0.3 }); });
                     }
+
+                    // Compute Running Statistics
+                    if (this.chartSettings.runningMetric && this.chartSettings.window > 1) {
+                        const rId = this.chartSettings.runningMetric;
+                        const win = this.chartSettings.window;
+                        
+                        // Select source based on period (Raw vs Aggregated)
+                        const sourceLabel = this.chartSettings.period === 'none' ? 'Raw' : this.metrics.find(m => m.id === rId).label;
+                        const source = datasets.find(d => d.label === sourceLabel);
+
+                        if (source) {
+                            const runningData = source.data.map((_, idx, arr) => {
+                                if (idx < win - 1) return null;
+                                const slice = arr.slice(idx - win + 1, idx + 1).filter(v => v !== null).sort((a,b)=>a-b);
+                                return this.calculateStats(slice)[rId];
+                            });
+
+                            datasets.push({
+                                label: `Running ${this.metrics.find(m => m.id === rId).label} (w:${win})`,
+                                data: runningData,
+                                borderColor: '#64748b',
+                                borderDash: [5, 5],
+                                pointRadius: 0,
+                                tension: 0.4
+                            });
+                        }
+                    }
+
                     chartInstance.data.labels = labels; chartInstance.data.datasets = datasets; chartInstance.update();
                 },
 
