@@ -230,21 +230,22 @@
 
     <script>
         function app() {
+            // FIX: Variable stored outside return to avoid Alpine.js Proxy recursion
+            let chartInstance = null;
+
             return {
-                view: 'list', // 'list' or 'detail'
-                detailSubView: 'chart', // 'chart' or 'calendar'
+                view: 'list',
+                detailSubView: 'chart',
                 db: null,
                 series: [],
                 currentSeries: null,
                 currentSeriesEntries: [],
                 
-                // Filters & Sorting
                 searchQuery: '',
                 filterGroup: '',
                 sortField: 'name',
                 sortOrder: 'asc',
 
-                // Modals & Forms
                 modals: {
                     series: false,
                     entry: false
@@ -256,7 +257,6 @@
                 entryForm: { timestamp: '', value: '', notes: '' },
 
                 toast: { show: false, message: '' },
-                chart: null,
 
                 async initDB() {
                     const request = indexedDB.open('ChronosDB', 1);
@@ -407,9 +407,9 @@
                 initChart() {
                     this.$nextTick(() => {
                         const ctx = document.getElementById('seriesChart').getContext('2d');
-                        if (this.chart) this.chart.destroy();
+                        if (chartInstance) chartInstance.destroy();
                         
-                        this.chart = new Chart(ctx, {
+                        chartInstance = new Chart(ctx, {
                             type: 'line',
                             data: {
                                 labels: [],
@@ -439,14 +439,14 @@
                 },
 
                 updateChart() {
-                    if (!this.chart) return;
+                    if (!chartInstance) return;
                     const labels = this.currentSeriesEntries.map(e => this.formatDate(e.timestamp, true));
                     const values = this.currentSeriesEntries.map(e => e.value);
                     
-                    this.chart.data.labels = labels;
-                    this.chart.data.datasets[0].data = values;
-                    this.chart.data.datasets[0].label = this.currentSeries.name;
-                    this.chart.update();
+                    chartInstance.data.labels = labels;
+                    chartInstance.data.datasets[0].data = values;
+                    chartInstance.data.datasets[0].label = this.currentSeries.name;
+                    chartInstance.update();
                 },
 
                 formatDate(iso, short = false) {
