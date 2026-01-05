@@ -72,13 +72,13 @@
                         <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider font-semibold">
                             <tr>
                                 <th class="px-6 py-4 cursor-pointer hover:text-indigo-600 transition-colors" @click="sortBy('name')">
-                                    Series Name <span x-show="sortField === 'name'" x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                                    Name <span x-show="sortField === 'name'" x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
                                 </th>
                                 <th class="px-6 py-4 cursor-pointer hover:text-indigo-600 transition-colors" @click="sortBy('group')">
                                     Group <span x-show="sortField === 'group'" x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
                                 </th>
-                                <th class="px-6 py-4">Dashboard Summary</th>
-                                <th class="px-6 py-4 text-right">Actions</th>
+                                <th class="px-6 py-4">Summary</th>
+                                <th class="px-6 py-4 text-right"></th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
@@ -86,7 +86,6 @@
                                 <tr class="hover:bg-slate-50 transition-colors cursor-pointer group" @click="openSeriesDetail(series)">
                                     <td class="px-6 py-4">
                                         <div class="font-medium text-slate-800" x-text="series.name"></div>
-                                        <div class="text-[10px] text-slate-400 uppercase font-bold" x-text="series.type || 'number'"></div>
                                     </td>
                                     <td class="px-6 py-4">
                                         <span class="px-2 py-1 bg-slate-100 text-slate-600 rounded text-xs" x-text="series.group || 'Uncategorized'"></span>
@@ -278,7 +277,7 @@
 
                 <div x-show="detailSubView === 'config'" class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200" x-cloak>
                     <div class="max-w-2xl">
-                        <h3 class="text-xl font-bold mb-2">Dashboard Summary Configuration</h3>
+                        <h3 class="text-xl font-bold mb-2">Summary Configuration</h3>
                         <p class="text-slate-500 mb-8">Choose which statistics appear in the main dashboard table for this series. Changes are saved automatically.</p>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
                             <div>
@@ -298,10 +297,11 @@
                                     <label class="block text-sm font-bold text-slate-700 mb-4 uppercase tracking-wider">Calculation Period</label>
                                     <select x-model="currentSeries.config.period" @change="saveSeriesConfig()" class="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 bg-white shadow-sm">
                                         <option value="all">All Data Points</option>
-                                        <option value="7">Last 7 Days</option>
-                                        <option value="30">Last 30 Days</option>
-                                        <option value="90">Last 90 Days</option>
-                                        <option value="365">Last Year</option>
+                                        <option value="day">Current Day</option>
+                                        <option value="week">Current Week</option>
+                                        <option value="month">Current Month</option>
+                                        <option value="quarter">Current Quarter</option>
+                                        <option value="year">Current Year</option>
                                     </select>
                                 </div>
                                 <div class="p-6 bg-slate-50 rounded-2xl border border-slate-200">
@@ -359,8 +359,8 @@
                         <div>
                             <label class="block text-sm font-medium text-slate-700">Type</label>
                             <select x-model="seriesForm.type" class="w-full mt-1 px-4 py-2 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500">
-                                <option value="number">Number (Scalar)</option>
-                                <option value="time">Time (Duration)</option>
+                                <option value="number">Number</option>
+                                <option value="time">Time</option>
                             </select>
                         </div>
                         <div>
@@ -744,11 +744,37 @@
                     if (!this.currentSeriesEntries.length || !this.currentSeries.config) return;
                     const config = this.currentSeries.config;
                     let subset = this.currentSeriesEntries;
+                    
                     if (config.period !== 'all') {
-                        const cutoff = new Date();
-                        cutoff.setDate(cutoff.getDate() - parseInt(config.period));
-                        subset = subset.filter(e => new Date(e.timestamp) >= cutoff);
+                        const now = new Date();
+                        const startOfPeriod = new Date();
+                        startOfPeriod.setHours(0, 0, 0, 0);
+
+                        switch (config.period) {
+                            case 'day':
+                                // Today start is already set
+                                break;
+                            case 'week':
+                                // Set to Sunday of current week
+                                startOfPeriod.setDate(now.getDate() - now.getDay());
+                                break;
+                            case 'month':
+                                // Set to 1st of month
+                                startOfPeriod.setDate(1);
+                                break;
+                            case 'quarter':
+                                // Find 1st month of current quarter
+                                const quarterMonth = Math.floor(now.getMonth() / 3) * 3;
+                                startOfPeriod.setMonth(quarterMonth, 1);
+                                break;
+                            case 'year':
+                                // Set to Jan 1st
+                                startOfPeriod.setMonth(0, 1);
+                                break;
+                        }
+                        subset = subset.filter(e => new Date(e.timestamp) >= startOfPeriod);
                     }
+
                     if (!subset.length) { this.currentSeries.summaryDisplay = null; return; }
                     const vals = subset.map(e => e.value).sort((a,b) => a-b);
                     const stats = this.calculateStats(vals);
