@@ -162,14 +162,15 @@
                             </label>
                             <select x-model="chartSettings.period" @change="updateChart()" class="text-xs border border-slate-200 rounded-md px-2 py-1 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500">
                                 <option value="none">Raw Data</option>
-                                <option value="day">Day Mean</option>
-                                <option value="week">Weekly</option>
-                                <option value="month">Monthly</option>
-                                <option value="year">Yearly</option>
+                                <option value="day">Day</option>
+                                <option value="week">Week</option>
+                                <option value="month">Month</option>
+                                <option value="quarter">Quarter</option>
+                                <option value="year">Year</option>
                             </select>
 
                             <div class="flex items-center space-x-2 border-l pl-4 border-slate-200">
-                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Centered Running Stat</span>
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Running Stat</span>
                                 <select x-model="chartSettings.runningMetric" @change="updateChart()" class="text-xs border border-slate-200 rounded-md px-2 py-1 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500">
                                     <option value="">None</option>
                                     <template x-for="m in metrics" :key="m.id">
@@ -947,6 +948,10 @@
                             case 'day': k = e.timestamp.split(' ')[0]; break;
                             case 'week': const w = new Date(d); w.setDate(w.getDate()-w.getDay()); k = w.toISOString().split('T')[0]; break;
                             case 'month': k = `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}`; break;
+                            case 'quarter': 
+                                const q = Math.floor(d.getMonth() / 3) + 1;
+                                k = `${d.getFullYear()}-Q${q}`; 
+                                break;
                             case 'year': k = `${d.getFullYear()}`; break;
                         }
                         if (!gs[k]) gs[k] = []; gs[k].push(e.value);
