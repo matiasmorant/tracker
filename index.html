@@ -125,11 +125,6 @@
                                 <option value="quarter">Quarterly</option>
                                 <option value="year">Yearly</option>
                             </select>
-                            <select x-show="chartSettings.period !== 'none'" x-model="chartSettings.metric" @change="updateChart()" class="text-xs border border-slate-200 rounded-md px-2 py-1 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500">
-                                <template x-for="m in metrics" :key="m.id">
-                                    <option :value="m.id" x-text="m.label"></option>
-                                </template>
-                            </select>
                         </div>
                     </div>
                     <div class="relative h-96">
@@ -144,7 +139,7 @@
                             <div class="space-y-2">
                                 <template x-for="m in metrics" :key="m.id">
                                     <label class="flex items-center space-x-3 p-2 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors border border-transparent hover:border-slate-100">
-                                        <input type="checkbox" :value="m.id" x-model="analysisSelection" class="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                                        <input type="checkbox" :value="m.id" x-model="analysisSelection" @change="updateChart()" class="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
                                         <span class="text-sm font-medium text-slate-700" x-text="m.label"></span>
                                     </label>
                                 </template>
@@ -354,17 +349,17 @@
                 toast: { show: false, message: '' },
 
                 // Analysis & Visualization state
-                chartSettings: { period: 'none', metric: 'mean' },
+                chartSettings: { period: 'none' },
                 analysisSelection: ['mean', 'median', 'count'],
                 metrics: [
-                    { id: 'mean', label: 'Mean' },
-                    { id: 'sum', label: 'Sum' },
-                    { id: 'count', label: 'Count' },
-                    { id: 'min', label: 'Quartile 0 (Min)' },
-                    { id: 'q1', label: 'Quartile 1' },
-                    { id: 'median', label: 'Quartile 2 (Median)' },
-                    { id: 'q3', label: 'Quartile 3' },
-                    { id: 'max', label: 'Quartile 4 (Max)' }
+                    { id: 'mean', label: 'Mean', color: '#4f46e5' },
+                    { id: 'sum', label: 'Sum', color: '#10b981' },
+                    { id: 'count', label: 'Count', color: '#f59e0b' },
+                    { id: 'min', label: 'Quartile 0 (Min)', color: '#ef4444' },
+                    { id: 'q1', label: 'Quartile 1', color: '#8b5cf6' },
+                    { id: 'median', label: 'Quartile 2 (Median)', color: '#ec4899' },
+                    { id: 'q3', label: 'Quartile 3', color: '#06b6d4' },
+                    { id: 'max', label: 'Quartile 4 (Max)', color: '#1e293b' }
                 ],
 
                 async initDB() {
@@ -437,6 +432,7 @@
                 async openSeriesDetail(series) {
                     this.currentSeries = series;
                     this.view = 'detail';
+                    this.detailSubView = 'chart';
                     this.loadEntries(series.id);
                 },
 
@@ -445,11 +441,14 @@
                     const request = tx.objectStore('entries').index('seriesId').getAll(IDBKeyRange.only(seriesId));
                     request.onsuccess = () => {
                         this.currentSeriesEntries = request.result.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-                        if (this.detailSubView === 'chart') this.updateChart();
+                        if (this.detailSubView === 'chart') {
+                            this.$nextTick(() => {
+                                this.initChart();
+                            });
+                        }
                     };
                 },
 
-                // Analysis Logic
                 get activeStats() {
                     if (!this.currentSeriesEntries.length) return [];
                     const sortedValues = this.currentSeriesEntries.map(e => e.value).sort((a, b) => a - b);
@@ -481,7 +480,6 @@
                     };
                 },
 
-                // Calendar Logic
                 get calendarDays() {
                     const year = this.calendarDate.getFullYear();
                     const month = this.calendarDate.getMonth();
@@ -580,7 +578,6 @@
                     tx.oncomplete = () => this.loadEntries(this.currentSeries.id);
                 },
 
-                // Visualization Logic
                 initChart() {
                     this.$nextTick(() => {
                         const canvas = document.getElementById('seriesChart');
@@ -589,19 +586,7 @@
                         if (chartInstance) chartInstance.destroy();
                         chartInstance = new Chart(ctx, {
                             type: 'line',
-                            data: {
-                                labels: [],
-                                datasets: [{
-                                    label: 'Value',
-                                    data: [],
-                                    borderColor: '#4f46e5',
-                                    backgroundColor: 'rgba(79, 70, 229, 0.1)',
-                                    fill: true,
-                                    tension: 0.3,
-                                    pointRadius: 4,
-                                    pointHoverRadius: 6
-                                }]
-                            },
+                            data: { labels: [], datasets: [] },
                             options: { 
                                 responsive: true, 
                                 maintainAspectRatio: false,
@@ -622,23 +607,39 @@
                 updateChart() {
                     if (!chartInstance) return;
                     
-                    let labels, data, labelText;
+                    let labels = [];
+                    let datasets = [];
 
                     if (this.chartSettings.period === 'none') {
                         labels = this.currentSeriesEntries.map(e => this.formatDate(e.timestamp, true));
-                        data = this.currentSeriesEntries.map(e => e.value);
-                        labelText = 'Raw Values';
+                        datasets.push({
+                            label: 'Raw Values',
+                            data: this.currentSeriesEntries.map(e => e.value),
+                            borderColor: '#4f46e5',
+                            backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 4
+                        });
                     } else {
                         const aggregated = this.getAggregatedData();
-                        labels = aggregated.map(a => a.label);
-                        data = aggregated.map(a => a.value);
-                        const metricLabel = this.metrics.find(m => m.id === this.chartSettings.metric).label;
-                        labelText = `${metricLabel} (${this.chartSettings.period})`;
+                        labels = aggregated.labels;
+
+                        this.analysisSelection.forEach(metricId => {
+                            const metricInfo = this.metrics.find(m => m.id === metricId);
+                            datasets.push({
+                                label: metricInfo.label,
+                                data: aggregated.datasets[metricId],
+                                borderColor: metricInfo.color,
+                                backgroundColor: 'transparent',
+                                tension: 0.3,
+                                pointRadius: 3
+                            });
+                        });
                     }
 
                     chartInstance.data.labels = labels;
-                    chartInstance.data.datasets[0].data = data;
-                    chartInstance.data.datasets[0].label = labelText;
+                    chartInstance.data.datasets = datasets;
                     chartInstance.update();
                 },
 
@@ -651,7 +652,7 @@
                             case 'day': key = entry.timestamp.split('T')[0]; break;
                             case 'week': 
                                 const d = new Date(date);
-                                d.setDate(d.getDate() - d.getDay()); // Start of week (Sun)
+                                d.setDate(d.getDate() - d.getDay());
                                 key = d.toISOString().split('T')[0];
                                 break;
                             case 'month': key = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`; break;
@@ -662,14 +663,20 @@
                         groups[key].push(entry.value);
                     });
 
-                    return Object.keys(groups).sort().map(key => {
+                    const sortedKeys = Object.keys(groups).sort();
+                    const result = { labels: sortedKeys, datasets: {} };
+
+                    this.metrics.forEach(m => result.datasets[m.id] = []);
+
+                    sortedKeys.forEach(key => {
                         const values = groups[key].sort((a, b) => a - b);
                         const stats = this.calculateStats(values);
-                        return { 
-                            label: key, 
-                            value: stats[this.chartSettings.metric] 
-                        };
+                        this.metrics.forEach(m => {
+                            result.datasets[m.id].push(stats[m.id]);
+                        });
                     });
+
+                    return result;
                 },
 
                 formatDate(iso, short = false) {
