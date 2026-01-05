@@ -47,9 +47,6 @@
                                 <span x-text="group.name"></span>
                             </label>
                         </template>
-                        <template x-if="groups.length === 0">
-                            <span class="text-sm text-slate-400 italic">No groups defined yet</span>
-                        </template>
                     </div>
                 </div>
 
@@ -63,7 +60,7 @@
                                 <th class="px-6 py-4 cursor-pointer hover:text-indigo-600 transition-colors" @click="sortBy('group')">
                                     Group <span x-show="sortField === 'group'" x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
                                 </th>
-                                <th class="px-6 py-4">Summary</th>
+                                <th class="px-6 py-4">Dashboard Summary</th>
                                 <th class="px-6 py-4 text-right">Actions</th>
                             </tr>
                         </thead>
@@ -74,7 +71,16 @@
                                     <td class="px-6 py-4">
                                         <span class="px-2 py-1 bg-slate-100 text-slate-600 rounded text-xs" x-text="series.group || 'Uncategorized'"></span>
                                     </td>
-                                    <td class="px-6 py-4 text-sm text-slate-500" x-text="series.description || 'No description'"></td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex flex-wrap gap-1.5 items-center">
+                                            <template x-if="series.summaryDisplay">
+                                                <span class="text-sm font-bold text-indigo-600" x-text="series.summaryDisplay"></span>
+                                            </template>
+                                            <template x-if="!series.summaryDisplay">
+                                                <span class="text-xs text-slate-400 italic">No data</span>
+                                            </template>
+                                        </div>
+                                    </td>
                                     <td class="px-6 py-4 text-right" @click.stop>
                                         <div class="flex items-center justify-end space-x-3">
                                             <button @click="openAddEntryModal(series)" title="Add Entry" class="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg">
@@ -106,17 +112,14 @@
                         </button>
                         <div class="flex items-center space-x-3">
                             <h2 class="text-3xl font-bold text-slate-800" x-text="currentSeries.name"></h2>
-                            <button @click="editSeries(currentSeries)" class="text-slate-400 hover:text-indigo-600">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-                            </button>
                         </div>
-                        <p class="text-slate-500 mt-1" x-text="currentSeries.description"></p>
                     </div>
                     <div class="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
                         <button @click="changeSubView('chart')" :class="detailSubView === 'chart' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap">Visualization</button>
                         <button @click="changeSubView('analysis')" :class="detailSubView === 'analysis' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap">Analysis</button>
                         <button @click="changeSubView('calendar')" :class="detailSubView === 'calendar' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap">Calendar</button>
                         <button @click="changeSubView('history')" :class="detailSubView === 'history' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap">History</button>
+                        <button @click="changeSubView('config')" :class="detailSubView === 'config' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap">Configuration</button>
                     </div>
                 </div>
 
@@ -133,7 +136,6 @@
                                 <option value="day">Day Mean</option>
                                 <option value="week">Weekly</option>
                                 <option value="month">Monthly</option>
-                                <option value="quarter">Quarterly</option>
                                 <option value="year">Yearly</option>
                             </select>
                         </div>
@@ -232,6 +234,53 @@
                         </table>
                     </div>
                 </div>
+
+                <div x-show="detailSubView === 'config'" class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200" x-cloak>
+                    <div class="max-w-2xl">
+                        <h3 class="text-xl font-bold mb-2">Dashboard Summary Configuration</h3>
+                        <p class="text-slate-500 mb-8">Choose which statistics appear in the main dashboard table for this series.</p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700 mb-4 uppercase tracking-wider">Target Metric</label>
+                                <div class="space-y-2">
+                                    <template x-for="m in metrics" :key="m.id">
+                                        <label class="flex items-center space-x-3 p-3 border rounded-xl cursor-pointer hover:bg-slate-50 transition-colors" 
+                                            :class="currentSeries.config?.stat === m.id ? 'border-indigo-600 bg-indigo-50/50 ring-1 ring-indigo-600' : 'border-slate-200'">
+                                            <input type="radio" :value="m.id" x-model="currentSeries.config.stat" class="w-4 h-4 text-indigo-600 border-slate-300 focus:ring-indigo-500">
+                                            <span class="text-sm font-bold text-slate-700" x-text="m.label"></span>
+                                        </label>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <div class="space-y-8">
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-700 mb-4 uppercase tracking-wider">Calculation Period</label>
+                                    <select x-model="currentSeries.config.period" class="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 bg-white shadow-sm">
+                                        <option value="all">All Data Points</option>
+                                        <option value="7">Last 7 Days</option>
+                                        <option value="30">Last 30 Days</option>
+                                        <option value="90">Last 90 Days</option>
+                                        <option value="365">Last Year</option>
+                                    </select>
+                                </div>
+
+                                <div class="p-6 bg-slate-50 rounded-2xl border border-slate-200">
+                                    <p class="text-xs font-bold text-slate-400 uppercase mb-2">Preview</p>
+                                    <div class="flex items-baseline space-x-2">
+                                        <span class="text-2xl font-black text-indigo-600" x-text="currentSeries.summaryDisplay || 'N/A'"></span>
+                                        <span class="text-xs text-slate-500" x-text="'(Updating live)'"></span>
+                                    </div>
+                                </div>
+
+                                <button @click="saveSeriesConfig()" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-md active:scale-[0.98]">
+                                    Save Configuration
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </template>
     </main>
@@ -285,10 +334,6 @@
                                 <option value="">Uncategorized</option>
                                 <template x-for="g in groups" :key="g.id"><option :value="g.name" x-text="g.name"></option></template>
                             </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-slate-700">Description</label>
-                            <textarea x-model="seriesForm.description" rows="3" class="w-full mt-1 px-4 py-2 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
                         </div>
                     </div>
                 </div>
@@ -344,7 +389,7 @@
                 selectedGroups: [], sortField: 'name', sortOrder: 'asc',
                 modals: { series: false, entry: false, manageGroups: false },
                 groupForm: { name: '' }, editingGroup: null,
-                editingSeries: null, seriesForm: { name: '', group: '', description: '' },
+                editingSeries: null, seriesForm: { name: '', group: '', config: { stat: 'mean', period: 'all' } },
                 editingEntry: null, activeSeriesForEntry: null, entryForm: { timestamp: '', value: '', notes: '' },
                 toast: { show: false, message: '' },
                 chartSettings: { period: 'none', logScale: false },
@@ -371,12 +416,8 @@
 
                 async loadGroups() {
                     const tx = this.db.transaction('groups', 'readonly');
-                    const request = tx.objectStore('groups').getAll();
-                    request.onsuccess = () => { this.groups = request.result.sort((a,b) => a.name.localeCompare(b.name)); };
+                    tx.objectStore('groups').getAll().onsuccess = (e) => { this.groups = e.target.result.sort((a,b) => a.name.localeCompare(b.name)); };
                 },
-
-                editGroupName(group) { this.editingGroup = group; this.groupForm.name = group.name; },
-                cancelGroupEdit() { this.editingGroup = null; this.groupForm.name = ''; },
 
                 async saveGroup() {
                     if (!this.groupForm.name) return;
@@ -387,16 +428,17 @@
                         const oldName = this.editingGroup.name;
                         const newName = this.groupForm.name;
                         groupStore.put({ id: this.editingGroup.id, name: newName });
-                        const seriesReq = seriesStore.getAll();
-                        seriesReq.onsuccess = () => {
-                            seriesReq.result.forEach(s => { if (s.group === oldName) { s.group = newName; seriesStore.put(s); } });
+                        seriesStore.getAll().onsuccess = (e) => {
+                            e.target.result.forEach(s => { if (s.group === oldName) { s.group = newName; seriesStore.put(s); } });
                         };
                     } else { groupStore.put({ name: this.groupForm.name }); }
                     tx.oncomplete = () => { this.editingGroup = null; this.groupForm.name = ''; this.loadGroups(); this.loadSeries(); this.showToast('Group saved'); };
                 },
 
+                editGroupName(group) { this.editingGroup = group; this.groupForm.name = group.name; },
+                cancelGroupEdit() { this.editingGroup = null; this.groupForm.name = ''; },
                 async deleteGroup(id) {
-                    if (!confirm('Delete group? Series will become uncategorized.')) return;
+                    if (!confirm('Delete group?')) return;
                     const tx = this.db.transaction('groups', 'readwrite');
                     tx.objectStore('groups').delete(id);
                     tx.oncomplete = () => { this.loadGroups(); this.showToast('Group deleted'); };
@@ -417,7 +459,7 @@
                 },
 
                 sortBy(f) { if (this.sortField === f) this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc'; else { this.sortField = f; this.sortOrder = 'asc'; } },
-                openNewSeriesModal() { this.editingSeries = null; this.seriesForm = { name: '', group: '', description: '' }; this.modals.series = true; },
+                openNewSeriesModal() { this.editingSeries = null; this.seriesForm = { name: '', group: '', config: { stat: 'mean', period: 'all' } }; this.modals.series = true; },
                 editSeries(s) { this.editingSeries = s; this.seriesForm = { ...s }; this.modals.series = true; },
                 
                 async deleteSeries(id) {
@@ -432,17 +474,58 @@
                 async saveSeries() {
                     if (!this.seriesForm.name) return;
                     const tx = this.db.transaction('series', 'readwrite');
-                    const data = { ...this.seriesForm };
+                    const data = JSON.parse(JSON.stringify(this.seriesForm));
                     if (this.editingSeries) data.id = this.editingSeries.id;
                     tx.objectStore('series').put(data).onsuccess = () => { this.loadSeries(); this.modals.series = false; this.showToast('Saved'); };
                 },
 
-                async openSeriesDetail(s) { this.currentSeries = s; this.view = 'detail'; this.detailSubView = 'chart'; this.loadEntries(s.id); },
+                async openSeriesDetail(s) { 
+                    this.currentSeries = JSON.parse(JSON.stringify(s)); 
+                    if (!this.currentSeries.config) this.currentSeries.config = { stat: 'mean', period: 'all' };
+                    this.view = 'detail'; 
+                    this.detailSubView = 'chart'; 
+                    this.loadEntries(s.id); 
+                },
+
                 async loadEntries(id) {
                     const tx = this.db.transaction('entries', 'readonly');
                     tx.objectStore('entries').index('seriesId').getAll(IDBKeyRange.only(id)).onsuccess = (e) => {
                         this.currentSeriesEntries = e.target.result.sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
+                        this.recalculateSummaryDisplay();
                         if (this.detailSubView === 'chart') this.$nextTick(() => this.initChart());
+                    };
+                },
+
+                recalculateSummaryDisplay() {
+                    if (!this.currentSeriesEntries.length || !this.currentSeries.config) return;
+                    const config = this.currentSeries.config;
+                    let subset = this.currentSeriesEntries;
+                    
+                    if (config.period !== 'all') {
+                        const cutoff = new Date();
+                        cutoff.setDate(cutoff.getDate() - parseInt(config.period));
+                        subset = subset.filter(e => new Date(e.timestamp) >= cutoff);
+                    }
+
+                    if (!subset.length) {
+                        this.currentSeries.summaryDisplay = null;
+                        return;
+                    }
+
+                    const vals = subset.map(e => e.value).sort((a,b) => a-b);
+                    const stats = this.calculateStats(vals);
+                    const label = this.metrics.find(m => m.id === config.stat)?.label || 'Value';
+                    const val = stats[config.stat]?.toLocaleString(undefined, { maximumFractionDigits: 2 });
+                    
+                    this.currentSeries.summaryDisplay = `${label}: ${val}`;
+                },
+
+                async saveSeriesConfig() {
+                    this.recalculateSummaryDisplay();
+                    const tx = this.db.transaction('series', 'readwrite');
+                    tx.objectStore('series').put(JSON.parse(JSON.stringify(this.currentSeries))).onsuccess = () => {
+                        this.loadSeries();
+                        this.showToast('Dashboard configuration updated');
                     };
                 },
 
@@ -489,19 +572,51 @@
                 prevMonth() { this.calendarDate = new Date(this.calendarDate.setMonth(this.calendarDate.getMonth()-1)); },
                 nextMonth() { this.calendarDate = new Date(this.calendarDate.setMonth(this.calendarDate.getMonth()+1)); },
                 formatMonth(d) { return d.toLocaleDateString([], { month: 'long', year: 'numeric' }); },
-                changeSubView(v) { this.detailSubView = v; if (v === 'chart') this.initChart(); },
+                
+                changeSubView(v) { 
+                    this.detailSubView = v; 
+                    if (v === 'chart') this.initChart();
+                    if (v === 'config') this.recalculateSummaryDisplay();
+                },
+
                 openAddEntryModal(s) { this.activeSeriesForEntry = s; this.editingEntry = null; this.entryForm = { timestamp: new Date().toISOString().slice(0,16), value: '', notes: '' }; this.modals.entry = true; },
                 
                 async saveEntry() {
                     if (!this.entryForm.timestamp || this.entryForm.value === '') return;
-                    const tx = this.db.transaction('entries', 'readwrite');
+                    const tx = this.db.transaction(['entries', 'series'], 'readwrite');
+                    const entryStore = tx.objectStore('entries');
+                    const seriesStore = tx.objectStore('series');
+                    
                     const data = { ...this.entryForm, seriesId: this.activeSeriesForEntry.id, value: parseFloat(this.entryForm.value) };
                     if (this.editingEntry) data.id = this.editingEntry.id;
-                    tx.objectStore('entries').put(data).onsuccess = () => { this.loadEntries(this.activeSeriesForEntry.id); this.modals.entry = false; this.showToast('Saved'); };
+                    
+                    entryStore.put(data).onsuccess = () => {
+                        // After entry saved, refresh series summaries for dashboard
+                        entryStore.index('seriesId').getAll(IDBKeyRange.only(this.activeSeriesForEntry.id)).onsuccess = (e) => {
+                            const entries = e.target.result;
+                            this.currentSeriesEntries = entries.sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
+                            this.recalculateSummaryDisplay();
+                            seriesStore.put(JSON.parse(JSON.stringify(this.currentSeries))).onsuccess = () => {
+                                this.loadSeries();
+                                this.modals.entry = false;
+                                this.showToast('Saved and summary updated');
+                            };
+                        };
+                    };
                 },
 
                 editEntry(e) { this.activeSeriesForEntry = this.currentSeries; this.editingEntry = e; this.entryForm = { ...e }; this.modals.entry = true; },
-                async deleteEntry(id) { if (confirm('Delete?')) { const tx = this.db.transaction('entries', 'readwrite'); tx.objectStore('entries').delete(id); tx.oncomplete = () => this.loadEntries(this.currentSeries.id); } },
+                async deleteEntry(id) { 
+                    if (confirm('Delete entry?')) { 
+                        const tx = this.db.transaction(['entries', 'series'], 'readwrite'); 
+                        tx.objectStore('entries').delete(id); 
+                        tx.oncomplete = () => {
+                            this.loadEntries(this.currentSeries.id);
+                            // Chain a save to update the display
+                            setTimeout(() => this.saveSeriesConfig(), 100);
+                        };
+                    } 
+                },
 
                 initChart() {
                     this.$nextTick(() => {
