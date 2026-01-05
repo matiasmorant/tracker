@@ -67,7 +67,10 @@
                         <tbody class="divide-y divide-slate-100">
                             <template x-for="series in filteredSeries" :key="series.id">
                                 <tr class="hover:bg-slate-50 transition-colors cursor-pointer group" @click="openSeriesDetail(series)">
-                                    <td class="px-6 py-4 font-medium text-slate-800" x-text="series.name"></td>
+                                    <td class="px-6 py-4">
+                                        <div class="font-medium text-slate-800" x-text="series.name"></div>
+                                        <div class="text-[10px] text-slate-400 uppercase font-bold" x-text="series.type || 'number'"></div>
+                                    </td>
                                     <td class="px-6 py-4">
                                         <span class="px-2 py-1 bg-slate-100 text-slate-600 rounded text-xs" x-text="series.group || 'Uncategorized'"></span>
                                     </td>
@@ -211,7 +214,7 @@
                                     <template x-for="entry in day.entries" :key="entry.id">
                                         <div @click.stop="editEntry(entry)" 
                                             class="bg-indigo-100 text-indigo-700 text-[10px] px-2 py-1 rounded border border-indigo-200 font-bold truncate hover:bg-indigo-200 transition-colors" 
-                                            x-text="entry.value"></div>
+                                            x-text="currentSeries.type === 'time' ? formatDuration(entry.value) : entry.value"></div>
                                     </template>
                                 </div>
                             </div>
@@ -233,7 +236,7 @@
                                 <template x-for="entry in currentSeriesEntries" :key="entry.id">
                                     <tr class="hover:bg-slate-50">
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium" x-text="formatDate(entry.timestamp)"></td>
-                                        <td class="px-6 py-4 text-sm text-indigo-600 font-bold" x-text="entry.value"></td>
+                                        <td class="px-6 py-4 text-sm text-indigo-600 font-bold" x-text="currentSeries.type === 'time' ? formatDuration(entry.value) : entry.value"></td>
                                         <td class="px-6 py-4 text-sm text-slate-500" x-text="entry.notes || '-'"></td>
                                         <td class="px-6 py-4 text-right space-x-3">
                                             <button @click="editEntry(entry)" class="text-slate-400 hover:text-indigo-600">Edit</button>
@@ -328,6 +331,13 @@
                             <input type="text" x-model="seriesForm.name" class="w-full mt-1 px-4 py-2 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500">
                         </div>
                         <div>
+                            <label class="block text-sm font-medium text-slate-700">Type</label>
+                            <select x-model="seriesForm.type" class="w-full mt-1 px-4 py-2 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="number">Number (Scalar)</option>
+                                <option value="time">Time (Duration)</option>
+                            </select>
+                        </div>
+                        <div>
                             <label class="block text-sm font-medium text-slate-700">Group</label>
                             <select x-model="seriesForm.group" class="w-full mt-1 px-4 py-2 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500">
                                 <option value="">Uncategorized</option>
@@ -355,10 +365,36 @@
                             <label class="block text-sm font-medium text-slate-700">Date & Time</label>
                             <input type="datetime-local" x-model="entryForm.timestamp" class="w-full mt-1 px-4 py-2 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500">
                         </div>
+                        
                         <div>
                             <label class="block text-sm font-medium text-slate-700">Value</label>
-                            <input type="number" step="any" x-model="entryForm.value" class="w-full mt-1 px-4 py-2 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500">
+                            
+                            <template x-if="activeSeriesForEntry?.type !== 'time'">
+                                <input type="number" step="any" x-model="entryForm.value" class="w-full mt-1 px-4 py-2 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500">
+                            </template>
+
+                            <template x-if="activeSeriesForEntry?.type === 'time'">
+                                <div class="grid grid-cols-4 gap-2 mt-1">
+                                    <div>
+                                        <span class="text-[10px] uppercase font-bold text-slate-400">Days</span>
+                                        <input type="number" x-model.number="entryForm.dhms.d" min="0" class="w-full px-2 py-2 border rounded-lg text-center outline-none focus:ring-2 focus:ring-indigo-500">
+                                    </div>
+                                    <div>
+                                        <span class="text-[10px] uppercase font-bold text-slate-400">Hours</span>
+                                        <input type="number" x-model.number="entryForm.dhms.h" min="0" max="23" class="w-full px-2 py-2 border rounded-lg text-center outline-none focus:ring-2 focus:ring-indigo-500">
+                                    </div>
+                                    <div>
+                                        <span class="text-[10px] uppercase font-bold text-slate-400">Mins</span>
+                                        <input type="number" x-model.number="entryForm.dhms.m" min="0" max="59" class="w-full px-2 py-2 border rounded-lg text-center outline-none focus:ring-2 focus:ring-indigo-500">
+                                    </div>
+                                    <div>
+                                        <span class="text-[10px] uppercase font-bold text-slate-400">Secs</span>
+                                        <input type="number" x-model.number="entryForm.dhms.s" min="0" max="59" class="w-full px-2 py-2 border rounded-lg text-center outline-none focus:ring-2 focus:ring-indigo-500">
+                                    </div>
+                                </div>
+                            </template>
                         </div>
+
                         <div>
                             <label class="block text-sm font-medium text-slate-700">Notes (Optional)</label>
                             <input type="text" x-model="entryForm.notes" class="w-full mt-1 px-4 py-2 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500">
@@ -388,8 +424,9 @@
                 selectedGroups: [], sortField: 'name', sortOrder: 'asc',
                 modals: { series: false, entry: false, manageGroups: false },
                 groupForm: { name: '' }, editingGroup: null,
-                editingSeries: null, seriesForm: { name: '', group: '', config: { stat: 'mean', period: 'all' } },
-                editingEntry: null, activeSeriesForEntry: null, entryForm: { timestamp: '', value: '', notes: '' },
+                editingSeries: null, seriesForm: { name: '', group: '', type: 'number', config: { stat: 'mean', period: 'all' } },
+                editingEntry: null, activeSeriesForEntry: null, 
+                entryForm: { timestamp: '', value: '', notes: '', dhms: { d:0, h:0, m:0, s:0 } },
                 toast: { show: false, message: '' },
                 chartSettings: { period: 'none', logScale: false, runningMetric: '', window: 7 },
                 analysisSelection: ['mean', 'median', 'count'],
@@ -412,6 +449,26 @@
                         }
                     };
                     request.onsuccess = (e) => { this.db = e.target.result; this.loadGroups(); this.loadSeries(); };
+                },
+
+                // HELPERS
+                secondsToDHMS(seconds) {
+                    const d = Math.floor(seconds / (3600*24));
+                    const h = Math.floor(seconds % (3600*24) / 3600);
+                    const m = Math.floor(seconds % 3600 / 60);
+                    const s = Math.floor(seconds % 60);
+                    return { d, h, m, s };
+                },
+
+                formatDuration(seconds) {
+                    if (seconds === null || isNaN(seconds)) return '0s';
+                    const {d, h, m, s} = this.secondsToDHMS(seconds);
+                    const parts = [];
+                    if (d > 0) parts.push(`${d}d`);
+                    if (h > 0 || d > 0) parts.push(`${h.toString().padStart(2, '0')}h`);
+                    parts.push(`${m.toString().padStart(2, '0')}m`);
+                    parts.push(`${s.toString().padStart(2, '0')}s`);
+                    return parts.join(' ');
                 },
 
                 async loadGroups() {
@@ -458,7 +515,7 @@
                 },
 
                 sortBy(f) { if (this.sortField === f) this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc'; else { this.sortField = f; this.sortOrder = 'asc'; } },
-                openNewSeriesModal() { this.editingSeries = null; this.seriesForm = { name: '', group: '', config: { stat: 'mean', period: 'all' } }; this.modals.series = true; },
+                openNewSeriesModal() { this.editingSeries = null; this.seriesForm = { name: '', group: '', type: 'number', config: { stat: 'mean', period: 'all' } }; this.modals.series = true; },
                 editSeries(s) { this.editingSeries = s; this.seriesForm = { ...s }; this.modals.series = true; },
                 
                 async deleteSeries(id) {
@@ -508,7 +565,10 @@
                     const vals = subset.map(e => e.value).sort((a,b) => a-b);
                     const stats = this.calculateStats(vals);
                     const label = this.metrics.find(m => m.id === config.stat)?.label || 'Value';
-                    const val = stats[config.stat]?.toLocaleString(undefined, { maximumFractionDigits: 2 });
+                    
+                    const rawVal = stats[config.stat];
+                    const val = this.currentSeries.type === 'time' ? this.formatDuration(rawVal) : rawVal.toLocaleString(undefined, { maximumFractionDigits: 2 });
+                    
                     this.currentSeries.summaryDisplay = `${label}: ${val}`;
                 },
 
@@ -525,7 +585,10 @@
                     if (!this.currentSeriesEntries.length) return [];
                     const vals = this.currentSeriesEntries.map(e => e.value).sort((a,b) => a-b);
                     const s = this.calculateStats(vals);
-                    return this.metrics.filter(m => this.analysisSelection.includes(m.id)).map(m => ({ label: m.label, value: s[m.id].toLocaleString() }));
+                    return this.metrics.filter(m => this.analysisSelection.includes(m.id)).map(m => ({ 
+                        label: m.label, 
+                        value: this.currentSeries.type === 'time' ? this.formatDuration(s[m.id]) : s[m.id].toLocaleString() 
+                    }));
                 },
 
                 calculateStats(v) {
@@ -557,7 +620,7 @@
                     const now = new Date();
                     const targetDate = new Date(d.date);
                     targetDate.setHours(now.getHours(), now.getMinutes());
-                    this.entryForm = { timestamp: targetDate.toISOString().slice(0,16), value: '', notes: '' };
+                    this.entryForm = { timestamp: targetDate.toISOString().slice(0,16), value: '', notes: '', dhms: { d:0, h:0, m:0, s:0 } };
                     this.modals.entry = true;
                 },
 
@@ -565,14 +628,38 @@
                 nextMonth() { this.calendarDate = new Date(this.calendarDate.setMonth(this.calendarDate.getMonth()+1)); },
                 formatMonth(d) { return d.toLocaleDateString([], { month: 'long', year: 'numeric' }); },
                 changeSubView(v) { this.detailSubView = v; if (v === 'chart') this.initChart(); },
-                openAddEntryModal(s) { this.activeSeriesForEntry = s; this.editingEntry = null; this.entryForm = { timestamp: new Date().toISOString().slice(0,16), value: '', notes: '' }; this.modals.entry = true; },
+                
+                openAddEntryModal(s) { 
+                    this.activeSeriesForEntry = s; 
+                    this.editingEntry = null; 
+                    this.entryForm = { timestamp: new Date().toISOString().slice(0,16), value: '', notes: '', dhms: { d:0, h:0, m:0, s:0 } }; 
+                    this.modals.entry = true; 
+                },
                 
                 async saveEntry() {
-                    if (!this.entryForm.timestamp || this.entryForm.value === '') return;
+                    if (!this.entryForm.timestamp) return;
+                    
+                    let finalVal;
+                    if (this.activeSeriesForEntry.type === 'time') {
+                        const {d, h, m, s} = this.entryForm.dhms;
+                        finalVal = (parseInt(d||0)*86400) + (parseInt(h||0)*3600) + (parseInt(m||0)*60) + parseInt(s||0);
+                    } else {
+                        finalVal = parseFloat(this.entryForm.value);
+                    }
+
+                    if (isNaN(finalVal)) return;
+
                     const tx = this.db.transaction(['entries', 'series'], 'readwrite');
                     const entryStore = tx.objectStore('entries');
-                    const data = { ...this.entryForm, seriesId: this.activeSeriesForEntry.id, value: parseFloat(this.entryForm.value) };
+                    const data = { 
+                        timestamp: this.entryForm.timestamp, 
+                        notes: this.entryForm.notes, 
+                        seriesId: this.activeSeriesForEntry.id, 
+                        value: finalVal 
+                    };
+                    
                     if (this.editingEntry) data.id = this.editingEntry.id;
+                    
                     entryStore.put(data).onsuccess = () => {
                         this.loadEntries(this.activeSeriesForEntry.id);
                         this.loadSeries();
@@ -581,7 +668,13 @@
                     };
                 },
 
-                editEntry(e) { this.activeSeriesForEntry = this.currentSeries; this.editingEntry = e; this.entryForm = { ...e }; this.modals.entry = true; },
+                editEntry(e) { 
+                    this.activeSeriesForEntry = this.currentSeries; 
+                    this.editingEntry = e; 
+                    this.entryForm = { ...e, dhms: this.activeSeriesForEntry.type === 'time' ? this.secondsToDHMS(e.value) : { d:0, h:0, m:0, s:0 } }; 
+                    this.modals.entry = true; 
+                },
+
                 async deleteEntry(id) { 
                     if (confirm('Delete entry?')) { 
                         const tx = this.db.transaction('entries', 'readwrite'); 
@@ -600,8 +693,25 @@
                             data: { datasets: [] },
                             options: { 
                                 responsive: true, maintainAspectRatio: false,
+                                plugins: {
+                                    tooltip: {
+                                        callbacks: {
+                                            label: (context) => {
+                                                let val = context.parsed.y;
+                                                return this.currentSeries.type === 'time' ? `Value: ${this.formatDuration(val)}` : `Value: ${val}`;
+                                            }
+                                        }
+                                    }
+                                },
                                 scales: { 
-                                    y: { type: this.chartSettings.logScale ? 'logarithmic' : 'linear' },
+                                    y: { 
+                                        type: this.chartSettings.logScale ? 'logarithmic' : 'linear',
+                                        ticks: {
+                                            callback: (value) => {
+                                                return this.currentSeries.type === 'time' ? this.formatDuration(value) : value;
+                                            }
+                                        }
+                                    },
                                     x: { 
                                         type: 'linear',
                                         ticks: {
@@ -653,7 +763,6 @@
 
                     this.currentLabels = labels;
 
-                    // UPDATED RUNNING STATS LOGIC
                     if (rId && win >= 2 && baseSourceData.length > 0) {
                         const runningData = [];
                         for (let i = 0; i <= baseSourceData.length - win; i++) {
