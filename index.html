@@ -536,10 +536,6 @@
                     Papa.parse(file, {
                         complete: async (results) => {
                             const data = results.data;
-                            let inParameters = false;
-                            let currentSeriesName = null;
-                            let currentSeriesTags = "";
-                            let currentEntries = [];
                             
                             const tx = this.db.transaction(['series', 'groups', 'entries'], 'readwrite');
                             const seriesStore = tx.objectStore('series');
@@ -550,14 +546,18 @@
                             for (let row of data) {
                                 let first = row[0]?.trim();
                                 if (first === "Tags") { inTags = true; continue; }
-                                if (inTags && first === "") break; 
+                                if (["Units","Parameters"].includes(first)) {break; }
                                 if (inTags && first && first !== "Color") {
                                     groupsStore.put({ name: first });
                                 }
                             }
 
-                            for (let i = 0; i < data.length; i++) {
-                                const row = data[i];
+                            let currentSeriesName = null;
+                            let currentSeriesTags = "";
+                            let currentEntries = [];
+
+                            let inParameters = false;
+                            for (let row of data) {
                                 const firstCell = row[0]?.trim();
 
                                 if (firstCell === "Parameters") { inParameters = true; continue; }
@@ -570,7 +570,7 @@
                                 else if (firstCell === "Tags") {
                                     currentSeriesTags = row[1];
                                 }
-                                else if (firstCell && !["Unit", "Color", "Is archived", "Tags"].includes(firstCell)) {
+                                else if (firstCell && !["Unit", "Color", "Is archived", "Tags", "Initial value"].includes(firstCell)) {
                                     if (currentSeriesName) {
                                         await this.saveImportedSeries(seriesStore, entriesStore, currentSeriesName, currentSeriesTags, currentEntries);
                                     }
