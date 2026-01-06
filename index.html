@@ -329,14 +329,14 @@
                                 <div>
                                     <label class="block text-sm font-bold text-slate-700 mb-4 uppercase tracking-wider">Quick Add (+) Behavior</label>
                                     <select x-model="currentSeries.config.quickAddAction" @change="saveSeriesConfig()" class="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 bg-white shadow-sm">
-                                        <option value="manual">Open Add Entry Modal (Default)</option>
+                                        <option value="manual" :selected="'manual' === currentSeries.config.quickAddAction">Open Add Entry Modal (Default)</option>
                                         <template x-if="currentSeries.type === 'number'">
-                                            <option value="increment">Increment Today's Value (+1)</option>
+                                            <option value="increment" :selected="'increment' === currentSeries.config.quickAddAction">Increment Today's Value (+1)</option>
                                         </template>
                                         <template x-if="currentSeries.type === 'time'">
                                             <optgroup label="Time Actions">
-                                                <option value="currentTime">Set to Current Time (HH:MM:SS)</option>
-                                                <option value="chronometer">Chronometer (Start/Stop)</option>
+                                                <option value="currentTime" :selected="'currentTime' === currentSeries.config.quickAddAction">Set to Current Time (HH:MM:SS)</option>
+                                                <option value="chronometer" :selected="'chronometer' === currentSeries.config.quickAddAction">Chronometer (Start/Stop)</option>
                                             </optgroup>
                                         </template>
                                     </select>
