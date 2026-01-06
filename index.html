@@ -466,9 +466,12 @@
                 entryForm: { timestamp: '', value: '', notes: '', dhms: { d:0, h:0, m:0, s:0 } },
                 toast: { show: false, message: '' },
                 chartSettings: { period: 'none', logScale: false, runningMetric: '', window: 7 },
-                analysisSelection: ['mean', 'median', 'count'],
+                analysisSelection: ['mean', 'dayMean', 'count'],
                 metrics: [
-                    { id: 'mean', label: 'Mean', color: '#4f46e5' }, { id: 'sum', label: 'Sum', color: '#10b981' }, { id: 'count', label: 'Count', color: '#f59e0b' },
+                    { id: 'mean', label: 'Mean', color: '#4f46e5' }, 
+                    { id: 'dayMean', label: 'Day Mean', color: '#10b981' }, 
+                    { id: 'sum', label: 'Sum', color: '#10b981' }, 
+                    { id: 'count', label: 'Count', color: '#f59e0b' },
                     { id: 'min', label: 'Min', color: '#ef4444' }, { id: 'q1', label: 'Q1', color: '#8b5cf6' }, { id: 'median', label: 'Median', color: '#ec4899' },
                     { id: 'q3', label: 'Q3', color: '#06b6d4' }, { id: 'max', label: 'Max', color: '#1e293b' },
                     { id: 'first', label: 'First', color: '#6366f1' }, { id: 'last', label: 'Last', color: '#6366f1' }
@@ -783,7 +786,7 @@
 
                     if (!subset.length) { this.currentSeries.summaryDisplay = null; return; }
                     const vals = subset.map(e => e.value).sort((a,b) => a-b);
-                    const stats = this.calculateStats(vals, subset.map(e => e.value));
+                    const stats = this.calculateStats(vals, subset.map(e => e.value), subset);
                     const label = this.metrics.find(m => m.id === config.stat)?.label || 'Value';
                     
                     const rawVal = stats[config.stat];
@@ -803,19 +806,28 @@
                 get activeStats() {
                     if (!this.currentSeriesEntries.length) return [];
                     const vals = this.currentSeriesEntries.map(e => e.value).sort((a,b) => a-b);
-                    const s = this.calculateStats(vals, this.currentSeriesEntries.map(e => e.value));
+                    const s = this.calculateStats(vals, this.currentSeriesEntries.map(e => e.value), this.currentSeriesEntries);
                     return this.metrics.filter(m => this.analysisSelection.includes(m.id)).map(m => ({ 
                         label: m.label, 
                         value: this.currentSeries.type === 'time' ? this.formatDuration(s[m.id]) : (s[m.id] ? s[m.id].toLocaleString() : '0')
                     }));
                 },
 
-                calculateStats(v, originalOrder = []) {
+                calculateStats(v, originalOrder = [], entries = []) {
                     if (!v.length) return {};
                     const sum = v.reduce((a,b) => a+b, 0);
+
+                    // Day Mean Calculation
+                    const uniqueDays = new Set(entries.map(e => (e.timestamp || '').split(' ')[0])).size;
+                    const dayMean = uniqueDays > 0 ? sum / uniqueDays : 0;
+
                     const getQ = (q) => { const p = (v.length-1)*q; const b = Math.floor(p); const r = p-b; return v[b+1] !== undefined ? v[b] + r*(v[b+1]-v[b]) : v[b]; };
                     return { 
-                        mean: sum/v.length, sum, count: v.length, min: v[0], 
+                        mean: sum/v.length, 
+                        dayMean: dayMean,
+                        sum, 
+                        count: v.length, 
+                        min: v[0], 
                         q1: getQ(0.25), median: getQ(0.5), q3: getQ(0.75), max: v[v.length-1],
                         first: originalOrder.length ? originalOrder[0] : v[0],
                         last: originalOrder.length ? originalOrder[originalOrder.length - 1] : v[v.length - 1]
@@ -914,7 +926,7 @@
                                         ticks: { callback: (v) => this.currentSeries.type === 'time' ? this.formatDuration(v) : v } 
                                     },
                                     x: { 
-                                        type: 'time', // Corrected: Use Time Axis for proper temporal spacing
+                                        type: 'time', 
                                         time: { tooltipFormat: 'yyyy-MM-dd HH:mm', displayFormats: { hour: 'HH:mm', day: 'MMM d', month: 'MMM yyyy' } },
                                         ticks: { autoSkip: true, maxRotation: 0 }
                                     }
@@ -929,21 +941,20 @@
                     if (!chartInstance) return;
                     chartInstance.options.scales.y.type = this.chartSettings.logScale ? 'logarithmic' : 'linear';
                     let datasets = [];
-                    const rId = this.chartSettings.runningMetric; // This now acts as the 'Type' of rolling calc (e.g., mean)
+                    const rId = this.chartSettings.runningMetric;
                     const win = this.chartSettings.window;
 
                     if (this.chartSettings.period === 'none') {
-                        // 1. Plot Raw Data
                         const rawData = this.currentSeriesEntries.map(e => ({ x: e.timestamp, y: e.value }));
                         datasets.push({ label: 'Raw Data', data: rawData, borderColor: '#4f46e5', tension: 0.3 });
                         
-                        // 2. Plot Running Stat for Raw Data
                         if (rId && win >= 2 && this.currentSeriesEntries.length >= win) {
                             const runningData = [];
                             for (let i = 0; i <= this.currentSeriesEntries.length - win; i++) {
-                                const slice = this.currentSeriesEntries.slice(i, i + win).map(e => e.value).sort((a,b) => a-b);
+                                const slice = this.currentSeriesEntries.slice(i, i + win);
+                                const vals = slice.map(e => e.value).sort((a,b) => a-b);
                                 const midIdx = Math.floor(i + (win-1)/2);
-                                runningData.push({ x: this.currentSeriesEntries[midIdx].timestamp, y: this.calculateStats(slice)[rId] });
+                                runningData.push({ x: this.currentSeriesEntries[midIdx].timestamp, y: this.calculateStats(vals, [], slice)[rId] });
                             }
                             datasets.push({ 
                                 label: `Rolling ${this.metrics.find(m => m.id === rId).label}`, 
@@ -956,20 +967,10 @@
                         }
                     } else {
                         const agg = this.getAggData();
-                        
-                        // 1. Plot all selected metrics (Mean, Sum, etc.)
                         this.analysisSelection.forEach(mId => { 
                             const m = this.metrics.find(x => x.id === mId); 
                             const baseData = agg.labels.map((k, i) => ({ x: k, y: agg.datasets[mId][i] }));
-                            
-                            datasets.push({ 
-                                label: m.label, 
-                                data: baseData, 
-                                borderColor: m.color, 
-                                tension: 0.3 
-                            }); 
-
-                            // 2. Plot Running Stat for THIS specific metric if enabled
+                            datasets.push({ label: m.label, data: baseData, borderColor: m.color, tension: 0.3 }); 
                             if (rId && win >= 2 && agg.labels.length >= win) {
                                 const runningData = [];
                                 const baseSource = agg.datasets[mId]; // Calculate rolling stat based on the current metric's values
@@ -997,7 +998,6 @@
                             }
                         });
                     }
-
                     chartInstance.data.datasets = datasets; 
                     chartInstance.update();
                 },
@@ -1016,14 +1016,15 @@
                                 break;
                             case 'year': k = `${d.getFullYear()}-01-01`; break;
                         }
-                        if (!gs[k]) gs[k] = []; gs[k].push(e.value);
+                        if (!gs[k]) gs[k] = []; gs[k].push(e);
                     });
                     const keys = Object.keys(gs).sort(), res = { labels: keys, datasets: {} };
                     this.metrics.forEach(m => res.datasets[m.id] = []);
                     keys.forEach(k => { 
-                        const rawValuesInGroup = gs[k];
-                        const sortedValuesInGroup = [...gs[k]].sort((a,b) => a-b);
-                        const s = this.calculateStats(sortedValuesInGroup, rawValuesInGroup); 
+                        const entriesInGroup = gs[k];
+                        const rawValues = entriesInGroup.map(e => e.value);
+                        const sortedValues = [...rawValues].sort((a,b) => a-b);
+                        const s = this.calculateStats(sortedValues, rawValues, entriesInGroup); 
                         this.metrics.forEach(m => res.datasets[m.id].push(s[m.id])); 
                     });
                     return res;
