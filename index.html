@@ -929,15 +929,15 @@
                     if (!chartInstance) return;
                     chartInstance.options.scales.y.type = this.chartSettings.logScale ? 'logarithmic' : 'linear';
                     let datasets = [];
-                    const rId = this.chartSettings.runningMetric;
+                    const rId = this.chartSettings.runningMetric; // This now acts as the 'Type' of rolling calc (e.g., mean)
                     const win = this.chartSettings.window;
 
                     if (this.chartSettings.period === 'none') {
-                        // Corrected: Map values to actual timestamps for x-axis spacing
+                        // 1. Plot Raw Data
                         const rawData = this.currentSeriesEntries.map(e => ({ x: e.timestamp, y: e.value }));
-                        datasets.push({ label: 'Raw', data: rawData, borderColor: '#4f46e5', tension: 0.3 });
+                        datasets.push({ label: 'Raw Data', data: rawData, borderColor: '#4f46e5', tension: 0.3 });
                         
-                        // Handle Running Stat for raw data
+                        // 2. Plot Running Stat for Raw Data
                         if (rId && win >= 2 && this.currentSeriesEntries.length >= win) {
                             const runningData = [];
                             for (let i = 0; i <= this.currentSeriesEntries.length - win; i++) {
@@ -945,31 +945,57 @@
                                 const midIdx = Math.floor(i + (win-1)/2);
                                 runningData.push({ x: this.currentSeriesEntries[midIdx].timestamp, y: this.calculateStats(slice)[rId] });
                             }
-                            datasets.push({ label: `${win}-${this.metrics.find(m => m.id === rId).label}`, data: runningData, borderColor: '#f59e0b', borderDash: [5, 5], borderWidth: 2, pointRadius: 0, tension: 0.4 });
+                            datasets.push({ 
+                                label: `Rolling ${this.metrics.find(m => m.id === rId).label}`, 
+                                data: runningData, 
+                                borderColor: '#f59e0b', 
+                                borderDash: [5, 5], 
+                                pointRadius: 0, 
+                                tension: 0.4 
+                            });
                         }
                     } else {
                         const agg = this.getAggData();
+                        
+                        // 1. Plot all selected metrics (Mean, Sum, etc.)
                         this.analysisSelection.forEach(mId => { 
                             const m = this.metrics.find(x => x.id === mId); 
+                            const baseData = agg.labels.map((k, i) => ({ x: k, y: agg.datasets[mId][i] }));
+                            
                             datasets.push({ 
                                 label: m.label, 
-                                data: agg.labels.map((k, i) => ({ x: k, y: agg.datasets[mId][i] })), 
+                                data: baseData, 
                                 borderColor: m.color, 
                                 tension: 0.3 
                             }); 
-                        });
 
-                        // Handle Running Stat for aggregated data
-                        if (rId && win >= 2 && agg.labels.length >= win) {
-                            const runningData = [];
-                            const baseSource = agg.datasets['mean']; // Rolling average based on the group mean
-                            for (let i = 0; i <= baseSource.length - win; i++) {
-                                const slice = baseSource.slice(i, i + win).filter(v => v !== null).sort((a, b) => a - b);
-                                const midIdx = Math.floor(i + (win-1)/2);
-                                runningData.push({ x: agg.labels[midIdx], y: this.calculateStats(slice)[rId] });
+                            // 2. Plot Running Stat for THIS specific metric if enabled
+                            if (rId && win >= 2 && agg.labels.length >= win) {
+                                const runningData = [];
+                                const baseSource = agg.datasets[mId]; // Calculate rolling stat based on the current metric's values
+                                
+                                for (let i = 0; i <= baseSource.length - win; i++) {
+                                    const slice = baseSource.slice(i, i + win).filter(v => v !== null).sort((a, b) => a - b);
+                                    const midIdx = Math.floor(i + (win-1)/2);
+                                    const statResult = this.calculateStats(slice)[rId];
+                                    
+                                    if (statResult !== undefined) {
+                                        runningData.push({ x: agg.labels[midIdx], y: statResult });
+                                    }
+                                }
+
+                                datasets.push({ 
+                                    label: `Rolling ${m.label} (${rId})`, 
+                                    data: runningData, 
+                                    borderColor: m.color, 
+                                    borderDash: [8, 4], // Different dash pattern
+                                    borderWidth: 1.5,
+                                    pointRadius: 0, 
+                                    tension: 0.4,
+                                    alpha: 0.5 // Visual distinction
+                                });
                             }
-                            datasets.push({ label: `Roll-${win} ${this.metrics.find(m => m.id === rId).label}`, data: runningData, borderColor: '#f59e0b', borderDash: [5, 5], borderWidth: 2, pointRadius: 0, tension: 0.4 });
-                        }
+                        });
                     }
 
                     chartInstance.data.datasets = datasets; 
