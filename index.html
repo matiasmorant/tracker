@@ -841,6 +841,40 @@
                     this.currentSeries.summaryDisplay = `${label}: ${val}`;
                 },
 
+                calculateSummaryForSeries(series, entries) {
+                    if (!entries.length || !series.config) return null;
+                    
+                    const config = series.config;
+                    let subset = entries;
+                    
+                    if (config.period !== 'all') {
+                        const now = new Date();
+                        const startOfPeriod = new Date();
+                        startOfPeriod.setHours(0, 0, 0, 0);
+
+                        switch (config.period) {
+                            case 'week': startOfPeriod.setDate(now.getDate() - now.getDay()); break;
+                            case 'month': startOfPeriod.setDate(1); break;
+                            case 'quarter': startOfPeriod.setMonth(Math.floor(now.getMonth() / 3) * 3, 1); break;
+                            case 'year': startOfPeriod.setMonth(0, 1); break;
+                        }
+                        subset = subset.filter(e => new Date(e.timestamp) >= startOfPeriod);
+                    }
+
+                    if (!subset.length) return null;
+                    
+                    const vals = subset.map(e => e.value).sort((a,b) => a-b);
+                    const stats = this.calculateStats(vals, subset.map(e => e.value), subset);
+                    const label = this.metrics.find(m => m.id === config.stat)?.label || 'Value';
+                    
+                    const rawVal = stats[config.stat];
+                    const formattedVal = series.type === 'time' 
+                        ? this.formatDuration(rawVal) 
+                        : rawVal.toLocaleString(undefined, { maximumFractionDigits: 2 });
+                    
+                    return `${label}: ${formattedVal}`;
+                },
+
                 async saveSeriesConfig() {
                     this.recalculateSummaryDisplay();
                     const tx = this.db.transaction('series', 'readwrite');
@@ -924,15 +958,12 @@
                         
                         index.getAll(IDBKeyRange.only(s.id)).onsuccess = (e) => {
                             const entries = e.target.result;
-                            // Find an entry already existing for today
                             const todayEntry = entries.find(ent => ent.timestamp.startsWith(todayStr));
                             
                             if (todayEntry) {
-                                // If exists, prepare to update it
                                 this.editingEntry = todayEntry;
                                 this.entryForm = { ...todayEntry, value: (todayEntry.value || 0) + 1 };
                             } else {
-                                // If not exists, create new set to 1
                                 this.editingEntry = null;
                                 this.entryForm = { timestamp: this.getFormattedISO(), value: 1, notes: '' };
                             }
@@ -965,27 +996,62 @@
                 
                 async saveEntry() {
                     if (!this.entryForm.timestamp) return;
+                    
                     let finalVal;
                     if (this.activeSeriesForEntry.type === 'time') {
                         const {d, h, m, s} = this.entryForm.dhms;
                         finalVal = (parseInt(d||0)*86400) + (parseInt(h||0)*3600) + (parseInt(m||0)*60) + parseInt(s||0);
-                    } else { finalVal = parseFloat(this.entryForm.value); }
+                    } else { 
+                        finalVal = parseFloat(this.entryForm.value); 
+                    }
+                    
                     if (isNaN(finalVal)) return;
 
                     let cleanTimestamp = this.entryForm.timestamp.replace('T', ' ');
 
-                    const tx = this.db.transaction(['entries', 'series'], 'readwrite');
-                    const entryStore = tx.objectStore('entries');
-                    const data = { timestamp: cleanTimestamp, notes: this.entryForm.notes, seriesId: this.activeSeriesForEntry.id, value: finalVal };
-                    if (this.editingEntry) data.id = this.editingEntry.id;
-                    entryStore.put(data).onsuccess = () => {
-                        if (this.currentSeries && this.currentSeries.id === this.activeSeriesForEntry.id) {
-                            this.loadEntries(this.activeSeriesForEntry.id);
-                        }
-                        this.loadSeries();
-                        this.modals.entry = false;
-                        this.showToast('Saved');
-                    };
+                    return new Promise((resolve) => {
+                        const tx = this.db.transaction(['entries', 'series'], 'readwrite');
+                        const entryStore = tx.objectStore('entries');
+                        const seriesStore = tx.objectStore('series');
+                        
+                        const entryData = { 
+                            timestamp: cleanTimestamp, 
+                            notes: this.entryForm.notes, 
+                            seriesId: this.activeSeriesForEntry.id, 
+                            value: finalVal 
+                        };
+                        
+                        if (this.editingEntry) entryData.id = this.editingEntry.id;
+
+                        // 1. Save the Entry
+                        entryStore.put(entryData);
+
+                        // 2. Fetch all entries for this series to calculate the new summary
+                        const index = entryStore.index('seriesId');
+                        index.getAll(IDBKeyRange.only(this.activeSeriesForEntry.id)).onsuccess = (e) => {
+                            const allEntries = e.target.result;
+                            
+                            // Temporary copy to run calculation logic
+                            const tempSeries = JSON.parse(JSON.stringify(this.activeSeriesForEntry));
+                            
+                            // We use your existing calculation logic but pass the fresh entries
+                            const updatedSummary = this.calculateSummaryForSeries(tempSeries, allEntries);
+                            
+                            // 3. Update the Series object with the new summary string
+                            tempSeries.summaryDisplay = updatedSummary;
+                            seriesStore.put(tempSeries);
+                        };
+
+                        tx.oncomplete = () => {
+                            this.loadSeries(); // Refresh the main dashboard list
+                            if (this.currentSeries && this.currentSeries.id === this.activeSeriesForEntry.id) {
+                                this.loadEntries(this.activeSeriesForEntry.id);
+                            }
+                            this.modals.entry = false;
+                            this.showToast('Saved');
+                            resolve();
+                        };
+                    });
                 },
 
                 editEntry(e) { 
