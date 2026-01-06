@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <script src="https://unpkg.com/papaparse@latest/papaparse.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
@@ -466,7 +467,6 @@
                 toast: { show: false, message: '' },
                 chartSettings: { period: 'none', logScale: false, runningMetric: '', window: 7 },
                 analysisSelection: ['mean', 'median', 'count'],
-                currentLabels: [],
                 metrics: [
                     { id: 'mean', label: 'Mean', color: '#4f46e5' }, { id: 'sum', label: 'Sum', color: '#10b981' }, { id: 'count', label: 'Count', color: '#f59e0b' },
                     { id: 'min', label: 'Min', color: '#ef4444' }, { id: 'q1', label: 'Q1', color: '#8b5cf6' }, { id: 'median', label: 'Median', color: '#ec4899' },
@@ -909,8 +909,15 @@
                                 responsive: true, maintainAspectRatio: false,
                                 plugins: { tooltip: { callbacks: { label: (c) => this.currentSeries.type === 'time' ? `Value: ${this.formatDuration(c.parsed.y)}` : `Value: ${c.parsed.y}` } } },
                                 scales: { 
-                                    y: { type: this.chartSettings.logScale ? 'logarithmic' : 'linear', ticks: { callback: (v) => this.currentSeries.type === 'time' ? this.formatDuration(v) : v } },
-                                    x: { type: 'linear', ticks: { callback: (v) => this.currentLabels[v] || '', stepSize: 1 } }
+                                    y: { 
+                                        type: this.chartSettings.logScale ? 'logarithmic' : 'linear', 
+                                        ticks: { callback: (v) => this.currentSeries.type === 'time' ? this.formatDuration(v) : v } 
+                                    },
+                                    x: { 
+                                        type: 'time', // Corrected: Use Time Axis for proper temporal spacing
+                                        time: { tooltipFormat: 'yyyy-MM-dd HH:mm', displayFormats: { hour: 'HH:mm', day: 'MMM d', month: 'MMM yyyy' } },
+                                        ticks: { autoSkip: true, maxRotation: 0 }
+                                    }
                                 } 
                             }
                         });
@@ -921,31 +928,50 @@
                 updateChart() {
                     if (!chartInstance) return;
                     chartInstance.options.scales.y.type = this.chartSettings.logScale ? 'logarithmic' : 'linear';
-                    let labels = [], datasets = [];
+                    let datasets = [];
                     const rId = this.chartSettings.runningMetric;
                     const win = this.chartSettings.window;
-                    let baseSourceData = [];
+
                     if (this.chartSettings.period === 'none') {
-                        labels = this.currentSeriesEntries.map(e => e.timestamp.split(' ')[0]);
-                        baseSourceData = this.currentSeriesEntries.map(e => e.value);
-                        datasets.push({ label: 'Raw', data: baseSourceData.map((v, i) => ({ x: i, y: v })), borderColor: '#4f46e5', tension: 0.3 });
+                        // Corrected: Map values to actual timestamps for x-axis spacing
+                        const rawData = this.currentSeriesEntries.map(e => ({ x: e.timestamp, y: e.value }));
+                        datasets.push({ label: 'Raw', data: rawData, borderColor: '#4f46e5', tension: 0.3 });
+                        
+                        // Handle Running Stat for raw data
+                        if (rId && win >= 2 && this.currentSeriesEntries.length >= win) {
+                            const runningData = [];
+                            for (let i = 0; i <= this.currentSeriesEntries.length - win; i++) {
+                                const slice = this.currentSeriesEntries.slice(i, i + win).map(e => e.value).sort((a,b) => a-b);
+                                const midIdx = Math.floor(i + (win-1)/2);
+                                runningData.push({ x: this.currentSeriesEntries[midIdx].timestamp, y: this.calculateStats(slice)[rId] });
+                            }
+                            datasets.push({ label: `${win}-${this.metrics.find(m => m.id === rId).label}`, data: runningData, borderColor: '#f59e0b', borderDash: [5, 5], borderWidth: 2, pointRadius: 0, tension: 0.4 });
+                        }
                     } else {
-                        const agg = this.getAggData(); labels = agg.labels;
+                        const agg = this.getAggData();
                         this.analysisSelection.forEach(mId => { 
                             const m = this.metrics.find(x => x.id === mId); 
-                            datasets.push({ label: m.label, data: agg.datasets[mId].map((v, i) => ({ x: i, y: v })), borderColor: m.color, tension: 0.3 }); 
+                            datasets.push({ 
+                                label: m.label, 
+                                data: agg.labels.map((k, i) => ({ x: k, y: agg.datasets[mId][i] })), 
+                                borderColor: m.color, 
+                                tension: 0.3 
+                            }); 
                         });
-                        baseSourceData = agg.datasets['mean'];
-                    }
-                    this.currentLabels = labels;
-                    if (rId && win >= 2 && baseSourceData.length > 0) {
-                        const runningData = [];
-                        for (let i = 0; i <= baseSourceData.length - win; i++) {
-                            const slice = baseSourceData.slice(i, i + win).filter(v => v !== null).sort((a, b) => a - b);
-                            if (slice.length === win) runningData.push({ x: i + (win - 1) / 2, y: this.calculateStats(slice)[rId] });
+
+                        // Handle Running Stat for aggregated data
+                        if (rId && win >= 2 && agg.labels.length >= win) {
+                            const runningData = [];
+                            const baseSource = agg.datasets['mean']; // Rolling average based on the group mean
+                            for (let i = 0; i <= baseSource.length - win; i++) {
+                                const slice = baseSource.slice(i, i + win).filter(v => v !== null).sort((a, b) => a - b);
+                                const midIdx = Math.floor(i + (win-1)/2);
+                                runningData.push({ x: agg.labels[midIdx], y: this.calculateStats(slice)[rId] });
+                            }
+                            datasets.push({ label: `Roll-${win} ${this.metrics.find(m => m.id === rId).label}`, data: runningData, borderColor: '#f59e0b', borderDash: [5, 5], borderWidth: 2, pointRadius: 0, tension: 0.4 });
                         }
-                        datasets.push({ label: `${win}-${this.metrics.find(m => m.id === rId).label}`, data: runningData, borderColor: '#f59e0b', borderDash: [5, 5], borderWidth: 2, pointRadius: 0, tension: 0.4 });
                     }
+
                     chartInstance.data.datasets = datasets; 
                     chartInstance.update();
                 },
@@ -957,12 +983,12 @@
                         switch(this.chartSettings.period) {
                             case 'day': k = e.timestamp.split(' ')[0]; break;
                             case 'week': const w = new Date(d); w.setDate(w.getDate()-w.getDay()); k = w.toISOString().split('T')[0]; break;
-                            case 'month': k = `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}`; break;
+                            case 'month': k = `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}-01`; break;
                             case 'quarter': 
-                                const q = Math.floor(d.getMonth() / 3) + 1;
-                                k = `${d.getFullYear()}-Q${q}`; 
+                                const qMonth = Math.floor(d.getMonth() / 3) * 3;
+                                k = `${d.getFullYear()}-${(qMonth+1).toString().padStart(2,'0')}-01`; 
                                 break;
-                            case 'year': k = `${d.getFullYear()}`; break;
+                            case 'year': k = `${d.getFullYear()}-01-01`; break;
                         }
                         if (!gs[k]) gs[k] = []; gs[k].push(e.value);
                     });
