@@ -103,8 +103,16 @@
                                     </td>
                                     <td class="px-6 py-4 text-right" @click.stop>
                                         <div class="flex items-center justify-end space-x-3">
-                                            <button @click="openAddEntryModal(s)" title="Add Entry" class="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg">
-                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                                            <button @click="openAddEntryModal(s)" 
+                                                    :title="s.startTime ? 'Stop Chronometer' : 'Add Entry'" 
+                                                    class="p-1.5 rounded-lg transition-colors"
+                                                    :class="s.startTime ? 'bg-red-100 text-red-600 animate-pulse' : 'text-indigo-600 hover:bg-indigo-50'">
+                                                <template x-if="s.startTime">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"></path></svg>
+                                                </template>
+                                                <template x-if="!s.startTime">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                                                </template>
                                             </button>
                                             <button @click="editSeries(s)" title="Edit Series" class="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded-lg">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
@@ -326,7 +334,10 @@
                                             <option value="increment">Increment Today's Value (+1)</option>
                                         </template>
                                         <template x-if="currentSeries.type === 'time'">
-                                            <option value="currentTime">Set to Current Time (HH:MM:SS)</option>
+                                            <optgroup label="Time Actions">
+                                                <option value="currentTime">Set to Current Time (HH:MM:SS)</option>
+                                                <option value="chronometer">Chronometer (Start/Stop)</option>
+                                            </optgroup>
                                         </template>
                                     </select>
                                     <p class="mt-2 text-xs text-slate-500">Determines what happens when you click the "+" button on the main dashboard for this specific series.</p>
@@ -339,10 +350,7 @@
         </template>
     </main>
 
-    <div x-show="modals.manageGroups" 
-         @keydown.window.escape="modals.manageGroups = false"
-         @keydown.enter="saveGroup()"
-         class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
+    <div x-show="modals.manageGroups" @keydown.window.escape="modals.manageGroups = false" @keydown.enter="saveGroup()" class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
         <div class="flex items-center justify-center min-h-screen px-4">
             <div class="fixed inset-0 bg-slate-900/50" @click="modals.manageGroups = false"></div>
             <div class="bg-white rounded-2xl shadow-xl w-full max-w-md relative z-10 overflow-hidden">
@@ -369,10 +377,7 @@
         </div>
     </div>
 
-    <div x-show="modals.series" 
-         @keydown.window.escape="modals.series = false"
-         @keydown.enter="saveSeries()"
-         class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
+    <div x-show="modals.series" @keydown.window.escape="modals.series = false" @keydown.enter="saveSeries()" class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
         <div class="flex items-center justify-center min-h-screen px-4">
             <div class="fixed inset-0 bg-slate-900/50" @click="modals.series = false"></div>
             <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg relative z-10 overflow-hidden">
@@ -407,10 +412,7 @@
         </div>
     </div>
 
-    <div x-show="modals.entry" 
-         @keydown.window.escape="modals.entry = false"
-         @keydown.enter="saveEntry()"
-         class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
+    <div x-show="modals.entry" @keydown.window.escape="modals.entry = false" @keydown.enter="saveEntry()" class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
         <div class="flex items-center justify-center min-h-screen px-4">
             <div class="fixed inset-0 bg-slate-900/50" @click="modals.entry = false"></div>
             <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg relative z-10 overflow-hidden">
@@ -437,7 +439,7 @@
                                     </div>
                                     <div>
                                         <span class="text-[10px] uppercase font-bold text-slate-400">Hours</span>
-                                        <input type="number" x-model.number="entryForm.h" min="0" max="23" class="w-full px-2 py-2 border rounded-lg text-center outline-none focus:ring-2 focus:ring-indigo-500">
+                                        <input type="number" x-model.number="entryForm.dhms.h" min="0" max="23" class="w-full px-2 py-2 border rounded-lg text-center outline-none focus:ring-2 focus:ring-indigo-500">
                                     </div>
                                     <div>
                                         <span class="text-[10px] uppercase font-bold text-slate-400">Mins</span>
@@ -481,7 +483,6 @@
                 modals: { series: false, entry: false, manageGroups: false },
                 groupForm: { name: '' }, editingGroup: null,
                 editingSeries: null, 
-                // Updated seriesForm with quickAddAction
                 seriesForm: { name: '', group: '', type: 'number', config: { stat: 'mean', period: 'all', quickAddAction: 'manual' } },
                 editingEntry: null, activeSeriesForEntry: null, 
                 entryForm: { timestamp: '', value: '', notes: '', dhms: { d:0, h:0, m:0, s:0 } },
@@ -566,7 +567,6 @@
                             const entriesStore = tx.objectStore('entries');
                             const groupsStore = tx.objectStore('groups');
 
-                            // Map to track which units are duration-based
                             const unitTypes = {}; 
                             let inUnits = false;
                             let currentUnitName = null;
@@ -578,12 +578,10 @@
                                 if (first === "Units") { inTags = false; inUnits = true; continue; }
                                 if (first === "Parameters") { break; }
 
-                                // Collect Groups
                                 if (inTags && first && first !== "Color") {
                                     groupsStore.put({ name: first });
                                 }
 
-                                // Collect Unit Types (to detect duration vs number)
                                 if (inUnits && first && !first.startsWith('Type')) {
                                     currentUnitName = first;
                                 }
@@ -607,7 +605,6 @@
                                 if (firstCell === "" && row[1]) {
                                     let ts = row[1].replace('T', ' ');
                                     let rawVal = parseFloat(row[2]);
-                                    // Convert milliseconds to seconds if it's a time series
                                     let val = currentSeriesType === 'time' ? rawVal / 1000 : rawVal;
                                     currentEntries.push({ timestamp: ts, value: val, notes: row[3] || '' });
                                 } 
@@ -624,7 +621,7 @@
                                     }
                                     currentSeriesName = firstCell;
                                     currentSeriesTags = "";
-                                    currentSeriesType = 'number'; // reset default
+                                    currentSeriesType = 'number';
                                     currentEntries = [];
                                 }
                             }
@@ -811,21 +808,11 @@
                         startOfPeriod.setHours(0, 0, 0, 0);
 
                         switch (config.period) {
-                            case 'day':
-                                break;
-                            case 'week':
-                                startOfPeriod.setDate(now.getDate() - now.getDay());
-                                break;
-                            case 'month':
-                                startOfPeriod.setDate(1);
-                                break;
-                            case 'quarter':
-                                const quarterMonth = Math.floor(now.getMonth() / 3) * 3;
-                                startOfPeriod.setMonth(quarterMonth, 1);
-                                break;
-                            case 'year':
-                                startOfPeriod.setMonth(0, 1);
-                                break;
+                            case 'day': break;
+                            case 'week': startOfPeriod.setDate(now.getDate() - now.getDay()); break;
+                            case 'month': startOfPeriod.setDate(1); break;
+                            case 'quarter': startOfPeriod.setMonth(Math.floor(now.getMonth() / 3) * 3, 1); break;
+                            case 'year': startOfPeriod.setMonth(0, 1); break;
                         }
                         subset = subset.filter(e => new Date(e.timestamp) >= startOfPeriod);
                     }
@@ -843,7 +830,6 @@
 
                 calculateSummaryForSeries(series, entries) {
                     if (!entries.length || !series.config) return null;
-                    
                     const config = series.config;
                     let subset = entries;
                     
@@ -851,7 +837,6 @@
                         const now = new Date();
                         const startOfPeriod = new Date();
                         startOfPeriod.setHours(0, 0, 0, 0);
-
                         switch (config.period) {
                             case 'week': startOfPeriod.setDate(now.getDate() - now.getDay()); break;
                             case 'month': startOfPeriod.setDate(1); break;
@@ -862,16 +847,11 @@
                     }
 
                     if (!subset.length) return null;
-                    
                     const vals = subset.map(e => e.value).sort((a,b) => a-b);
                     const stats = this.calculateStats(vals, subset.map(e => e.value), subset);
                     const label = this.metrics.find(m => m.id === config.stat)?.label || 'Value';
-                    
                     const rawVal = stats[config.stat];
-                    const formattedVal = series.type === 'time' 
-                        ? this.formatDuration(rawVal) 
-                        : rawVal.toLocaleString(undefined, { maximumFractionDigits: 2 });
-                    
+                    const formattedVal = series.type === 'time' ? this.formatDuration(rawVal) : rawVal.toLocaleString(undefined, { maximumFractionDigits: 2 });
                     return `${label}: ${formattedVal}`;
                 },
 
@@ -896,18 +876,11 @@
                 calculateStats(v, originalOrder = [], entries = []) {
                     if (!v.length) return {};
                     const sum = v.reduce((a,b) => a+b, 0);
-
-                    // Day Mean Calculation
                     const uniqueDays = new Set(entries.map(e => (e.timestamp || '').split(' ')[0])).size;
                     const dayMean = uniqueDays > 0 ? sum / uniqueDays : 0;
-
                     const getQ = (q) => { const p = (v.length-1)*q; const b = Math.floor(p); const r = p-b; return v[b+1] !== undefined ? v[b] + r*(v[b+1]-v[b]) : v[b]; };
                     return { 
-                        mean: sum/v.length, 
-                        dayMean: dayMean,
-                        sum, 
-                        count: v.length, 
-                        min: v[0], 
+                        mean: sum/v.length, dayMean: dayMean, sum, count: v.length, min: v[0], 
                         q1: getQ(0.25), median: getQ(0.5), q3: getQ(0.75), max: v[v.length-1],
                         first: originalOrder.length ? originalOrder[0] : v[0],
                         last: originalOrder.length ? originalOrder[originalOrder.length - 1] : v[v.length - 1]
@@ -945,21 +918,43 @@
                 formatMonth(d) { return d.toLocaleDateString([], { month: 'long', year: 'numeric' }); },
                 changeSubView(v) { this.detailSubView = v; if (v === 'chart') this.initChart(); },
                 
-                // Updated openAddEntryModal with behavioral logic
                 async openAddEntryModal(s) { 
                     this.activeSeriesForEntry = s; 
                     const action = s.config?.quickAddAction || 'manual';
 
-                    // Option 2: Increment (+1) for Number types
+                    // NEW: Chronometer Logic
+                    if (action === 'chronometer' && s.type === 'time') {
+                        const now = new Date();
+                        if (!s.startTime) {
+                            s.startTime = now.toISOString();
+                            const tx = this.db.transaction('series', 'readwrite');
+                            tx.objectStore('series').put(JSON.parse(JSON.stringify(s)));
+                            this.showToast('Chronometer Started');
+                            return;
+                        } else {
+                            const start = new Date(s.startTime);
+                            const elapsedSeconds = Math.floor((now - start) / 1000);
+                            s.startTime = null;
+                            this.editingEntry = null;
+                            this.entryForm = { 
+                                timestamp: this.getFormattedISO(now), 
+                                value: elapsedSeconds, 
+                                notes: `Elapsed: ${this.formatDuration(elapsedSeconds)}`,
+                                dhms: this.secondsToDHMS(elapsedSeconds) 
+                            };
+                            await this.saveEntry();
+                            this.showToast(`Recorded ${this.formatDuration(elapsedSeconds)}`);
+                            return;
+                        }
+                    }
+
                     if (action === 'increment' && s.type === 'number') {
                         const todayStr = new Date().toISOString().split('T')[0];
                         const tx = this.db.transaction('entries', 'readonly');
                         const index = tx.objectStore('entries').index('seriesId');
-                        
                         index.getAll(IDBKeyRange.only(s.id)).onsuccess = (e) => {
                             const entries = e.target.result;
                             const todayEntry = entries.find(ent => ent.timestamp.startsWith(todayStr));
-                            
                             if (todayEntry) {
                                 this.editingEntry = todayEntry;
                                 this.entryForm = { ...todayEntry, value: (todayEntry.value || 0) + 1 };
@@ -972,23 +967,15 @@
                         return;
                     }
 
-                    // Option 3: Current Time for Time types
                     if (action === 'currentTime' && s.type === 'time') {
                         const now = new Date();
                         const secondsSinceMidnight = (now.getHours() * 3600) + (now.getMinutes() * 60) + now.getSeconds();
-                        
                         this.editingEntry = null;
-                        this.entryForm = { 
-                            timestamp: this.getFormattedISO(), 
-                            value: secondsSinceMidnight, 
-                            notes: '',
-                            dhms: this.secondsToDHMS(secondsSinceMidnight) 
-                        };
+                        this.entryForm = { timestamp: this.getFormattedISO(), value: secondsSinceMidnight, notes: '', dhms: this.secondsToDHMS(secondsSinceMidnight) };
                         this.saveEntry();
                         return;
                     }
 
-                    // Option 1: Manual (Original behavior)
                     this.editingEntry = null; 
                     this.entryForm = { timestamp: this.getFormattedISO(), value: '', notes: '', dhms: { d:0, h:0, m:0, s:0 } }; 
                     this.modals.entry = true; 
@@ -996,7 +983,6 @@
                 
                 async saveEntry() {
                     if (!this.entryForm.timestamp) return;
-                    
                     let finalVal;
                     if (this.activeSeriesForEntry.type === 'time') {
                         const {d, h, m, s} = this.entryForm.dhms;
@@ -1004,49 +990,26 @@
                     } else { 
                         finalVal = parseFloat(this.entryForm.value); 
                     }
-                    
                     if (isNaN(finalVal)) return;
 
                     let cleanTimestamp = this.entryForm.timestamp.replace('T', ' ');
-
                     return new Promise((resolve) => {
                         const tx = this.db.transaction(['entries', 'series'], 'readwrite');
                         const entryStore = tx.objectStore('entries');
                         const seriesStore = tx.objectStore('series');
-                        
-                        const entryData = { 
-                            timestamp: cleanTimestamp, 
-                            notes: this.entryForm.notes, 
-                            seriesId: this.activeSeriesForEntry.id, 
-                            value: finalVal 
-                        };
-                        
+                        const entryData = { timestamp: cleanTimestamp, notes: this.entryForm.notes, seriesId: this.activeSeriesForEntry.id, value: finalVal };
                         if (this.editingEntry) entryData.id = this.editingEntry.id;
-
-                        // 1. Save the Entry
                         entryStore.put(entryData);
-
-                        // 2. Fetch all entries for this series to calculate the new summary
                         const index = entryStore.index('seriesId');
                         index.getAll(IDBKeyRange.only(this.activeSeriesForEntry.id)).onsuccess = (e) => {
                             const allEntries = e.target.result;
-                            
-                            // Temporary copy to run calculation logic
                             const tempSeries = JSON.parse(JSON.stringify(this.activeSeriesForEntry));
-                            
-                            // We use your existing calculation logic but pass the fresh entries
-                            const updatedSummary = this.calculateSummaryForSeries(tempSeries, allEntries);
-                            
-                            // 3. Update the Series object with the new summary string
-                            tempSeries.summaryDisplay = updatedSummary;
+                            tempSeries.summaryDisplay = this.calculateSummaryForSeries(tempSeries, allEntries);
                             seriesStore.put(tempSeries);
                         };
-
                         tx.oncomplete = () => {
-                            this.loadSeries(); // Refresh the main dashboard list
-                            if (this.currentSeries && this.currentSeries.id === this.activeSeriesForEntry.id) {
-                                this.loadEntries(this.activeSeriesForEntry.id);
-                            }
+                            this.loadSeries();
+                            if (this.currentSeries && this.currentSeries.id === this.activeSeriesForEntry.id) this.loadEntries(this.activeSeriesForEntry.id);
                             this.modals.entry = false;
                             this.showToast('Saved');
                             resolve();
@@ -1080,15 +1043,8 @@
                                 responsive: true, maintainAspectRatio: false,
                                 plugins: { tooltip: { callbacks: { label: (c) => this.currentSeries.type === 'time' ? `Value: ${this.formatDuration(c.parsed.y)}` : `Value: ${c.parsed.y}` } } },
                                 scales: { 
-                                    y: { 
-                                        type: this.chartSettings.logScale ? 'logarithmic' : 'linear', 
-                                        ticks: { callback: (v) => this.currentSeries.type === 'time' ? this.formatDuration(v) : v } 
-                                    },
-                                    x: { 
-                                        type: 'time', 
-                                        time: { tooltipFormat: 'yyyy-MM-dd HH:mm', displayFormats: { hour: 'HH:mm', day: 'MMM d', month: 'MMM yyyy' } },
-                                        ticks: { autoSkip: true, maxRotation: 0 }
-                                    }
+                                    y: { type: this.chartSettings.logScale ? 'logarithmic' : 'linear', ticks: { callback: (v) => this.currentSeries.type === 'time' ? this.formatDuration(v) : v } },
+                                    x: { type: 'time', time: { tooltipFormat: 'yyyy-MM-dd HH:mm', displayFormats: { hour: 'HH:mm', day: 'MMM d', month: 'MMM yyyy' } }, ticks: { autoSkip: true, maxRotation: 0 } }
                                 } 
                             }
                         });
@@ -1106,7 +1062,6 @@
                     if (this.chartSettings.period === 'none') {
                         const rawData = this.currentSeriesEntries.map(e => ({ x: e.timestamp, y: e.value }));
                         datasets.push({ label: 'Raw Data', data: rawData, borderColor: '#4f46e5', tension: 0.3 });
-                        
                         if (rId && win >= 2 && this.currentSeriesEntries.length >= win) {
                             const runningData = [];
                             for (let i = 0; i <= this.currentSeriesEntries.length - win; i++) {
@@ -1115,14 +1070,7 @@
                                 const midIdx = Math.floor(i + (win-1)/2);
                                 runningData.push({ x: this.currentSeriesEntries[midIdx].timestamp, y: this.calculateStats(vals, [], slice)[rId] });
                             }
-                            datasets.push({ 
-                                label: `Rolling ${this.metrics.find(m => m.id === rId).label}`, 
-                                data: runningData, 
-                                borderColor: '#f59e0b', 
-                                borderDash: [5, 5], 
-                                pointRadius: 0, 
-                                tension: 0.4 
-                            });
+                            datasets.push({ label: `Rolling ${this.metrics.find(m => m.id === rId).label}`, data: runningData, borderColor: '#f59e0b', borderDash: [5, 5], pointRadius: 0, tension: 0.4 });
                         }
                     } else {
                         const agg = this.getAggData();
@@ -1132,28 +1080,14 @@
                             datasets.push({ label: m.label, data: baseData, borderColor: m.color, tension: 0.3 }); 
                             if (rId && win >= 2 && agg.labels.length >= win) {
                                 const runningData = [];
-                                const baseSource = agg.datasets[mId]; // Calculate rolling stat based on the current metric's values
-                                
+                                const baseSource = agg.datasets[mId];
                                 for (let i = 0; i <= baseSource.length - win; i++) {
                                     const slice = baseSource.slice(i, i + win).filter(v => v !== null).sort((a, b) => a - b);
                                     const midIdx = Math.floor(i + (win-1)/2);
                                     const statResult = this.calculateStats(slice)[rId];
-                                    
-                                    if (statResult !== undefined) {
-                                        runningData.push({ x: agg.labels[midIdx], y: statResult });
-                                    }
+                                    if (statResult !== undefined) runningData.push({ x: agg.labels[midIdx], y: statResult });
                                 }
-
-                                datasets.push({ 
-                                    label: `Rolling ${m.label} (${rId})`, 
-                                    data: runningData, 
-                                    borderColor: m.color, 
-                                    borderDash: [8, 4], // Different dash pattern
-                                    borderWidth: 1.5,
-                                    pointRadius: 0, 
-                                    tension: 0.4,
-                                    alpha: 0.5 // Visual distinction
-                                });
+                                datasets.push({ label: `Rolling ${m.label} (${rId})`, data: runningData, borderColor: m.color, borderDash: [8, 4], borderWidth: 1.5, pointRadius: 0, tension: 0.4, alpha: 0.5 });
                             }
                         });
                     }
@@ -1169,10 +1103,7 @@
                             case 'day': k = e.timestamp.split(' ')[0]; break;
                             case 'week': const w = new Date(d); w.setDate(w.getDate()-w.getDay()); k = w.toISOString().split('T')[0]; break;
                             case 'month': k = `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}-01`; break;
-                            case 'quarter': 
-                                const qMonth = Math.floor(d.getMonth() / 3) * 3;
-                                k = `${d.getFullYear()}-${(qMonth+1).toString().padStart(2,'0')}-01`; 
-                                break;
+                            case 'quarter': k = `${d.getFullYear()}-${(Math.floor(d.getMonth() / 3) * 3 + 1).toString().padStart(2,'0')}-01`; break;
                             case 'year': k = `${d.getFullYear()}-01-01`; break;
                         }
                         if (!gs[k]) gs[k] = []; gs[k].push(e);
