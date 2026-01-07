@@ -27,24 +27,40 @@
                 </div>
                 <h1 class="text-xl font-bold tracking-tight text-slate-800">Chronos</h1>
             </div>
-            <div class="flex items-center space-x-4">
-                <div class="flex items-center space-x-2">
-                    <button @click="exportData()" class="text-slate-600 hover:text-indigo-600 text-sm font-medium">Export JSON</button>
-                    <label class="text-slate-600 hover:text-indigo-600 text-sm font-medium cursor-pointer">
-                        Import JSON
-                        <input type="file" accept=".json" class="hidden" @change="importData($event)">
-                    </label>
+                        <div class="flex items-center space-x-3">
+                <div x-data="{ open: false }" class="relative" @click.away="open = false">
+                    <button @click="open = !open" class="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+                        <i class="fa-solid fa-file-import"></i>
+                        <span>Data</span>
+                        <i class="fa-solid fa-chevron-down text-[10px]"></i>
+                    </button>
+
+                    <div x-show="open" x-cloak 
+                         class="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-lg z-50 py-1 overflow-hidden">
+                        
+                        <div class="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-50">Transfer</div>
+                        
+                        <button @click="exportData(); open = false" class="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center">
+                            <i class="fa-solid fa-download w-5"></i> Export JSON
+                        </button>
+                        <label class="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center cursor-pointer">
+                            <i class="fa-solid fa-upload w-5"></i> Import JSON
+                            <input type="file" accept=".json" class="hidden" @change="importData($event); open = false">
+                        </label>
+
+                        <div class="border-t border-slate-100 my-1"></div>
+                        
+                        <button @click="exportCSV(); open = false" class="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center">
+                            <i class="fa-solid fa-file-csv w-5"></i> Export CSV
+                        </button>
+                        <label class="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center cursor-pointer">
+                            <i class="fa-solid fa-file-import w-5"></i> Import CSV
+                            <input type="file" accept=".csv" class="hidden" @change="importCSV($event); open = false">
+                        </label>
+                    </div>
                 </div>
-                <div class="w-px h-4 bg-slate-200 mx-1"></div>
-                <div class="flex items-center space-x-2">
-                    <button @click="exportCSV()" class="text-slate-600 hover:text-indigo-600 text-sm font-medium">Export CSV</button>
-                    <label class="text-slate-600 hover:text-indigo-600 text-sm font-medium cursor-pointer">
-                        Import CSV
-                        <input type="file" accept=".csv" class="hidden" @change="importCSV($event)">
-                    </label>
-                </div>
-                <div class="w-px h-4 bg-slate-200 mx-2"></div>
-                <button @click="modals.manageGroups = true" class="text-slate-600 hover:text-indigo-600 text-sm font-medium">Manage Groups</button>
+                <div class="w-px h-6 bg-slate-200"></div>
+                <button @click="modals.manageGroups = true" class="text-slate-600 hover:text-indigo-600 text-sm font-medium">Groups</button>
                 <button @click="openNewSeriesModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm">
                     + New Series
                 </button>
