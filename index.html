@@ -162,14 +162,25 @@
                             </div>
 
                             <div class="mt-2 flex items-baseline">
-                                <template x-if="s.summaryDisplay">
-                                    <div class="flex items-baseline">
-                                        <span class="text-sm font-black text-indigo-600 truncate" x-text="s.summaryDisplay.split(': ')[1]"></span>
-                                        <span class="text-[10px] font-bold text-slate-400 uppercase ml-1.5" x-text="s.summaryDisplay.split(': ')[0]"></span>
+                                <template x-if="s.startTime && s.config?.quickAddAction === 'chronometer'">
+                                    <div class="flex items-baseline animate-pulse">
+                                        <span class="text-sm font-black text-red-600 truncate" x-text="getRunningTime(s)"></span>
+                                        <span class="text-[10px] font-bold text-red-400 uppercase ml-1.5">Running</span>
                                     </div>
                                 </template>
-                                <template x-if="!s.summaryDisplay">
-                                    <span class="text-[10px] text-slate-300 italic">No data</span>
+
+                                <template x-if="!(s.startTime && s.config?.quickAddAction === 'chronometer')">
+                                    <div class="flex items-baseline">
+                                        <template x-if="s.summaryDisplay">
+                                            <div class="flex items-baseline">
+                                                <span class="text-sm font-black text-indigo-600 truncate" x-text="s.summaryDisplay.split(': ')[1]"></span>
+                                                <span class="text-[10px] font-bold text-slate-400 uppercase ml-1.5" x-text="s.summaryDisplay.split(': ')[0]"></span>
+                                            </div>
+                                        </template>
+                                        <template x-if="!s.summaryDisplay">
+                                            <span class="text-[10px] text-slate-300 italic">No data</span>
+                                        </template>
+                                    </div>
                                 </template>
                             </div>
                         </div>
@@ -566,6 +577,17 @@
                     { id: 'q3', label: 'Q3', color: '#06b6d4' }, { id: 'max', label: 'Max', color: '#1e293b' },
                     { id: 'first', label: 'First', color: '#6366f1' }, { id: 'last', label: 'Last', color: '#6366f1' }
                 ],
+                now: Date.now(),
+
+                init() {
+                    setInterval(() => { this.now = Date.now(); }, 1000);
+                },
+
+                getRunningTime(s) {
+                    if (!s.startTime) return '';
+                    const elapsedMs = this.now - new Date(s.startTime).getTime();
+                    return this.formatDuration(Math.floor(elapsedMs / 1000));
+                },
 
                 async initDB() {
                     const request = indexedDB.open('ChronosDB', 2);
