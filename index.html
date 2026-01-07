@@ -70,7 +70,7 @@
                     </div>
                 </div>
                 <div class="w-px h-6 bg-slate-200"></div>
-                <button @click="modals.manageGroups = true" class="text-slate-600 hover:text-indigo-600 text-sm font-medium">Groups</button>
+                <button @click="modals.manageGroups = true; showAddGroupForm = false; editingGroup = null" class="text-slate-600 hover:text-indigo-600 text-sm font-medium">Groups</button>
                 <button @click="openNewSeriesModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm">
                     + New Series
                 </button>
@@ -446,21 +446,34 @@
         </template>
     </main>
 
-    <div x-show="modals.manageGroups" @keydown.window.escape="modals.manageGroups = false" @keydown.enter="saveGroup()" class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
+    <div x-show="modals.manageGroups" @keydown.window.escape="modals.manageGroups = false" class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
         <div class="flex items-center justify-center min-h-screen px-4">
             <div class="fixed inset-0 bg-slate-900/50" @click="modals.manageGroups = false"></div>
             <div class="bg-white rounded-2xl shadow-xl w-full max-w-md relative z-10 overflow-hidden">
                 <div class="p-6">
-                    <h3 class="text-xl font-bold mb-4" x-text="editingGroup ? 'Edit Group' : 'Manage Groups'"></h3>
-                    <div class="space-y-4 mb-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xl font-bold text-slate-900" x-text="editingGroup ? 'Edit Group' : 'Manage Groups'"></h3>
+                        <button 
+                            x-show="!showAddGroupForm && !editingGroup" 
+                            @click="showAddGroupForm = true; groupForm.name = ''; groupForm.color = '#6366f1';" 
+                            class="text-xs font-bold text-indigo-600 hover:text-indigo-700 uppercase tracking-wider">
+                            + Add New
+                        </button>
+                    </div>
+
+                    <div x-show="showAddGroupForm || editingGroup" 
+                         x-transition:enter="transition ease-out duration-200"
+                         x-transition:enter-start="opacity-0 transform -translate-y-2"
+                         x-transition:enter-end="opacity-100 transform translate-y-0"
+                         class="space-y-4 mb-6 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                        
                         <input type="text" x-model="groupForm.name" placeholder="Group Name" 
-                               class="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-500" autofocus>
+                               class="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 bg-white" 
+                               @keydown.enter="saveGroup(); showAddGroupForm = false"
+                               autofocus>
                         
                         <div class="grid grid-cols-6 gap-2">
-                            <template x-for="color in [
-                                '#6366f1', '#ec4899', '#f43f5e', '#f59e0b', '#10b981', '#06b6d4',
-                                '#8b5cf6', '#475569', '#94a3b8', '#14b8a6', '#f97316', '#ef4444'
-                            ]">
+                            <template x-for="color in ['#6366f1', '#ec4899', '#f43f5e', '#f59e0b', '#10b981', '#06b6d4', '#8b5cf6', '#475569', '#94a3b8', '#14b8a6', '#f97316', '#ef4444']">
                                 <button @click="groupForm.color = color" 
                                         :class="groupForm.color === color ? 'ring-2 ring-offset-2 ring-slate-400' : ''"
                                         :style="`background-color: ${color}`"
@@ -468,22 +481,42 @@
                             </template>
                         </div>
                         
-                        <button @click="saveGroup()" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium" 
-                                x-text="editingGroup ? 'Update' : 'Add'"></button>
+                        <div class="flex gap-2">
+                            <button @click="saveGroup(); showAddGroupForm = false" 
+                                    class="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors hover:bg-indigo-700" 
+                                    x-text="editingGroup ? 'Update Group' : 'Save Group'"></button>
+                            <button @click="showAddGroupForm = false; editingGroup = null" 
+                                    class="px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-700">
+                                Cancel
+                            </button>
+                        </div>
                     </div>
+
                     <div class="max-h-64 overflow-y-auto space-y-1 custom-scrollbar">
                         <template x-for="g in groups" :key="g.id">
-                            <div class="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg group">
-                                <span x-text="g.name" class="font-medium"></span>
-                                <div class="flex space-x-1 opacity-0 group-hover:opacity-100">
-                                    <button @click="editGroupName(g)" class="p-1 text-slate-400 hover:text-indigo-600">Edit</button>
-                                    <button @click="deleteGroup(g.id)" class="p-1 text-slate-400 hover:text-red-600">Delete</button>
+                            <div class="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg group transition-colors">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-3 h-3 rounded-full" :style="`background-color: ${g.color}`"></div>
+                                    <span x-text="g.name" class="font-medium text-slate-700"></span>
+                                </div>
+                                <div class="flex space-x-1">
+                                    <button @click="editGroupName(g)" class="p-1 text-slate-400 text-indigo-600">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                    </button>
+                                    <button @click="deleteGroup(g.id)" class="p-1 text-slate-400 text-red-600">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                    </button>
                                 </div>
                             </div>
                         </template>
                     </div>
                 </div>
-                <div class="px-6 py-4 bg-slate-50 flex justify-end"><button @click="modals.manageGroups = false" class="text-sm font-medium text-slate-600">Close</button></div>
+                <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+                    <button @click="modals.manageGroups = false; showAddGroupForm = false; editingGroup = null" 
+                            class="text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors">
+                        Close
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -592,6 +625,7 @@
                 view: 'list', detailSubView: 'chart', calendarDate: new Date(), db: null, series: [], groups: [], currentSeries: null, currentSeriesEntries: [],
                 selectedGroups: [], sortField: 'name', sortOrder: 'asc',
                 modals: { series: false, entry: false, manageGroups: false },
+                showAddGroupForm: false,
                 groupForm: { name: '', color: '#6366f1' }, editingGroup: null,
                 editingSeries: null, 
                 seriesForm: { name: '', group: '', type: 'number', config: { stat: 'mean', period: 'all', quickAddAction: 'manual' } },
