@@ -585,7 +585,7 @@
 
                 getRunningTime(s) {
                     if (!s.startTime) return '';
-                    const elapsedMs = this.now - new Date(s.startTime).getTime();
+                    const elapsedMs = Math.max(0, this.now - new Date(s.startTime).getTime());
                     return this.formatDuration(Math.floor(elapsedMs / 1000));
                 },
 
