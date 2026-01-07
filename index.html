@@ -71,7 +71,7 @@
                         </button>
                         <label class="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center cursor-pointer">
                             <i class="fa-solid fa-upload w-5"></i> Import JSON
-                            <input type="file" accept=".json" class="hidden" @change="importData($event); open = false">
+                            <input type="file" accept=".json,application/json" class="hidden" @change="importData($event); open = false">
                         </label>
 
                         <div class="border-t border-slate-100 my-1"></div>
@@ -81,7 +81,7 @@
                         </button>
                         <label class="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center cursor-pointer">
                             <i class="fa-solid fa-file-import w-5"></i> Import CSV
-                            <input type="file" accept=".csv" class="hidden" @change="importCSV($event); open = false">
+                            <input type="file" accept=".csv,text/csv" class="hidden" @change="importCSV($event); open = false">
                         </label>
                     </div>
                 </div>
