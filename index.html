@@ -161,14 +161,16 @@
                                 </div>
                             </div>
 
-                            <div class="mt-2 flex items-baseline justify-between">
+                            <div class="mt-2 flex items-baseline">
                                 <template x-if="s.summaryDisplay">
-                                    <span class="text-sm font-black text-indigo-600 truncate" x-text="s.summaryDisplay.split(': ')[1]"></span>
+                                    <div class="flex items-baseline">
+                                        <span class="text-sm font-black text-indigo-600 truncate" x-text="s.summaryDisplay.split(': ')[1]"></span>
+                                        <span class="text-[10px] font-bold text-slate-400 uppercase ml-1.5" x-text="s.summaryDisplay.split(': ')[0]"></span>
+                                    </div>
                                 </template>
                                 <template x-if="!s.summaryDisplay">
                                     <span class="text-[10px] text-slate-300 italic">No data</span>
                                 </template>
-                                <span class="text-[10px] font-bold text-slate-400 uppercase ml-2" x-text="s.summaryDisplay ? s.summaryDisplay.split(': ')[0] : ''"></span>
                             </div>
                         </div>
                     </template>
