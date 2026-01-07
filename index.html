@@ -78,21 +78,21 @@
         </div>
     </header>
 
-    <main class="max-w-7xl mx-auto px-4 py-8">
+    <main class="max-w-7xl mx-auto px-4 pb-8">
         <template x-if="view === 'list'">
             <div class="space-y-6">
-                <div class="bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-200 flex flex-wrap items-center gap-x-6 gap-y-3" x-data="{ showAllFilters: false }">
-                    
-                    <div class="flex items-center gap-3">
+                <div class="px-1 py-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-x-6 gap-y-3" x-data="{ showAllFilters: false }">
+            
+                    <div class="flex items-center gap-4">
                         <button @click="showAllFilters = !showAllFilters" 
-                                class="flex items-center space-x-1.5 text-xs font-bold text-indigo-600 uppercase hover:text-indigo-800 transition-colors whitespace-nowrap">
-                            <i class="fa-solid" :class="showAllFilters ? 'fa-minus' : 'fa-plus'"></i>
-                            <span x-text="showAllFilters ? 'Hide' : 'Filter'"></span>
+                                class="flex items-center space-x-1.5 text-xs font-bold text-slate-500 uppercase hover:text-indigo-600 transition-colors whitespace-nowrap">
+                            <i class="fa-solid" :class="showAllFilters ? 'fa-filter-circle-xmark' : 'fa-filter'"></i>
+                            <span x-text="showAllFilters ? 'Close' : 'Filter'"></span>
                         </button>
                         
                         <div class="flex flex-wrap gap-2 items-center">
                             <template x-for="group in groups.filter(g => selectedGroups.includes(g.name))" :key="'active-'+group.id">
-                                <label class="inline-flex items-center px-3 py-1 rounded-full border border-indigo-300 bg-indigo-50 text-indigo-700 cursor-pointer transition-colors text-xs font-medium">
+                                <label class="inline-flex items-center px-3 py-1 rounded-full border border-indigo-200 bg-indigo-50 text-indigo-700 cursor-pointer transition-colors text-xs font-medium">
                                     <input type="checkbox" :value="group.name" x-model="selectedGroups" class="hidden">
                                     <span x-text="group.name"></span>
                                     <i class="fa-solid fa-xmark ml-2 text-[10px] opacity-60"></i>
@@ -101,7 +101,7 @@
 
                             <template x-for="group in groups.filter(g => !selectedGroups.includes(g.name))" :key="'inactive-'+group.id">
                                 <label x-show="showAllFilters" 
-                                       x-transition class="inline-flex items-center px-3 py-1 rounded-full border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 cursor-pointer transition-all text-xs">
+                                       x-transition class="inline-flex items-center px-3 py-1 rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 cursor-pointer transition-all text-xs">
                                     <input type="checkbox" :value="group.name" x-model="selectedGroups" class="hidden">
                                     <span x-text="group.name"></span>
                                 </label>
@@ -113,10 +113,10 @@
                         </div>
                     </div>
 
-                    <div class="flex items-center gap-4 ml-auto border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-100 w-full sm:w-auto">
+                    <div class="flex items-center gap-4 border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-100">
                         <div class="flex items-center space-x-2">
                             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sort:</span>
-                            <div class="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
+                            <div class="flex bg-slate-200/50 p-1 rounded-lg">
                                 <button @click="sortBy('name')" 
                                         :class="sortField === 'name' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'"
                                         class="px-3 py-1 text-xs font-bold rounded-md transition-all flex items-center space-x-1">
@@ -130,10 +130,6 @@
                                     <span x-show="sortField === 'group'" x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
                                 </button>
                             </div>
-                        </div>
-                        
-                        <div class="bg-indigo-50 px-3 py-1 rounded-md border border-indigo-100 ml-auto sm:ml-0">
-                            <span class="text-[10px] font-black text-indigo-600 uppercase" x-text="filteredSeries.length"></span>
                         </div>
                     </div>
                 </div>
