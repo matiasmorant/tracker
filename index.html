@@ -81,39 +81,61 @@
     <main class="max-w-7xl mx-auto px-4 py-8">
         <template x-if="view === 'list'">
             <div class="space-y-6">
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Filter by Groups</p>
-                    <div class="flex flex-wrap gap-2">
-                        <template x-for="group in groups" :key="group.id">
-                            <label class="inline-flex items-center px-3 py-1 rounded-full border cursor-pointer transition-colors text-sm" 
-                                :class="selectedGroups.includes(group.name) ? 'bg-indigo-100 border-indigo-300 text-indigo-700' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'">
-                                <input type="checkbox" :value="group.name" x-model="selectedGroups" class="hidden">
-                                <span x-text="group.name"></span>
-                            </label>
-                        </template>
-                    </div>
-                </div>
+                <div class="bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-200 flex flex-wrap items-center gap-x-6 gap-y-3" x-data="{ showAllFilters: false }">
+                    
+                    <div class="flex items-center gap-3">
+                        <button @click="showAllFilters = !showAllFilters" 
+                                class="flex items-center space-x-1.5 text-xs font-bold text-indigo-600 uppercase hover:text-indigo-800 transition-colors whitespace-nowrap">
+                            <i class="fa-solid" :class="showAllFilters ? 'fa-minus' : 'fa-plus'"></i>
+                            <span x-text="showAllFilters ? 'Hide' : 'Filter'"></span>
+                        </button>
+                        
+                        <div class="flex flex-wrap gap-2 items-center">
+                            <template x-for="group in groups.filter(g => selectedGroups.includes(g.name))" :key="'active-'+group.id">
+                                <label class="inline-flex items-center px-3 py-1 rounded-full border border-indigo-300 bg-indigo-50 text-indigo-700 cursor-pointer transition-colors text-xs font-medium">
+                                    <input type="checkbox" :value="group.name" x-model="selectedGroups" class="hidden">
+                                    <span x-text="group.name"></span>
+                                    <i class="fa-solid fa-xmark ml-2 text-[10px] opacity-60"></i>
+                                </label>
+                            </template>
 
-                <div class="flex items-center justify-between mb-4 px-1">
-                    <div class="flex items-center space-x-2">
-                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sort By:</span>
-                        <div class="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
-                            <button @click="sortBy('name')" 
-                                    :class="sortField === 'name' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'"
-                                    class="px-3 py-1 text-xs font-bold rounded-md transition-all flex items-center space-x-1">
-                                <span>Name</span>
-                                <span x-show="sortField === 'name'" x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
-                            </button>
-                            <button @click="sortBy('group')" 
-                                    :class="sortField === 'group' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'"
-                                    class="px-3 py-1 text-xs font-bold rounded-md transition-all flex items-center space-x-1">
-                                <span>Group</span>
-                                <span x-show="sortField === 'group'" x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
-                            </button>
+                            <template x-for="group in groups.filter(g => !selectedGroups.includes(g.name))" :key="'inactive-'+group.id">
+                                <label x-show="showAllFilters" 
+                                       x-transition class="inline-flex items-center px-3 py-1 rounded-full border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 cursor-pointer transition-all text-xs">
+                                    <input type="checkbox" :value="group.name" x-model="selectedGroups" class="hidden">
+                                    <span x-text="group.name"></span>
+                                </label>
+                            </template>
+
+                            <template x-if="selectedGroups.length === 0 && !showAllFilters">
+                                <span class="text-xs font-medium text-slate-400">Showing all series</span>
+                            </template>
                         </div>
                     </div>
-                    
-                    <span class="text-[10px] font-bold text-slate-400 uppercase" x-text="`${filteredSeries.length} Series` "></span>
+
+                    <div class="flex items-center gap-4 ml-auto border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-100 w-full sm:w-auto">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sort:</span>
+                            <div class="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
+                                <button @click="sortBy('name')" 
+                                        :class="sortField === 'name' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'"
+                                        class="px-3 py-1 text-xs font-bold rounded-md transition-all flex items-center space-x-1">
+                                    <span>Name</span>
+                                    <span x-show="sortField === 'name'" x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                                </button>
+                                <button @click="sortBy('group')" 
+                                        :class="sortField === 'group' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'"
+                                        class="px-3 py-1 text-xs font-bold rounded-md transition-all flex items-center space-x-1">
+                                    <span>Group</span>
+                                    <span x-show="sortField === 'group'" x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-indigo-50 px-3 py-1 rounded-md border border-indigo-100 ml-auto sm:ml-0">
+                            <span class="text-[10px] font-black text-indigo-600 uppercase" x-text="filteredSeries.length"></span>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
