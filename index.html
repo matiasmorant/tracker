@@ -92,21 +92,22 @@
                         
                         <div class="flex flex-wrap gap-2 items-center">
                             <template x-for="group in groups.filter(g => selectedGroups.includes(g.name))" :key="'active-'+group.id">
-                                <label class="inline-flex items-center px-3 py-1 rounded-full border border-indigo-200 bg-indigo-50 text-indigo-700 cursor-pointer transition-colors text-xs font-medium">
+                                <label :style="`background-color: ${group.color || '#4f46e5'}20; border-color: ${group.color || '#4f46e5'}; color: ${group.color || '#4f46e5'}`"
+                                       class="inline-flex items-center px-3 py-1 rounded-full border cursor-pointer transition-colors text-xs font-medium shadow-sm">
                                     <input type="checkbox" :value="group.name" x-model="selectedGroups" class="hidden">
                                     <span x-text="group.name"></span>
-                                    <i class="fa-solid fa-xmark ml-2 text-[10px] opacity-60"></i>
                                 </label>
                             </template>
-
                             <template x-for="group in groups.filter(g => !selectedGroups.includes(g.name))" :key="'inactive-'+group.id">
                                 <label x-show="showAllFilters" 
-                                       x-transition class="inline-flex items-center px-3 py-1 rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 cursor-pointer transition-all text-xs">
+                                       x-transition 
+                                       class="inline-flex items-center px-3 py-1 rounded-full border cursor-pointer transition-all text-xs font-medium bg-slate-50 border-slate-200 text-slate-500 hover:border-indigo-300 hover:text-indigo-600"
+                                       :style="group.color ? `background-color: ${group.color}10; border-color: ${group.color}30; color: ${group.color}80` : ''"
+                                       >
                                     <input type="checkbox" :value="group.name" x-model="selectedGroups" class="hidden">
                                     <span x-text="group.name"></span>
                                 </label>
                             </template>
-
                             <template x-if="selectedGroups.length === 0 && !showAllFilters">
                                 <span class="text-xs font-medium text-slate-400">Showing all series</span>
                             </template>
@@ -137,12 +138,17 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                     <template x-for="s in filteredSeries" :key="s.id">
                         <div @click="openSeriesDetail(s)" 
-                             class="bg-white px-4 py-3 rounded-xl border border-slate-200 shadow-sm hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer group flex flex-col justify-center min-h-[100px]">
+                             class="px-4 py-3 rounded-xl border shadow-sm transition-all cursor-pointer group flex flex-col justify-center min-h-[100px]"
+                             :class="s.group ? 'hover:shadow-md' : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-md'"
+                             :style="s.group ? `background-color: ${groups.find(g => g.name === s.group)?.color}12; border-color: ${groups.find(g => g.name === s.group)?.color}40;` : ''">
                             
                             <div class="flex justify-between items-center mb-1">
                                 <div class="min-w-0 flex-1">
                                     <div class="font-bold text-slate-800 truncate leading-tight" x-text="s.name"></div>
-                                    <div x-show="s.group" class="text-[10px] font-bold text-slate-400 uppercase tracking-tight truncate" x-text="s.group"></div>
+                                    <div x-show="s.group" 
+                                         class="text-[10px] font-bold uppercase tracking-tight truncate" 
+                                         :style="`color: ${groups.find(g => g.name === s.group)?.color || '#94a3b8'}`"
+                                         x-text="s.group"></div>
                                 </div>
                                 
                                 <div class="flex items-center space-x-1 ml-2" @click.stop>
@@ -152,7 +158,7 @@
                                         <template x-if="s.startTime"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"></path></svg></template>
                                         <template x-if="!s.startTime"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg></template>
                                     </button>
-                                    <button @click="editSeries(s)" class="p-1.5 text-slate-300 hover:text-indigo-600 hover:bg-slate-50 rounded-lg">
+                                    <button @click="editSeries(s)" class="p-1.5 text-slate-300 hover:text-indigo-600 hover:bg-white/50 rounded-lg">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                                     </button>
                                     <button @click="deleteSeries(s.id)" class="p-1.5 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-lg">
@@ -168,7 +174,6 @@
                                         <span class="text-[10px] font-bold text-red-400 uppercase ml-1.5">Running</span>
                                     </div>
                                 </template>
-
                                 <template x-if="!(s.startTime && s.config?.quickAddAction === 'chronometer')">
                                     <div class="flex items-baseline">
                                         <template x-if="s.summaryDisplay">
@@ -447,9 +452,24 @@
             <div class="bg-white rounded-2xl shadow-xl w-full max-w-md relative z-10 overflow-hidden">
                 <div class="p-6">
                     <h3 class="text-xl font-bold mb-4" x-text="editingGroup ? 'Edit Group' : 'Manage Groups'"></h3>
-                    <div class="flex space-x-2 mb-6">
-                        <input type="text" x-model="groupForm.name" class="flex-1 px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-500" autofocus>
-                        <button @click="saveGroup()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium" x-text="editingGroup ? 'Update' : 'Add'"></button>
+                    <div class="space-y-4 mb-6">
+                        <input type="text" x-model="groupForm.name" placeholder="Group Name" 
+                               class="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-500" autofocus>
+                        
+                        <div class="grid grid-cols-6 gap-2">
+                            <template x-for="color in [
+                                '#6366f1', '#ec4899', '#f43f5e', '#f59e0b', '#10b981', '#06b6d4',
+                                '#8b5cf6', '#475569', '#94a3b8', '#14b8a6', '#f97316', '#ef4444'
+                            ]">
+                                <button @click="groupForm.color = color" 
+                                        :class="groupForm.color === color ? 'ring-2 ring-offset-2 ring-slate-400' : ''"
+                                        :style="`background-color: ${color}`"
+                                        class="h-8 rounded-md transition-all"></button>
+                            </template>
+                        </div>
+                        
+                        <button @click="saveGroup()" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium" 
+                                x-text="editingGroup ? 'Update' : 'Add'"></button>
                     </div>
                     <div class="max-h-64 overflow-y-auto space-y-1 custom-scrollbar">
                         <template x-for="g in groups" :key="g.id">
@@ -572,7 +592,7 @@
                 view: 'list', detailSubView: 'chart', calendarDate: new Date(), db: null, series: [], groups: [], currentSeries: null, currentSeriesEntries: [],
                 selectedGroups: [], sortField: 'name', sortOrder: 'asc',
                 modals: { series: false, entry: false, manageGroups: false },
-                groupForm: { name: '' }, editingGroup: null,
+                groupForm: { name: '', color: '#6366f1' }, editingGroup: null,
                 editingSeries: null, 
                 seriesForm: { name: '', group: '', type: 'number', config: { stat: 'mean', period: 'all', quickAddAction: 'manual' } },
                 editingEntry: null, activeSeriesForEntry: null, 
@@ -825,21 +845,38 @@
 
                 async saveGroup() {
                     if (!this.groupForm.name) return;
-                    const tx = this.db.transaction(['groups', 'series'], 'readwrite');
-                    const groupStore = tx.objectStore('groups');
-                    const seriesStore = tx.objectStore('series');
-                    if (this.editingGroup) {
-                        const oldName = this.editingGroup.name;
-                        const newName = this.groupForm.name;
-                        groupStore.put({ id: this.editingGroup.id, name: newName });
-                        seriesStore.getAll().onsuccess = (e) => {
-                            e.target.result.forEach(s => { if (s.group === oldName) { s.group = newName; seriesStore.put(s); } });
-                        };
-                    } else { groupStore.put({ name: this.groupForm.name }); }
-                    tx.oncomplete = () => { this.editingGroup = null; this.groupForm.name = ''; this.loadGroups(); this.loadSeries(); this.showToast('Group saved'); };
+                    
+                    // Create the group object with the selected color
+                    const g = {
+                        id: this.editingGroup ? this.editingGroup.id : Date.now(),
+                        name: this.groupForm.name,
+                        color: this.groupForm.color || '#6366f1' // Default to indigo if none selected
+                    };
+
+                    const tx = this.db.transaction('groups', 'readwrite');
+                    tx.objectStore('groups').put(g);
+                    
+                    tx.oncomplete = () => {
+                        // Update the local state
+                        if (this.editingGroup) {
+                            const idx = this.groups.findIndex(i => i.id === g.id);
+                            this.groups[idx] = g;
+                        } else {
+                            this.groups.push(g);
+                        }
+                        
+                        // Reset form to default state
+                        this.groupForm = { name: '', color: '#6366f1' };
+                        this.editingGroup = null;
+                        this.showToast(this.editingGroup ? 'Group updated' : 'Group added');
+                    };
                 },
 
-                editGroupName(group) { this.editingGroup = group; this.groupForm.name = group.name; },
+                editGroupName(g) {
+                    this.editingGroup = g;
+                    this.groupForm = { name: g.name, color: g.color || '#6366f1' };
+                },
+
                 async deleteGroup(id) {
                     if (!confirm('Delete group?')) return;
                     const tx = this.db.transaction('groups', 'readwrite');
