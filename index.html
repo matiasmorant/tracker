@@ -287,38 +287,75 @@
                 </div>
 
                 <div x-show="detailSubView === 'chart'" class="bg-white p-2 rounded-2xl shadow-sm border border-slate-200 dark:bg-slate-800 dark:border-slate-700">
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2 p-2">
-                        <div class="flex flex-wrap items-center gap-2">
-                            <select x-model="chartSettings.period" @change="updateChart(); saveSeriesConfig()" class="text-xs border border-slate-200 rounded-md px-1 py-1 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
-                                <option value="none">Raw Data</option>
-                                <option value="day">Day</option>
-                                <option value="week">Week</option>
-                                <option value="month">Month</option>
-                                <option value="quarter">Quarter</option>
-                                <option value="year">Year</option>
-                            </select>
-
-                            <div class="flex items-center space-x-2 border-l pl-2 border-slate-200 dark:border-slate-700">
-                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter dark:text-slate-500">Running Stat</span>
-                                <select x-model="chartSettings.runningMetric" @change="updateChart(); saveSeriesConfig()" class="text-xs border border-slate-200 rounded-md px-1 py-1 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
-                                    <option value="">None</option>
-                                    <template x-for="m in metrics" :key="m.id">
-                                        <option :value="m.id" x-text="m.label"></option>
-                                    </template>
-                                </select>
-                                <input type="number" x-model.number="chartSettings.window" @input="updateChart(); saveSeriesConfig()" min="2" step="1" placeholder="Win" class="w-12 text-xs border border-slate-200 rounded-md px-1 py-1 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
-                            </div>
-                        </div>
-                    </div>
+                    
                     <div class="relative h-96">
                         <button 
                             @click="chartSettings.logScale = !chartSettings.logScale; updateChart(); saveSeriesConfig()"
                             :class="chartSettings.logScale ? 'text-indigo-600 dark:text-indigo-400 font-black' : 'text-slate-300 dark:text-slate-600 font-bold'"
-                            class="absolute -top-1 left-0 z-10 text-[10px] tracking-widest transition-colors hover:opacity-70"
+                            class="absolute top-2 left-2 z-10 text-[10px] tracking-widest transition-colors hover:opacity-70"
                             title="Toggle Logarithmic Scale">
                             LOG
                         </button>
                         <canvas id="seriesChart"></canvas>
+                    </div>
+
+                    <div class="mt-4 p-4 border-t border-slate-100 dark:border-slate-700" x-data="{ showAllStats: false }">
+                        <div>
+                            <div class="flex items-center justify-between mb-3">
+                                <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest dark:text-slate-500">Overlay Statistics</h3>
+                                <button @click="showAllStats = !showAllStats" 
+                                        class="text-[9px] font-black text-indigo-500 uppercase tracking-tighter hover:text-indigo-600">
+                                    <i class="fa-solid" :class="showAllStats ? 'fa-minus' : 'fa-plus'"></i>
+                                    <span x-text="showAllStats ? 'Hide Options' : 'Add Overlays'"></span>
+                                </button>
+                            </div>
+                            
+                            <div class="flex flex-wrap gap-2">
+                                <template x-for="m in metrics" :key="'chart-sel-'+m.id">
+                                    <button x-show="analysisSelection.includes(m.id) || showAllStats"
+                                            x-transition
+                                            @click="analysisSelection.includes(m.id) ? analysisSelection = analysisSelection.filter(i => i !== m.id) : analysisSelection.push(m.id); saveSeriesConfig(); updateChart()"
+                                            :style="analysisSelection.includes(m.id) ? `background-color: ${m.color}; border-color: ${m.color}; color: white;` : ''"
+                                            :class="analysisSelection.includes(m.id) ? 'shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600 dark:hover:border-indigo-500'"
+                                            class="px-3 py-1.5 rounded-lg border text-[10px] font-bold transition-all flex items-center space-x-2">
+                                        <i class="fa-solid fa-check text-[8px]" x-show="analysisSelection.includes(m.id)"></i>
+                                        <span x-text="m.label"></span>
+                                    </button>
+                                </template>
+                                <p x-show="analysisSelection.length === 0 && !showAllStats" class="text-[10px] text-slate-400 italic">No overlays currently active.</p>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-4 mb-6">
+                            <div class="flex flex-col gap-1.5">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter dark:text-slate-500">Period Grouping</span>
+                                <select x-model="chartSettings.period" @change="updateChart(); saveSeriesConfig()" class="text-xs border border-slate-200 rounded-md px-2 py-1.5 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
+                                    <option value="none">Raw Data</option>
+                                    <option value="day">Day</option>
+                                    <option value="week">Week</option>
+                                    <option value="month">Month</option>
+                                    <option value="quarter">Quarter</option>
+                                    <option value="year">Year</option>
+                                </select>
+                            </div>
+
+                            <div class="h-8 w-px bg-slate-100 dark:bg-slate-700 mx-1 hidden md:block"></div>
+
+                            <div class="flex flex-col gap-1.5">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter dark:text-slate-500">Running Average/Stat</span>
+                                <div class="flex items-center space-x-2">
+                                    <select x-model="chartSettings.runningMetric" @change="updateChart(); saveSeriesConfig()" class="text-xs border border-slate-200 rounded-md px-2 py-1.5 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
+                                        <option value="">None</option>
+                                        <template x-for="m in metrics" :key="m.id">
+                                            <option :value="m.id" x-text="m.label"></option>
+                                        </template>
+                                    </select>
+                                    <input type="number" x-model.number="chartSettings.window" @input="updateChart(); saveSeriesConfig()" min="2" step="1" placeholder="Win" class="w-14 text-xs border border-slate-200 rounded-md px-2 py-1.5 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
+                                </div>
+                            </div>
+                        </div>
+
+                        
                     </div>
                 </div>
 
@@ -1346,7 +1383,10 @@
                             options: { 
                                 layout:{padding:{top:20}},
                                 responsive: true, maintainAspectRatio: false,
-                                plugins: { tooltip: { callbacks: { label: (c) => this.currentSeries.type === 'time' ? `Value: ${this.formatDuration(c.parsed.y)}` : `Value: ${c.parsed.y}` } } },
+                                plugins: {
+                                    legend: {display: false},
+                                    tooltip: { callbacks: { label: (c) => this.currentSeries.type === 'time' ? `Value: ${this.formatDuration(c.parsed.y)}` : `Value: ${c.parsed.y}` } }
+                                },
                                 scales: { 
                                     y: {
                                         type: this.chartSettings.logScale ? 'logarithmic' : 'linear',
