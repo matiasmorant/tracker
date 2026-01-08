@@ -302,11 +302,11 @@
                     <div class="mt-4 p-4 border-t border-slate-100 dark:border-slate-700" x-data="{ showAllStats: false }">
                         <div>
                             <div class="flex items-center justify-between mb-3">
-                                <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest dark:text-slate-500">Overlay Statistics</h3>
+                                <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest dark:text-slate-500">Statistics</h3>
                                 <button @click="showAllStats = !showAllStats" 
                                         class="text-[9px] font-black text-indigo-500 uppercase tracking-tighter hover:text-indigo-600">
                                     <i class="fa-solid" :class="showAllStats ? 'fa-minus' : 'fa-plus'"></i>
-                                    <span x-text="showAllStats ? 'Hide Options' : 'Add Overlays'"></span>
+                                    <span x-text="showAllStats ? 'Hide' : 'Add'"></span>
                                 </button>
                             </div>
                             
@@ -318,7 +318,6 @@
                                             :style="analysisSelection.includes(m.id) ? `background-color: ${m.color}; border-color: ${m.color}; color: white;` : ''"
                                             :class="analysisSelection.includes(m.id) ? 'shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600 dark:hover:border-indigo-500'"
                                             class="px-3 py-1.5 rounded-lg border text-[10px] font-bold transition-all flex items-center space-x-2">
-                                        <i class="fa-solid fa-check text-[8px]" x-show="analysisSelection.includes(m.id)"></i>
                                         <span x-text="m.label"></span>
                                     </button>
                                 </template>
@@ -368,7 +367,6 @@
                                     <button @click="analysisSelection.includes(m.id) ? analysisSelection = analysisSelection.filter(i => i !== m.id) : analysisSelection.push(m.id);saveSeriesConfig();updateChart()"
                                             :class="analysisSelection.includes(m.id) ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600 dark:hover:border-indigo-500'"
                                             class="px-3 py-1.5 rounded-lg border text-xs font-bold transition-all flex items-center space-x-2">
-                                        <i class="fa-solid fa-check text-[10px]" x-show="analysisSelection.includes(m.id)"></i>
                                         <span x-text="m.label"></span>
                                     </button>
                                 </template>
@@ -497,7 +495,6 @@
                                             <button @click="currentSeries.config.stat = m.id; saveSeriesConfig()"
                                                     :class="currentSeries.config?.stat === m.id ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600 dark:hover:border-indigo-500'"
                                                     class="px-3 py-1.5 rounded-lg border text-xs font-bold transition-all flex items-center space-x-2">
-                                                <i class="fa-solid fa-check text-[10px]" x-show="currentSeries.config?.stat === m.id"></i>
                                                 <span x-text="m.label"></span>
                                             </button>
                                         </template>
