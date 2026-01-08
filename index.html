@@ -287,10 +287,6 @@
                 <div x-show="detailSubView === 'chart'" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 dark:bg-slate-800 dark:border-slate-700">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                         <div class="flex flex-wrap items-center gap-4">
-                            <label class="flex items-center space-x-2 text-sm text-slate-600 cursor-pointer dark:text-slate-300">
-                                <input type="checkbox" x-model="chartSettings.logScale" @change="updateChart()" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-700">
-                                <span>Log Scale</span>
-                            </label>
                             <select x-model="chartSettings.period" @change="updateChart()" class="text-xs border border-slate-200 rounded-md px-2 py-1 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
                                 <option value="none">Raw Data</option>
                                 <option value="day">Day</option>
@@ -313,6 +309,13 @@
                         </div>
                     </div>
                     <div class="relative h-96">
+                        <button 
+                            @click="chartSettings.logScale = !chartSettings.logScale; updateChart()"
+                            :class="chartSettings.logScale ? 'text-indigo-600 dark:text-indigo-400 font-black' : 'text-slate-300 dark:text-slate-600 font-bold'"
+                            class="absolute -top-1 left-0 z-10 text-[10px] tracking-widest transition-colors hover:opacity-70"
+                            title="Toggle Logarithmic Scale">
+                            LOG
+                        </button>
                         <canvas id="seriesChart"></canvas>
                     </div>
                 </div>
@@ -1316,10 +1319,19 @@
                         chartInstance = new Chart(ctx, {
                             type: 'line', data: { datasets: [] },
                             options: { 
+                                layout:{padding:{top:20}},
                                 responsive: true, maintainAspectRatio: false,
                                 plugins: { tooltip: { callbacks: { label: (c) => this.currentSeries.type === 'time' ? `Value: ${this.formatDuration(c.parsed.y)}` : `Value: ${c.parsed.y}` } } },
                                 scales: { 
-                                    y: { type: this.chartSettings.logScale ? 'logarithmic' : 'linear', ticks: { callback: (v) => this.currentSeries.type === 'time' ? this.formatDuration(v) : v } },
+                                    y: {
+                                        type: this.chartSettings.logScale ? 'logarithmic' : 'linear',
+                                        ticks: {
+                                            mirror: true,
+                                            callback: (v) => this.currentSeries.type === 'time' ? this.formatDuration(v) : v,
+                                            padding: -2, 
+                                            z: 1
+                                        }
+                                    },
                                     x: { type: 'time', time: { tooltipFormat: 'yyyy-MM-dd HH:mm', displayFormats: { hour: 'HH:mm', day: 'MMM d', month: 'MMM yyyy' } }, ticks: { autoSkip: true, maxRotation: 0 } }
                                 } 
                             }
