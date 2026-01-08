@@ -2,8 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chronos - Time Series Manager</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">    <title>Chronos - Time Series Manager</title>
     <link rel="icon" type="image/png" href="icon-192.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -14,6 +13,7 @@
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
     <script src="https://unpkg.com/papaparse@latest/papaparse.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
@@ -34,7 +34,9 @@
             background: #cbd5e1; 
             border-radius: 10px; 
         }
-        
+        html, body {
+            touch-action: pan-x pan-y; /* Allows scrolling but prevents browser-level gestures like double-tap zoom */
+        }
         /* Dark mode scrollbar */
         .dark .custom-scrollbar::-webkit-scrollbar-thumb { 
             background: #475569; 
@@ -289,13 +291,23 @@
                 <div x-show="detailSubView === 'chart'" class="bg-white p-2 rounded-2xl shadow-sm border border-slate-200 dark:bg-slate-800 dark:border-slate-700">
                     
                     <div class="relative h-96">
-                        <button 
-                            @click="chartSettings.logScale = !chartSettings.logScale; updateChart(); saveSeriesConfig()"
-                            :class="chartSettings.logScale ? 'text-indigo-600 dark:text-indigo-400 font-black' : 'text-slate-300 dark:text-slate-600 font-bold'"
-                            class="absolute top-2 left-2 z-10 text-[10px] tracking-widest transition-colors hover:opacity-70"
-                            title="Toggle Logarithmic Scale">
-                            LOG
-                        </button>
+                        <div class="absolute top-2 left-2 z-10 flex items-center space-x-4">
+                            <button 
+                                @click="chartSettings.logScale = !chartSettings.logScale; updateChart(); saveSeriesConfig()"
+                                :class="chartSettings.logScale ? 'text-indigo-600 dark:text-indigo-400 font-black ring-1 ring-indigo-600/20 px-1 rounded' : 'text-slate-300 dark:text-slate-600 font-bold'"
+                                class="text-[10px] tracking-widest transition-colors hover:opacity-70"
+                                title="Toggle Logarithmic Scale">
+                                LOG
+                            </button>
+                    
+                            <button 
+                                @click="window.seriesChart.resetZoom()"
+                                class="text-[10px] font-bold text-slate-400 hover:text-indigo-500 transition-colors uppercase tracking-widest"
+                                title="Reset Chart View">
+                                Reset View
+                            </button>
+                        </div>
+                        
                         <canvas id="seriesChart"></canvas>
                     </div>
 
@@ -1382,6 +1394,25 @@
                                 responsive: true, maintainAspectRatio: false,
                                 plugins: {
                                     legend: {display: false},
+                                    zoom: {
+                                        pan: {
+                                            enabled: true,
+                                            mode: 'x', // Allow horizontal panning only
+                                            threshold: 10
+                                        },
+                                        zoom: {
+                                            drag: {
+                                                enabled: true,
+                                                backgroundColor: 'rgba(79, 70, 229, 0.1)', // Indigo color with transparency
+                                                borderColor: 'rgb(79, 70, 229)',
+                                                borderWidth: 1,
+                                            },
+                                            pinch: {
+                                                enabled: true
+                                            },
+                                            mode: 'x', // Allow horizontal zooming only
+                                        }
+                                    },
                                     tooltip: { callbacks: { label: (c) => this.currentSeries.type === 'time' ? `Value: ${this.formatDuration(c.parsed.y)}` : `Value: ${c.parsed.y}` } }
                                 },
                                 scales: { 
@@ -1402,6 +1433,7 @@
                             }
                         });
                         this.updateChart();
+                        window.seriesChart = chartInstance;
                     });
                 },
 
