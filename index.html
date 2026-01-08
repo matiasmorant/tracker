@@ -1160,6 +1160,7 @@
                     if (!this.currentSeries) return;
                     this.currentSeries.config.analysisSelection = [...this.analysisSelection];
                     this.currentSeries.config.chartSettings = { ...this.chartSettings };
+                    this.recalculateSummaryDisplay();
                     const transaction = this.db.transaction(['series'], 'readwrite');
                     const store = transaction.objectStore('series');
                     store.put(JSON.parse(JSON.stringify(this.currentSeries)));
