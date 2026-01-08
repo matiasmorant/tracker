@@ -957,16 +957,25 @@
                     return { d, h, m, s };
                 },
 
-                formatDuration(seconds) {
-                    if (seconds === null || isNaN(seconds)) return '0s';
-                    const {d, h, m, s} = this.secondsToDHMS(seconds);
-                    const parts = [];
-                    if (d > 0) parts.push(`${d}d`);
-                    if (h > 0 || d > 0) parts.push(`${h.toString().padStart(2, '0')}h`);
-                    parts.push(`${m.toString().padStart(2, '0')}m`);
-                    parts.push(`${s.toString().padStart(2, '0')}s`);
-                    return parts.join(' ');
-                },
+                formatDuration(seconds, isTick = false) {
+                    if (seconds === 0) return '0s';
+                    const d = Math.floor(seconds / 86400);
+                    const h = Math.floor((seconds % 86400) / 3600);
+                    const m = Math.floor((seconds % 3600) / 60);
+                    const s = Math.floor(seconds % 60);
+                    if (isTick) {
+                        if (d > 0) return `${d}d`;
+                        if (h > 0) return `${h}h`;
+                        if (m > 0) return `${m}m`;
+                        return `${s}s`;
+                    }
+                    let res = [];
+                    if (d > 0) res.push(`${d}d`);
+                    if (h > 0) res.push(`${h}h`);
+                        if (m > 0) res.push(`${m}m`);
+                        if (s > 0 || res.length === 0) res.push(`${s}s`);
+                        return res.join(' ');
+                    },
 
                 async loadGroups() {
                     const tx = this.db.transaction('groups', 'readonly');
@@ -1327,7 +1336,10 @@
                                         type: this.chartSettings.logScale ? 'logarithmic' : 'linear',
                                         ticks: {
                                             mirror: true,
-                                            callback: (v) => this.currentSeries.type === 'time' ? this.formatDuration(v) : v,
+                                            callback: (v) => {
+                                                if (this.currentSeries.type === 'time') return this.formatDuration(v,true);
+                                                return Number(v).toLocaleString(undefined, { maximumFractionDigits: 2 });
+                                            },
                                             padding: -2, 
                                             z: 1
                                         }
