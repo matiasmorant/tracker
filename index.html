@@ -287,7 +287,7 @@
                 <div x-show="detailSubView === 'chart'" class="bg-white p-2 rounded-2xl shadow-sm border border-slate-200 dark:bg-slate-800 dark:border-slate-700">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2 p-2">
                         <div class="flex flex-wrap items-center gap-2">
-                            <select x-model="chartSettings.period" @change="updateChart()" class="text-xs border border-slate-200 rounded-md px-1 py-1 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
+                            <select x-model="chartSettings.period" @change="updateChart(); saveSeriesConfig()" class="text-xs border border-slate-200 rounded-md px-1 py-1 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
                                 <option value="none">Raw Data</option>
                                 <option value="day">Day</option>
                                 <option value="week">Week</option>
@@ -298,19 +298,19 @@
 
                             <div class="flex items-center space-x-2 border-l pl-2 border-slate-200 dark:border-slate-700">
                                 <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter dark:text-slate-500">Running Stat</span>
-                                <select x-model="chartSettings.runningMetric" @change="updateChart()" class="text-xs border border-slate-200 rounded-md px-1 py-1 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
+                                <select x-model="chartSettings.runningMetric" @change="updateChart(); saveSeriesConfig()" class="text-xs border border-slate-200 rounded-md px-1 py-1 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
                                     <option value="">None</option>
                                     <template x-for="m in metrics" :key="m.id">
                                         <option :value="m.id" x-text="m.label"></option>
                                     </template>
                                 </select>
-                                <input type="number" x-model.number="chartSettings.window" @input="updateChart()" min="2" step="1" placeholder="Win" class="w-12 text-xs border border-slate-200 rounded-md px-1 py-1 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
+                                <input type="number" x-model.number="chartSettings.window" @input="updateChart(); saveSeriesConfig()" min="2" step="1" placeholder="Win" class="w-12 text-xs border border-slate-200 rounded-md px-1 py-1 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
                             </div>
                         </div>
                     </div>
                     <div class="relative h-96">
                         <button 
-                            @click="chartSettings.logScale = !chartSettings.logScale; updateChart()"
+                            @click="chartSettings.logScale = !chartSettings.logScale; updateChart(); saveSeriesConfig()"
                             :class="chartSettings.logScale ? 'text-indigo-600 dark:text-indigo-400 font-black' : 'text-slate-300 dark:text-slate-600 font-bold'"
                             class="absolute -top-1 left-0 z-10 text-[10px] tracking-widest transition-colors hover:opacity-70"
                             title="Toggle Logarithmic Scale">
@@ -326,7 +326,7 @@
                             <h3 class="font-bold text-slate-800 py-4 dark:text-slate-100">Statistics Selection</h3>
                             <div class="flex flex-wrap gap-2">
                                 <template x-for="m in metrics" :key="m.id">
-                                    <button @click="analysisSelection.includes(m.id) ? analysisSelection = analysisSelection.filter(i => i !== m.id) : analysisSelection.push(m.id); updateChart()"
+                                    <button @click="analysisSelection.includes(m.id) ? analysisSelection = analysisSelection.filter(i => i !== m.id) : analysisSelection.push(m.id);saveSeriesConfig();updateChart()"
                                             :class="analysisSelection.includes(m.id) ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600 dark:hover:border-indigo-500'"
                                             class="px-3 py-1.5 rounded-lg border text-xs font-bold transition-all flex items-center space-x-2">
                                         <i class="fa-solid fa-check text-[10px]" x-show="analysisSelection.includes(m.id)"></i>
@@ -1068,12 +1068,22 @@
                     tx.objectStore('series').put(data).onsuccess = () => { this.loadSeries(); this.modals.series = false; this.showToast('Saved'); };
                 },
 
-                async openSeriesDetail(s) { 
-                    this.currentSeries = JSON.parse(JSON.stringify(s)); 
-                    if (!this.currentSeries.config) this.currentSeries.config = { stat: 'mean', period: 'all', quickAddAction: 'manual' };
-                    this.view = 'detail'; 
-                    this.detailSubView = 'chart'; 
-                    this.loadEntries(s.id); 
+                async openSeriesDetail(series) {
+                    this.currentSeries = series;
+                    this.analysisSelection = (series.config && series.config.analysisSelection) 
+                        ? [...series.config.analysisSelection] 
+                        : ['mean', 'median', 'max', 'min'];
+                    if (series.config && series.config.chartSettings) {
+                        this.chartSettings = { ...series.config.chartSettings };
+                    } else {
+                        this.chartSettings={period:'none',runningMetric:'',window:3,logScale:false};
+                    }
+                
+                    this.view = 'detail';
+                    this.detailSubView = 'chart';
+                    this.$nextTick(() => {
+                        this.updateChart();
+                    });
                 },
 
                 async loadEntries(id) {
@@ -1144,11 +1154,13 @@
                 },
 
                 async saveSeriesConfig() {
-                    this.recalculateSummaryDisplay();
-                    const tx = this.db.transaction('series', 'readwrite');
-                    tx.objectStore('series').put(JSON.parse(JSON.stringify(this.currentSeries))).onsuccess = () => {
-                        this.loadSeries();
-                    };
+                    if (!this.currentSeries) return;
+                    this.currentSeries.config.analysisSelection = [...this.analysisSelection];
+                    this.currentSeries.config.chartSettings = { ...this.chartSettings };
+                    const transaction = this.db.transaction(['series'], 'readwrite');
+                    const store = transaction.objectStore('series');
+                    store.put(JSON.parse(JSON.stringify(this.currentSeries)));
+                    transaction.oncomplete = () => { this.loadSeries(); };
                 },
 
                 get activeStats() {
