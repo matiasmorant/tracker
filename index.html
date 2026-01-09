@@ -288,32 +288,29 @@
                             <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest dark:text-slate-500">Statistics</h3>
 
                             <template x-if="metrics && metrics.length > 0">
-                              <div class="mt-4">
+                              <div class="flex felx-row gap-2 mt-2">
                                 <multi-select 
                                   :items="JSON.stringify(metrics.map(m => ({ id: m.id, label: m.label, color: m.color })))"
                                   :selected-ids="JSON.stringify(analysisSelection)"
                                   multi
                                   @change="analysisSelection = $event.detail.selection; saveSeriesConfig(); updateChart()">
                                 </multi-select>
+                                <div class="flex flex-col gap-1.5">
+                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter dark:text-slate-500">Period Grouping</span>
+                                    <select x-model="chartSettings.period" @change="updateChart(); saveSeriesConfig()" class="text-xs border border-slate-200 rounded-md px-2 py-1.5 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
+                                        <option value="none">Raw Data</option>
+                                        <option value="day">Day</option>
+                                        <option value="week">Week</option>
+                                        <option value="month">Month</option>
+                                        <option value="quarter">Quarter</option>
+                                        <option value="year">Year</option>
+                                    </select>
+                                </div>
                               </div>
                             </template>
                         </div>
 
                         <div class="flex flex-wrap items-center gap-4 my-3">
-                            <div class="flex flex-col gap-1.5">
-                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter dark:text-slate-500">Period Grouping</span>
-                                <select x-model="chartSettings.period" @change="updateChart(); saveSeriesConfig()" class="text-xs border border-slate-200 rounded-md px-2 py-1.5 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
-                                    <option value="none">Raw Data</option>
-                                    <option value="day">Day</option>
-                                    <option value="week">Week</option>
-                                    <option value="month">Month</option>
-                                    <option value="quarter">Quarter</option>
-                                    <option value="year">Year</option>
-                                </select>
-                            </div>
-
-                            <div class="h-8 w-px bg-slate-100 dark:bg-slate-700 mx-1 hidden md:block"></div>
-
                             <div class="flex flex-col gap-1.5">
                                 <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter dark:text-slate-500">Running Average/Stat</span>
                                 <div class="flex items-center space-x-2">
