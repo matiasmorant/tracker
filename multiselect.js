@@ -1,5 +1,5 @@
 // multifilter.js - Updated version with sorting (selected first) and light coloring
-class MultiFilter extends HTMLElement {
+class MultiSelect extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
@@ -256,6 +256,6 @@ class MultiFilter extends HTMLElement {
   }
 }
 
-if (!customElements.get('multi-filter')) {
-  customElements.define('multi-filter', MultiFilter);
+if (!customElements.get('multi-select')) {
+  customElements.define('multi-select', MultiSelect);
 }
