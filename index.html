@@ -60,6 +60,8 @@
             .catch(err => console.error('Service Worker registration failed', err));
         });
       }
+    // ADD THIS BLOCK TO PREVENT the mini-infobar from appearing on mobile
+      window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); });
     </script>
     <!-- PWA -->
 </head>
