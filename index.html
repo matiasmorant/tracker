@@ -168,7 +168,7 @@
                             :items="JSON.stringify(groups.map(g => ({ id: g.name, label: g.name, color: g.color })))"
                             :selected-ids="JSON.stringify(selectedGroups)"
                             multi
-                            @change="selectedGroups = $event.detail.selection">
+                            @change="selectedGroups = $event.detail.selection; localStorage.setItem('chronos_selectedGroups', JSON.stringify(selectedGroups))">
                         </multi-select>
                     </div>
 
@@ -757,6 +757,14 @@
                 init() {
                     setInterval(() => { this.now = Date.now(); }, 1000);
                     this.initTheme();
+                    const savedGroups = localStorage.getItem('chronos_selectedGroups');
+                    if (savedGroups) this.selectedGroups = JSON.parse(savedGroups);
+
+                    const savedSortField = localStorage.getItem('chronos_sortField');
+                    if (savedSortField) this.sortField = savedSortField;
+
+                    const savedSortOrder = localStorage.getItem('chronos_sortOrder');
+                    if (savedSortOrder) this.sortOrder = savedSortOrder;
                 },
 
                 toggleTheme() {
@@ -1082,7 +1090,16 @@
                     });
                 },
 
-                sortBy(f) { if (this.sortField === f) this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc'; else { this.sortField = f; this.sortOrder = 'asc'; } },
+                sortBy(field) {
+                    if (this.sortField === field) {
+                        this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        this.sortField = field;
+                        this.sortOrder = 'asc';
+                    }
+                    localStorage.setItem('chronos_sortField', this.sortField);
+                    localStorage.setItem('chronos_sortOrder', this.sortOrder);
+                },
                 openNewSeriesModal() { this.editingSeries = null; this.seriesForm = { name: '', group: '', type: 'number', config: { stat: 'mean', period: 'all', quickAddAction: 'manual' } }; this.modals.series = true; },
                 editSeries(s) { this.editingSeries = s; this.seriesForm = { ...s }; this.modals.series = true; },
                 updateSeriesName() {
