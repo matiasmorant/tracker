@@ -162,7 +162,7 @@
             
                     <div class="flex items-center">
                         <span class="text-[10px] font-bold text-slate-400 tracking-widest dark:text-slate-500">FILTER</span>
-                        <multi-select class="max-w-52"
+                        <multi-select class="max-w-44"
                             :items="JSON.stringify(groups.map(g => ({ id: g.name, label: g.name, color: g.color })))"
                             :selected-ids="JSON.stringify(selectedGroups)"
                             multi
@@ -176,13 +176,13 @@
                             <div class="flex bg-slate-200/50 p-1 rounded-lg dark:bg-slate-800">
                                 <button @click="sortBy('name')" 
                                         :class="sortField === 'name' ? 'bg-white text-indigo-600 shadow-sm dark:bg-slate-700 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400'"
-                                        class="px-3 py-1 text-xs font-bold rounded-md transition-all flex items-center space-x-1">
+                                        class="px-2 py-1 text-xs font-bold rounded-md transition-all flex items-center space-x-1">
                                     <span>Name</span>
                                     <span x-show="sortField === 'name'" x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
                                 </button>
                                 <button @click="sortBy('group')" 
                                         :class="sortField === 'group' ? 'bg-white text-indigo-600 shadow-sm dark:bg-slate-700 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400'"
-                                        class="px-3 py-1 text-xs font-bold rounded-md transition-all flex items-center space-x-1">
+                                        class="px-2 py-1 text-xs font-bold rounded-md transition-all flex items-center space-x-1">
                                     <span>Group</span>
                                     <span x-show="sortField === 'group'" x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
                                 </button>
@@ -265,7 +265,7 @@
                     </div>
                 </div>
 
-                <div x-show="detailSubView === 'chart'" class="bg-white p-2 rounded-2xl shadow-sm border border-slate-200 dark:bg-slate-800 dark:border-slate-700">
+                <div x-show="detailSubView === 'chart'" class="bg-white p-2 mt-2 rounded-2xl shadow-sm border border-slate-200 dark:bg-slate-800 dark:border-slate-700">
                     
                     <div class="relative h-96">
                         <div class="absolute top-2 left-2 z-10 flex items-center space-x-4">
