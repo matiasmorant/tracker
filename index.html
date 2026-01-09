@@ -158,11 +158,11 @@
     <main class="max-w-7xl mx-auto px-4 pb-8">
         <template x-if="view === 'list'">
             <div class="space-y-6">
-                <div class="px-1 py-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 dark:border-slate-700" x-data="{ showAllFilters: false }">
+                <div class="py-3 border-b border-slate-200 flex flex-wrap items-center justify-between gap-y-3 dark:border-slate-700" x-data="{ showAllFilters: false }">
             
-                    <div class="flex items-center gap-4">
-                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest dark:text-slate-500">Filter</span>
-                        <multi-select 
+                    <div class="flex items-center">
+                        <span class="text-[10px] font-bold text-slate-400 tracking-widest dark:text-slate-500">FILTER</span>
+                        <multi-select class="max-w-52"
                             :items="JSON.stringify(groups.map(g => ({ id: g.name, label: g.name, color: g.color })))"
                             :selected-ids="JSON.stringify(selectedGroups)"
                             multi
@@ -170,9 +170,9 @@
                         </multi-select>
                     </div>
 
-                    <div class="flex items-center gap-4 border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-100 dark:border-slate-800">
+                    <div class="flex items-center gap-4 border-t sm:border-t-0 border-slate-100 dark:border-slate-800">
                         <div class="flex items-center space-x-2">
-                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest dark:text-slate-500">Sort</span>
+                            <span class="text-[10px] font-bold text-slate-400 tracking-widest dark:text-slate-500">SORT</span>
                             <div class="flex bg-slate-200/50 p-1 rounded-lg dark:bg-slate-800">
                                 <button @click="sortBy('name')" 
                                         :class="sortField === 'name' ? 'bg-white text-indigo-600 shadow-sm dark:bg-slate-700 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400'"
@@ -297,7 +297,7 @@
                             </template>
                         </div>
 
-                        <div class="flex flex-wrap items-center gap-4 mb-6">
+                        <div class="flex flex-wrap items-center gap-4 my-3">
                             <div class="flex flex-col gap-1.5">
                                 <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter dark:text-slate-500">Period Grouping</span>
                                 <select x-model="chartSettings.period" @change="updateChart(); saveSeriesConfig()" class="text-xs border border-slate-200 rounded-md px-2 py-1.5 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
@@ -330,8 +330,8 @@
                                 <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest dark:text-slate-500">Time Range</h3>
                             </div>
                             
-                            <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-                                <div class="relative w-full sm:w-48">
+                            <div class="flex flex-row gap-3 items-start sm:items-center">
+                                <div class="relative max-w-xs">
                                     <select 
                                         x-model="chartSettings.range" 
                                         @change="updateChart(); saveSeriesConfig()"
@@ -357,7 +357,7 @@
                                             x-model.number="chartSettings.customDays" 
                                             @input.debounce.500ms="updateChart(); saveSeriesConfig()"
                                             placeholder="Days"
-                                            class="w-20 px-3 py-2 text-xs font-bold border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500 outline-none dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100"
+                                            class="w-16 px-2 py-2 text-xs font-bold border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500 outline-none dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100"
                                         >
                                         <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Days</span>
                                     </div>
@@ -1414,15 +1414,37 @@
                                         type: this.chartSettings.logScale ? 'logarithmic' : 'linear',
                                         ticks: {
                                             mirror: true,
+                                            maxTicksLimit: 8,
+                                            // padding: 10, // Space between axis edge and labels
                                             callback: (v) => {
                                                 if (this.currentSeries.type === 'time') return this.formatDuration(v,true);
                                                 return Number(v).toLocaleString(undefined, { maximumFractionDigits: 2 });
                                             },
                                             padding: -2, 
                                             z: 1
-                                        }
+                                        },
+                                        // Add grace to prevent labels from being cut off
+                                        grace: '5%'
                                     },
-                                    x: { type: 'time', time: { tooltipFormat: 'yyyy-MM-dd HH:mm', displayFormats: { hour: 'HH:mm', day: 'MMM d', month: 'MMM yyyy' } }, ticks: { autoSkip: true, maxRotation: 0 } }
+                                    x: { 
+                                        type: 'time', 
+                                        time: { 
+                                            tooltipFormat: 'yyyy-MM-dd HH:mm', 
+                                            displayFormats: { 
+                                                hour: 'HH:mm', 
+                                                day: 'MMM d', 
+                                                month: 'MMM yyyy' 
+                                            } 
+                                        }, 
+                                        ticks: { 
+                                            autoSkip: true, 
+                                            maxTicksLimit: 8,
+                                            maxRotation: 0,
+                                            padding: 10 // Space between axis edge and labels
+                                        },
+                                        // Add grace to prevent labels from being cut off
+                                        grace: '5%'
+                                    }
                                 } 
                             }
                         });

@@ -101,7 +101,6 @@ class MultiSelect extends HTMLElement {
         <style>          
           :host { 
             display: flex !important; 
-            gap: 0.75rem; 
             opacity: 1 !important; 
             visibility: visible !important;
             position: relative;
@@ -109,7 +108,7 @@ class MultiSelect extends HTMLElement {
                   
           .toggle-button {
             cursor: pointer;
-            padding: 0.25rem 0.5rem;
+            padding: 0.25rem 0.25rem;
             font-size: 0.6rem;
             font-weight: 900;
             text-transform: uppercase;
