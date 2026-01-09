@@ -161,39 +161,18 @@
                 <div class="px-1 py-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 dark:border-slate-700" x-data="{ showAllFilters: false }">
             
                     <div class="flex items-center gap-4">
-                        <button @click="showAllFilters = !showAllFilters" 
-                                class="flex items-center space-x-1.5 text-xs font-bold text-slate-500 uppercase hover:text-indigo-600 transition-colors whitespace-nowrap dark:text-slate-400 dark:hover:text-indigo-400">
-                            <i class="fa-solid" :class="showAllFilters ? 'fa-filter-circle-xmark' : 'fa-filter'"></i>
-                            <span x-text="showAllFilters ? 'Close' : 'Filter'"></span>
-                        </button>
-                        
-                        <div class="flex flex-wrap gap-2 items-center">
-                            <template x-for="group in groups.filter(g => selectedGroups.includes(g.name))" :key="'active-'+group.id">
-                                <label :style="`background-color: ${group.color || '#4f46e5'}20; border-color: ${group.color || '#4f46e5'}; color: ${group.color || '#4f46e5'}`"
-                                       class="inline-flex items-center px-3 py-1 rounded-full border cursor-pointer transition-colors text-xs font-medium shadow-sm dark:border-opacity-70 dark:text-opacity-90">
-                                    <input type="checkbox" :value="group.name" x-model="selectedGroups" class="hidden">
-                                    <span x-text="group.name"></span>
-                                </label>
-                            </template>
-                            <template x-for="group in groups.filter(g => !selectedGroups.includes(g.name))" :key="'inactive-'+group.id">
-                                <label x-show="showAllFilters" 
-                                       x-transition 
-                                       class="inline-flex items-center px-3 py-1 rounded-full border cursor-pointer transition-all text-xs font-medium bg-slate-50 border-slate-200 text-slate-500 hover:border-indigo-300 hover:text-indigo-600 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400 dark:hover:border-indigo-500 dark:hover:text-indigo-400"
-                                       :style="group.color ? `background-color: ${group.color}10; border-color: ${group.color}30; color: ${group.color}80` : ''"
-                                       >
-                                    <input type="checkbox" :value="group.name" x-model="selectedGroups" class="hidden">
-                                    <span x-text="group.name"></span>
-                                </label>
-                            </template>
-                            <template x-if="selectedGroups.length === 0 && !showAllFilters">
-                                <span class="text-xs font-medium text-slate-400 dark:text-slate-500">Showing all series</span>
-                            </template>
-                        </div>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest dark:text-slate-500">Filter</span>
+                        <multi-filter 
+                            :items="JSON.stringify(groups.map(g => ({ id: g.name, label: g.name, color: g.color })))"
+                            :selected-ids="JSON.stringify(selectedGroups)"
+                            multi
+                            @change="selectedGroups = $event.detail.selection">
+                        </multi-filter>
                     </div>
 
                     <div class="flex items-center gap-4 border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-100 dark:border-slate-800">
                         <div class="flex items-center space-x-2">
-                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest dark:text-slate-500">Sort:</span>
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest dark:text-slate-500">Sort</span>
                             <div class="flex bg-slate-200/50 p-1 rounded-lg dark:bg-slate-800">
                                 <button @click="sortBy('name')" 
                                         :class="sortField === 'name' ? 'bg-white text-indigo-600 shadow-sm dark:bg-slate-700 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400'"

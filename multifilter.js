@@ -1,4 +1,4 @@
-// multifilter.js - Updated version with smooth transitions
+// multifilter.js - Updated version with sorting (selected first) and light coloring
 class MultiFilter extends HTMLElement {
   constructor() {
     super();
@@ -76,7 +76,6 @@ class MultiFilter extends HTMLElement {
   }
 
   render() {
-    // Debounce render to prevent rapid re-renders
     if (this._renderTimeout) {
       clearTimeout(this._renderTimeout);
     }
@@ -84,7 +83,15 @@ class MultiFilter extends HTMLElement {
     this._renderTimeout = setTimeout(() => {
       this._items = this.parseItems();
       this._selectedIds = this.parseSelectedIds();
-      const isMulti = this.getAttribute('multi') !== null;
+      
+      // Sort items: selected items first
+      const sortedItems = [...this._items].sort((a, b) => {
+        const aSelected = this._selectedIds.includes(a.id);
+        const bSelected = this._selectedIds.includes(b.id);
+        if (aSelected && !bSelected) return -1;
+        if (!aSelected && bSelected) return 1;
+        return 0;
+      });
 
       const plusIcon = `<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`;
       const minusIcon = `<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M1 6h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`;
@@ -95,7 +102,6 @@ class MultiFilter extends HTMLElement {
           :host { 
             display: flex !important; 
             gap: 0.75rem; 
-            margin-top: 1rem;
             opacity: 1 !important; 
             visibility: visible !important;
             position: relative;
@@ -113,9 +119,6 @@ class MultiFilter extends HTMLElement {
             border: none;
             border-radius: 0.25rem;
             transition: all 0.15s ease;
-            opacity: 1 !important;
-            visibility: visible !important;
-            position: relative;
             z-index: 1;
             min-width: 24px;
             min-height: 24px;
@@ -134,8 +137,6 @@ class MultiFilter extends HTMLElement {
             flex-wrap: wrap; 
             gap: 0.5rem; 
             align-items: center;
-            opacity: 1;
-            transition: opacity 0.15s ease;
           }
           
           .chip {
@@ -150,8 +151,6 @@ class MultiFilter extends HTMLElement {
             background: #f8fafc;
             color: #64748b;
             white-space: nowrap;
-            opacity: 1;
-            transform: translateY(0);
           }
           
           .chip.active {
@@ -168,67 +167,36 @@ class MultiFilter extends HTMLElement {
           
           .chip.active:hover { 
             opacity: 0.9; 
-            color: white; 
-            transform: translateY(-1px);
+            color: white;
           }
           
-          /* Fade animations */
-          .chip.fade-in {
-            animation: fadeIn 0.2s ease forwards;
-          }
-          
-          .chip.fade-out {
-            animation: fadeOut 0.2s ease forwards;
-          }
-          
-          @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(4px); }
-            to { opacity: 1; transform: translateY(0); }
-          }
-          
-          @keyframes fadeOut {
-            from { opacity: 1; transform: translateY(0); }
-            to { opacity: 0; transform: translateY(4px); }
-          }
-          
-          /* Dark mode styles */
           .dark .chip { 
             background: #1e293b; 
             border-color: #334155; 
             color: #94a3b8; 
           }
           
-          .dark .chip:hover { 
-            border-color: #6366f1; 
-            color: #6366f1; 
-          }
-          
-          .dark .chip.active { 
-            color: white; 
-          }
-          
-          .dark .toggle-button {
-            color: #818cf8;
-          }
-          
-          .dark .toggle-button:hover {
-            color: #a5b4fc;
-            background: rgba(99, 102, 241, 0.1);
-          }
+          .dark .chip.active { color: white; }
+          .dark .toggle-button { color: #818cf8; }
         </style>
       `;
 
-      // Check if we already have elements
       const existingToggleBtn = this.shadowRoot.getElementById('toggle-show-all');
       const existingChipsContainer = this.shadowRoot.querySelector('.chips-container');
       
-      const chips = this._items.map(item => {
+      const chips = sortedItems.map(item => {
         const isActive = this._selectedIds.includes(item.id);
         if (!isActive && !this.showAll) return '';
         
-        const style = isActive && item.color 
-          ? `style="background-color: ${item.color}; border-color: ${item.color};"` 
-          : '';
+        let style = '';
+        if (item.color) {
+          if (isActive) {
+            style = `style="background-color: ${item.color}; border-color: ${item.color};"`;
+          } else {
+            // Lightly color unselected options (10% opacity background, 25% border)
+            style = `style="background-color: ${item.color}1a; border-color: ${item.color}40; color: ${item.color};"`;
+          }
+        }
         
         return `
           <div 
@@ -242,14 +210,10 @@ class MultiFilter extends HTMLElement {
       }).filter(Boolean).join('');
 
       if (existingToggleBtn && existingChipsContainer && !this._isInitialRender) {
-        // Update only what's necessary (partial update)
         existingToggleBtn.innerHTML = buttonIcon;
         existingChipsContainer.innerHTML = chips;
-        
-        // Re-attach event listeners to new chips
         this.attachEventListeners();
       } else {
-        // Full initial render
         this.shadowRoot.innerHTML = `
           ${styles}
           <button class="toggle-button" id="toggle-show-all">
@@ -259,17 +223,15 @@ class MultiFilter extends HTMLElement {
             ${chips}
           </div>
         `;
-        
         this.attachEventListeners();
         this._isInitialRender = false;
       }
       
       this._renderTimeout = null;
-    }, 10); // Small delay to batch updates
+    }, 10);
   }
 
   attachEventListeners() {
-    // Toggle button
     const toggleBtn = this.shadowRoot.getElementById('toggle-show-all');
     if (toggleBtn) {
       toggleBtn.onclick = (e) => {
@@ -278,7 +240,6 @@ class MultiFilter extends HTMLElement {
       };
     }
     
-    // Chip buttons
     this.shadowRoot.querySelectorAll('.chip').forEach(chip => {
       chip.onclick = (e) => {
         e.stopPropagation();
@@ -295,7 +256,6 @@ class MultiFilter extends HTMLElement {
   }
 }
 
-// Register the component if not already registered
 if (!customElements.get('multi-filter')) {
   customElements.define('multi-filter', MultiFilter);
 }
