@@ -15,6 +15,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <script src="https://unpkg.com/papaparse@latest/papaparse.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <script src="./multifilter.js"></script>
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -303,28 +304,18 @@
 
                     <div class="p-4 border-t border-slate-100 dark:border-slate-700" x-data="{ showAllStats: false }">
                         <div>
-                            <div class="flex items-center justify-between">
-                                <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest dark:text-slate-500">Statistics</h3>
-                                <button @click="showAllStats = !showAllStats" 
-                                        class="text-[9px] font-black text-indigo-500 uppercase tracking-tighter hover:text-indigo-600">
-                                    <i class="fa-solid" :class="showAllStats ? 'fa-minus' : 'fa-plus'"></i>
-                                    <span x-text="showAllStats ? 'Hide' : 'Add'"></span>
-                                </button>
-                            </div>
-                            
-                            <div class="flex flex-wrap gap-2">
-                                <template x-for="m in metrics" :key="'chart-sel-'+m.id">
-                                    <button x-show="analysisSelection.includes(m.id) || showAllStats"
-                                            x-transition
-                                            @click="analysisSelection.includes(m.id) ? analysisSelection = analysisSelection.filter(i => i !== m.id) : analysisSelection.push(m.id); saveSeriesConfig(); updateChart()"
-                                            :style="analysisSelection.includes(m.id) ? `background-color: ${m.color}; border-color: ${m.color}; color: white;` : ''"
-                                            :class="analysisSelection.includes(m.id) ? 'shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600 dark:hover:border-indigo-500'"
-                                            class="px-3 py-1.5 rounded-lg border text-[10px] font-bold transition-all flex items-center space-x-2">
-                                        <span x-text="m.label"></span>
-                                    </button>
-                                </template>
-                                <p x-show="analysisSelection.length === 0 && !showAllStats" class="text-[10px] text-slate-400 italic">No overlays currently active.</p>
-                            </div>
+                            <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest dark:text-slate-500">Statistics</h3>
+
+                            <template x-if="metrics && metrics.length > 0">
+                              <div class="mt-4">
+                                <multi-filter 
+                                  :items="JSON.stringify(metrics.map(m => ({ id: m.id, label: m.label, color: m.color })))"
+                                  :selected-ids="JSON.stringify(analysisSelection)"
+                                  multi
+                                  @change="analysisSelection = $event.detail.selection; saveSeriesConfig(); updateChart()">
+                                </multi-filter>
+                              </div>
+                            </template>
                         </div>
 
                         <div class="flex flex-wrap items-center gap-4 mb-6">
