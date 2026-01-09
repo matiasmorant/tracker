@@ -13,6 +13,7 @@
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.0/dist/chartjs-plugin-zoom.min.js"></script>
     <script src="https://unpkg.com/papaparse@latest/papaparse.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
@@ -1393,17 +1394,15 @@
                                     zoom: {
                                         pan: {
                                             enabled: true,
-                                            mode: 'x', // Allow horizontal panning only
-                                            threshold: 10
+                                            mode: 'x',
+                                            threshold: 10,
+                                            modifierKey: null // Ensures no key is needed to pan
                                         },
                                         zoom: {
-                                            drag: {
-                                                enabled: false,
-                                                backgroundColor: 'rgba(79, 70, 229, 0.1)', // Indigo color with transparency
-                                                borderColor: 'rgb(79, 70, 229)',
-                                                borderWidth: 1,
-                                            },
-                                            mode: 'x', // Allow horizontal zooming only
+                                            wheel: { enabled: false },
+                                            pinch: { enabled: false },
+                                            drag: { enabled: false },
+                                            mode: 'x'
                                         }
                                     },
                                     tooltip: { callbacks: { label: (c) => this.currentSeries.type === 'time' ? `Value: ${this.formatDuration(c.parsed.y)}` : `Value: ${c.parsed.y}` } }
