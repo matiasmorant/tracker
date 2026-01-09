@@ -1475,13 +1475,11 @@
                         if (this.chartSettings.range === 'quarter') cutoff.setMonth(now.getMonth() - 3);
                         if (this.chartSettings.range === 'year') cutoff.setFullYear(now.getFullYear() - 1);
                         if (this.chartSettings.range === 'custom' && this.chartSettings.customDays) cutoff.setDate(now.getDate() - this.chartSettings.customDays);
-
-                        entries = entries.filter(e => new Date(e.timestamp) >= cutoff);
                     }
                 
                     if (this.chartSettings.period === 'none') {
                         const rawData = entries.map(e => ({ x: e.timestamp, y: e.value }));
-                        datasets.push({ label: 'Raw Data', data: rawData, borderColor: '#4f46e5', tension: 0.3 });
+                        datasets.push({ label: 'Raw Data', data: rawData, borderColor: '#4f46e5', tension: 0.2 });
                         if (rId && win >= 2 && entries.length >= win) {
                             const runningData = [];
                             for (let i = 0; i <= entries.length - win; i++) {
@@ -1490,7 +1488,7 @@
                                 const midIdx = Math.floor(i + (win-1)/2);
                                 runningData.push({ x: entries[midIdx].timestamp, y: this.calculateStats(vals, [], slice)[rId] });
                             }
-                            datasets.push({ label: `Rolling ${this.metrics.find(m => m.id === rId).label}`, data: runningData, borderColor: '#f59e0b', borderDash: [5, 5], pointRadius: 0, tension: 0.4 });
+                            datasets.push({ label: `Rolling ${this.metrics.find(m => m.id === rId).label}`, data: runningData, borderColor: '#f59e0b', borderDash: [5, 5], pointRadius: 0, tension: 0.2 });
                         }
                     } else {
                         // Use filtered entries for aggregated data
@@ -1498,7 +1496,7 @@
                         this.analysisSelection.forEach(mId => { 
                             const m = this.metrics.find(x => x.id === mId); 
                             const baseData = agg.labels.map((k, i) => ({ x: k, y: agg.datasets[mId][i] }));
-                            datasets.push({ label: m.label, data: baseData, borderColor: m.color, tension: 0.3 }); 
+                            datasets.push({ label: m.label, data: baseData, borderColor: m.color, tension: 0.2 }); 
                             if (rId && win >= 2 && agg.labels.length >= win) {
                                 const runningData = [];
                                 const baseSource = agg.datasets[mId];
@@ -1508,7 +1506,7 @@
                                     const statResult = this.calculateStats(slice)[rId];
                                     if (statResult !== undefined) runningData.push({ x: agg.labels[midIdx], y: statResult });
                                 }
-                                datasets.push({ label: `Rolling ${m.label} (${rId})`, data: runningData, borderColor: m.color, borderDash: [8, 4], borderWidth: 1.5, pointRadius: 0, tension: 0.4, alpha: 0.5 });
+                                datasets.push({ label: `Rolling ${m.label} (${rId})`, data: runningData, borderColor: m.color, borderDash: [8, 4], borderWidth: 1.5, pointRadius: 0, tension: 0.2, alpha: 0.5 });
                             }
                         });
                     }
