@@ -607,19 +607,14 @@
 
                     <div class="max-h-64 overflow-y-auto space-y-1 custom-scrollbar">
                         <template x-for="g in groups" :key="g.id">
-                            <div class="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg group transition-colors dark:hover:bg-slate-700">
+                            <div @click="editGroupName(g)" class="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg group transition-colors dark:hover:bg-slate-700">
                                 <div class="flex items-center space-x-3">
                                     <div class="w-3 h-3 rounded-full" :style="`background-color: ${g.color}`"></div>
                                     <span x-text="g.name" class="font-medium text-slate-700 dark:text-slate-300"></span>
                                 </div>
-                                <div class="flex space-x-1">
-                                    <button @click="editGroupName(g)" class="p-1 text-slate-400 text-indigo-600 dark:text-indigo-400">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-                                    </button>
-                                    <button @click="deleteGroup(g.id)" class="p-1 text-slate-400 text-red-600 dark:text-red-400">
+                                <button @click="deleteGroup(g.id)" class="p-1 text-slate-400 text-red-600 dark:text-red-400">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                    </button>
-                                </div>
+                                </button>
                             </div>
                         </template>
                     </div>
@@ -1025,32 +1020,40 @@
                 },
 
                 async saveGroup() {
-                    if (!this.groupForm.name) return;
-                    
-                    // Create the group object with the selected color
-                    const g = {
-                        id: this.editingGroup ? this.editingGroup.id : Date.now(),
-                        name: this.groupForm.name,
-                        color: this.groupForm.color || '#6366f1' // Default to indigo if none selected
-                    };
-
-                    const tx = this.db.transaction('groups', 'readwrite');
-                    tx.objectStore('groups').put(g);
-                    
-                    tx.oncomplete = () => {
-                        // Update the local state
-                        if (this.editingGroup) {
-                            const idx = this.groups.findIndex(i => i.id === g.id);
-                            this.groups[idx] = g;
-                        } else {
-                            this.groups.push(g);
+                    if (!this.groupForm.name.trim()) return;
+                
+                    if (this.editingGroup) {
+                        const oldName = this.editingGroup.name;
+                        const newName = this.groupForm.name.trim();
+                
+                        this.editingGroup.name = newName;
+                        this.editingGroup.color = this.groupForm.color;
+                
+                        if (oldName !== newName) {
+                            this.series.forEach(s => {
+                                if (s.group === oldName) {
+                                    s.group = newName;
+                                }
+                            });
+                            // Update current series if it's the one being edited
+                            if (this.currentSeries && this.currentSeries.group === oldName) {
+                                this.currentSeries.group = newName;
+                            }
                         }
-                        
-                        // Reset form to default state
-                        this.groupForm = { name: '', color: '#6366f1' };
-                        this.editingGroup = null;
-                        this.showToast(this.editingGroup ? 'Group updated' : 'Group added');
-                    };
+                    } else {
+                        // Handle new group creation
+                        this.groups.push({
+                            id: Date.now().toString(),
+                            name: this.groupForm.name.trim(),
+                            color: this.groupForm.color
+                        });
+                    }
+                
+                    // Persist all changes to storage
+                    this.saveGroups();
+                    this.saveAllSeries(); // Ensure this function exists to save the series array
+                    this.showAddGroupForm = false;
+                    this.editingGroup = null;
                 },
 
                 editGroupName(g) {
