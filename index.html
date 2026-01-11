@@ -246,7 +246,23 @@
                                                 <i class="fa-solid fa-circle-stop text-lg"></i>
                                             </template>
                                             <template x-if="!s.startTime">
-                                                <i class="fa-solid fa-plus text-lg"></i>
+                                                <span>
+                                                    <template x-if="s.config?.quickAddAction === 'increment'">
+                                                        <span class="text-sm font-black">+1</span>
+                                                    </template>
+                                                    
+                                                    <template x-if="s.config?.quickAddAction === 'chronometer'">
+                                                        <i class="fa-solid fa-play text-lg"></i>
+                                                    </template>
+                                                    
+                                                    <template x-if="s.config?.quickAddAction === 'currentTime'">
+                                                        <i class="fa-solid fa-clock text-lg"></i>
+                                                    </template>
+                                        
+                                                    <template x-if="!['increment', 'chronometer', 'currentTime'].includes(s.config?.quickAddAction)">
+                                                        <i class="fa-solid fa-plus text-lg"></i>
+                                                    </template>
+                                                </span>
                                             </template>
                                         </button>
                                     </div>
