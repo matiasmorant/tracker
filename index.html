@@ -162,22 +162,30 @@
     <main class="max-w-7xl mx-auto px-4 pb-8">
         <template x-if="view === 'list'">
             <div class="space-y-6">
-                <div class="py-3 border-b border-slate-200 flex flex-wrap items-center justify-between gap-y-3 dark:border-slate-700" x-data="{ showAllFilters: false }">
-            
-                    <div class="flex items-center">
-                        <span class="text-[10px] font-bold text-slate-400 tracking-widest dark:text-slate-500">FILTER</span>
-                        <multi-select class="max-w-44"
-                            :items="JSON.stringify(groups.map(g => ({ id: g.name, label: g.name, color: g.color })))"
-                            :selected-ids="JSON.stringify(selectedGroups)"
-                            multi
-                            @change="selectedGroups = $event.detail.selection; localStorage.setItem('chronos_selectedGroups', JSON.stringify(selectedGroups))">
-                        </multi-select>
-                    </div>
+                <div class="py-1 border-b border-slate-200 flex flex-wrap items-center gap-x-8 gap-y-3 dark:border-slate-700" x-data="{ showFilters: true, showSort: true }">
 
+                    <div class="flex items-center">
+                        <span @click="showFilters = !showFilters" 
+                              class="text-[10px] font-bold text-slate-400 tracking-widest dark:text-slate-500 cursor-pointer hover:text-indigo-600 transition-colors">
+                            FILTER
+                        </span>
+                        <div x-show="showFilters" x-collapse>
+                            <multi-select class="max-w-44 ml-2"
+                                :items="JSON.stringify(groups.map(g => ({ id: g.name, label: g.name, color: g.color })))"
+                                :selected-ids="JSON.stringify(selectedGroups)"
+                                multi
+                                @change="selectedGroups = $event.detail.selection; localStorage.setItem('chronos_selectedGroups', JSON.stringify(selectedGroups))">
+                            </multi-select>
+                        </div>
+                    </div>
+                
                     <div class="flex items-center gap-4 border-t sm:border-t-0 border-slate-100 dark:border-slate-800">
                         <div class="flex items-center space-x-2">
-                            <span class="text-[10px] font-bold text-slate-400 tracking-widest dark:text-slate-500">SORT</span>
-                            <div class="flex bg-slate-200/50 p-1 rounded-lg dark:bg-slate-800">
+                            <span @click="showSort = !showSort" 
+                                  class="text-[10px] font-bold text-slate-400 tracking-widest dark:text-slate-500 cursor-pointer hover:text-indigo-600 transition-colors">
+                                SORT
+                            </span>
+                            <div x-show="showSort" x-collapse class="flex bg-slate-200/50 p-1 rounded-lg dark:bg-slate-800">
                                 <button @click="sortBy('name')" 
                                         :class="sortField === 'name' ? 'bg-white text-indigo-600 shadow-sm dark:bg-slate-700 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400'"
                                         class="px-2 py-1 text-xs font-bold rounded-md transition-all flex items-center space-x-1">
