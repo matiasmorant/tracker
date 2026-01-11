@@ -615,9 +615,9 @@
                         </div>
                     </div>
 
-                    <div class="max-h-64 overflow-y-auto space-y-1 custom-scrollbar">
+                    <div class="max-h-64 overflow-y-auto custom-scrollbar">
                         <template x-for="g in groups" :key="g.id">
-                            <div @click="editGroupName(g)" class="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg group transition-colors dark:hover:bg-slate-700">
+                            <div @click="editGroupName(g)" class="flex items-center justify-between hover:bg-slate-50 rounded-lg group transition-colors dark:hover:bg-slate-700">
                                 <div class="flex items-center space-x-3">
                                     <div class="w-3 h-3 rounded-full" :style="`background-color: ${g.color}`"></div>
                                     <span x-text="g.name" class="font-medium text-slate-700 dark:text-slate-300"></span>
