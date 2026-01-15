@@ -906,6 +906,7 @@
                         this.series[index].name = this.currentSeries.name;
                     }
                     await chronosDB.saveSeries(this.currentSeries);
+                    await this.loadSeries();
                 },
 
                 async deleteSeries(id) {
