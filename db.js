@@ -1,19 +1,23 @@
-class ChronosDB {
+/**
+ * ChronosDB Module
+ * A wrapper for IndexedDB to handle series, groups, and entries.
+ */
+export class ChronosDB {
     constructor() {
         this.db = null;
         this.dbName = 'ChronosDB';
         this.version = 2;
     }
 
-    // Initialize the database
     async init() {
+        if (this.db) return this.db;
+
         return new Promise((resolve, reject) => {
             const request = indexedDB.open(this.dbName, this.version);
             
             request.onupgradeneeded = (e) => {
                 const db = e.target.result;
                 
-                // Create object stores if they don't exist
                 if (!db.objectStoreNames.contains('series')) {
                     db.createObjectStore('series', { keyPath: 'id', autoIncrement: true });
                 }
@@ -40,18 +44,18 @@ class ChronosDB {
         });
     }
 
+    // --- Series Methods ---
     async getAllSeries() { return this.getAll('series'); }
     async getSeries(id) { return this.get('series', id); }
     async saveSeries(seriesData) { return this.save('series', seriesData); }
+    
     async deleteSeries(id) {
         const tx = this.db.transaction(['series', 'entries'], 'readwrite');
         const seriesStore = tx.objectStore('series');
         const entriesStore = tx.objectStore('entries');
         
-        // Delete series
         seriesStore.delete(id);
         
-        // Delete all entries for this series
         const index = entriesStore.index('seriesId');
         index.openCursor(IDBKeyRange.only(id)).onsuccess = (e) => {
             const cursor = e.target.result;
@@ -66,7 +70,7 @@ class ChronosDB {
             tx.onerror = (e) => reject(e.target.error);
         });
     }
-
+    
     async getEntriesForSeries(seriesId) {
         return new Promise((resolve, reject) => {
             const tx = this.db.transaction('entries', 'readonly');
@@ -78,14 +82,17 @@ class ChronosDB {
             request.onerror = (e) => reject(e.target.error);
         });
     }
-    
+
     async getAllEntries() { return this.getAll('entries'); }
     async saveEntry(entryData) { return this.save('entries', entryData); }
     async deleteEntry(id) { return this.delete('entries', id); }
+
+    // --- Group Methods ---
     async getAllGroups() { return this.getAll('groups'); }
     async saveGroup(groupData) { return this.save('groups', groupData); }
     async deleteGroup(id) { return this.delete('groups', id); }
 
+    // --- Generic Internal Helpers ---
     async getAll(storeName) {
         return new Promise((resolve, reject) => {
             const tx = this.db.transaction(storeName, 'readonly');
@@ -130,6 +137,7 @@ class ChronosDB {
         });
     }
 
+    // --- Export/Import Logic ---
     async exportJSON() {
         try {
             const [series, groups, entries] = await Promise.all([
@@ -138,13 +146,11 @@ class ChronosDB {
                 this.getAllEntries()
             ]);
             
-            const exportObj = {
+            return {
                 appName: "Chronos",
                 timestamp: new Date().toISOString(),
                 data: { series, groups, entries }
             };
-            
-            return exportObj;
         } catch (err) {
             console.error('Export failed:', err);
             throw err;
@@ -160,26 +166,17 @@ class ChronosDB {
             ]);
             
             let csv = "Tags\r\n\r\n";
+            groups.forEach(g => { csv += `${g.name}\r\nColor,0\r\n\r\n`; });
             
-            // Export groups as tags
-            groups.forEach(g => {
-                csv += `${g.name}\r\nColor,0\r\n\r\n`;
-            });
-            
-            // Export series types as units
             csv += "Units\r\n\r\n";
             series.forEach(s => {
                 csv += `Unit for ${s.name}\r\nType,${s.type === 'time' ? 'duration' : 'number'}\r\nUp as green,true\r\n\r\n`;
             });
             
-            // Export series data as parameters
             csv += "Parameters\r\n\r\n";
-            
             series.forEach(s => {
                 csv += `${s.name}\r\nUnit,Unit for ${s.name}\r\nColor,0\r\nIs archived,false\r\n`;
-                if (s.group) {
-                    csv += `Tags,${s.group}\r\n`;
-                }
+                if (s.group) csv += `Tags,${s.group}\r\n`;
                 
                 const seriesEntries = entries
                     .filter(e => e.seriesId === s.id)
@@ -188,7 +185,6 @@ class ChronosDB {
                 seriesEntries.forEach(e => {
                     csv += `,${e.timestamp},${e.value},\r\n`;
                 });
-                
                 csv += "\r\n";
             });
             
@@ -199,40 +195,30 @@ class ChronosDB {
         }
     }
 
-    async importJSON(importData, merge = true) {
+    async importJSON(importData) {
         try {
-            if (!importData.data || !importData.data.series) {
-                throw new Error('Invalid JSON format');
-            }
-            
+            if (!importData.data || !importData.data.series) throw new Error('Invalid JSON format');
             const { series, groups, entries } = importData.data;
             
-            // Import groups
             for (const group of groups || []) {
                 delete group.id;
                 await this.saveGroup(group);
             }
             
-            // Import series
             for (const s of series || []) {
-                const seriesId = s.id;
+                const oldId = s.id;
                 delete s.id;
                 s.config = s.config || { stat: 'mean', period: 'all', quickAddAction: 'manual' };
-                
                 const newSeriesId = await this.saveSeries(s);
                 
-                // Import entries for this series
-                const seriesEntries = (entries || []).filter(e => e.seriesId === seriesId);
+                const seriesEntries = (entries || []).filter(e => e.seriesId === oldId);
                 for (const entry of seriesEntries) {
                     delete entry.id;
                     entry.seriesId = newSeriesId;
-                    if (entry.timestamp) {
-                        entry.timestamp = entry.timestamp.replace('T', ' ');
-                    }
+                    if (entry.timestamp) entry.timestamp = entry.timestamp.replace('T', ' ');
                     await this.saveEntry(entry);
                 }
             }
-            
             return true;
         } catch (err) {
             console.error('JSON import failed:', err);
@@ -241,133 +227,85 @@ class ChronosDB {
     }
     
     async importCSV(csvText) {
-        try {
-            return new Promise((resolve, reject) => {
-                Papa.parse(csvText, {
-                    complete: async (results) => {
-                        try {
-                            const data = results.data;
+        // Assumes PapaParse is available globally or via import
+        return new Promise((resolve, reject) => {
+            if (typeof Papa === 'undefined') {
+                reject(new Error("PapaParse library not found."));
+                return;
+            }
+
+            Papa.parse(csvText, {
+                complete: async (results) => {
+                    try {
+                        const data = results.data;
+                        const groups = [];
+                        let inTags = false, inUnits = false;
+                        const unitTypes = {};
+                        let currentUnitName = null;
+                        
+                        for (let row of data) {
+                            const firstCell = row[0]?.trim();
+                            if (firstCell === "Tags") { inTags = true; continue; }
+                            if (firstCell === "Units") { inTags = false; inUnits = true; continue; }
+                            if (firstCell === "Parameters") break;
                             
-                            // Parse tags (groups)
-                            const groups = [];
-                            let inTags = false;
-                            let inUnits = false;
-                            const unitTypes = {};
-                            let currentUnitName = null;
-                            
-                            for (let row of data) {
-                                const firstCell = row[0]?.trim();
-                                
-                                if (firstCell === "Tags") { inTags = true; continue;}
-                                if (firstCell === "Units") {inTags = false;inUnits = true;continue;}
-                                if (firstCell === "Parameters") {break;}
-                                
-                                if (inTags && firstCell && firstCell !== "Color") {
-                                    groups.push({ name: firstCell, color: '#6366f1' });
-                                }
-                                
-                                if (inUnits && firstCell && !firstCell.startsWith('Type')) {
-                                    currentUnitName = firstCell;
-                                }
-                                
-                                if (inUnits && firstCell === "Type" && currentUnitName) {
-                                    unitTypes[currentUnitName] = row[1]?.trim().toLowerCase();
-                                }
+                            if (inTags && firstCell && firstCell !== "Color") {
+                                groups.push({ name: firstCell, color: '#6366f1' });
                             }
-                            
-                            // Save groups
-                            for (const group of groups) {
-                                await this.saveGroup(group);
+                            if (inUnits && firstCell && !firstCell.startsWith('Type')) {
+                                currentUnitName = firstCell;
                             }
-                            
-                            // Parse parameters (series)
-                            let inParameters = false;
-                            let currentSeriesName = null;
-                            let currentSeriesTags = "";
-                            let currentSeriesType = 'number';
-                            let currentEntries = [];
-                            
-                            for (let row of data) {
-                                const firstCell = row[0]?.trim();
-                                
-                                if (firstCell === "Parameters") {
-                                    inParameters = true;
-                                    continue;
-                                }
-                                
-                                if (!inParameters) continue;
-                                
-                                if (firstCell === "" && row[1]) {
-                                    // This is an entry row
-                                    let timestamp = row[1].replace('T', ' ');
-                                    let rawVal = parseFloat(row[2]);
-                                    let value = currentSeriesType === 'time' ? rawVal / 1000 : rawVal;
-                                    
-                                    currentEntries.push({
-                                        timestamp,
-                                        value,
-                                        notes: row[3] || ''
-                                    });
-                                } else if (firstCell === "Tags") {
-                                    currentSeriesTags = row[1];
-                                } else if (firstCell === "Unit") {
-                                    const unitName = row[1]?.trim();
-                                    currentSeriesType = (unitTypes[unitName] === 'duration') ? 'time' : 'number';
-                                } else if (firstCell && !["Unit", "Color", "Is archived", "Tags", "Initial value"].includes(firstCell)) {
-                                    // This is a new series
-                                    if (currentSeriesName) {
-                                        await this.saveImportedSeries(
-                                            currentSeriesName,
-                                            currentSeriesTags,
-                                            currentSeriesType,
-                                            currentEntries
-                                        );
-                                    }
-                                    
-                                    currentSeriesName = firstCell;
-                                    currentSeriesTags = "";
-                                    currentSeriesType = 'number';
-                                    currentEntries = [];
-                                }
+                            if (inUnits && firstCell === "Type" && currentUnitName) {
+                                unitTypes[currentUnitName] = row[1]?.trim().toLowerCase();
                             }
-                            
-                            // Save the last series
-                            if (currentSeriesName) {
-                                await this.saveImportedSeries(
-                                    currentSeriesName,
-                                    currentSeriesTags,
-                                    currentSeriesType,
-                                    currentEntries
-                                );
-                            }
-                            
-                            resolve();
-                        } catch (err) {
-                            reject(err);
                         }
-                    },
-                    error: (err) => reject(err)
-                });
+                        
+                        for (const group of groups) await this.saveGroup(group);
+                        
+                        let inParameters = false, currentSeriesName = null, currentSeriesTags = "";
+                        let currentSeriesType = 'number', currentEntries = [];
+                        
+                        for (let row of data) {
+                            const firstCell = row[0]?.trim();
+                            if (firstCell === "Parameters") { inParameters = true; continue; }
+                            if (!inParameters) continue;
+                            
+                            if (firstCell === "" && row[1]) {
+                                let rawVal = parseFloat(row[2]);
+                                currentEntries.push({
+                                    timestamp: row[1].replace('T', ' '),
+                                    value: currentSeriesType === 'time' ? rawVal / 1000 : rawVal,
+                                    notes: row[3] || ''
+                                });
+                            } else if (firstCell === "Tags") {
+                                currentSeriesTags = row[1];
+                            } else if (firstCell === "Unit") {
+                                currentSeriesType = (unitTypes[row[1]?.trim()] === 'duration') ? 'time' : 'number';
+                            } else if (firstCell && !["Unit", "Color", "Is archived", "Tags", "Initial value"].includes(firstCell)) {
+                                if (currentSeriesName) {
+                                    await this.saveImportedSeries(currentSeriesName, currentSeriesTags, currentSeriesType, currentEntries);
+                                }
+                                currentSeriesName = firstCell;
+                                currentSeriesTags = "";
+                                currentSeriesType = 'number';
+                                currentEntries = [];
+                            }
+                        }
+                        if (currentSeriesName) await this.saveImportedSeries(currentSeriesName, currentSeriesTags, currentSeriesType, currentEntries);
+                        resolve();
+                    } catch (err) { reject(err); }
+                },
+                error: (err) => reject(err)
             });
-        } catch (err) {
-            console.error('CSV import failed:', err);
-            throw err;
-        }
+        });
     }
     
     async saveImportedSeries(name, group, type, entries) {
-        const seriesData = {
-            name,
-            group: group || '',
-            type,
+        const seriesId = await this.saveSeries({
+            name, group: group || '', type,
             config: { stat: 'mean', period: 'all', quickAddAction: 'manual' }
-        };
-        
-        const seriesId = await this.saveSeries(seriesData);
-        
-        for (const entry of entries) {
-            await this.saveEntry({ ...entry, seriesId });
-        }
+        });
+        for (const entry of entries) await this.saveEntry({ ...entry, seriesId });
     }
 
     async updateSeriesConfig(seriesId, config) {
@@ -387,9 +325,7 @@ class ChronosDB {
     }
     
     async getSeriesWithEntries() {
-        const series = await this.getAllSeries();
-        const entries = await this.getAllEntries();
-        
+        const [series, entries] = await Promise.all([this.getAllSeries(), this.getAllEntries()]);
         return series.map(s => ({
             ...s,
             entries: entries.filter(e => e.seriesId === s.id)
@@ -397,6 +333,6 @@ class ChronosDB {
     }
 }
 
-const chronosDB = new ChronosDB();
-chronosDB.init().catch(err => console.error('Failed to initialize database:', err));
-window.ChronosDB = chronosDB;
+// Create and export a singleton instance
+const dbInstance = new ChronosDB(); await dbInstance.init();
+export default dbInstance;

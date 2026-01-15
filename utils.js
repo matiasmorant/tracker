@@ -1,4 +1,4 @@
-function formatDuration(seconds, isTick = false) {
+export function formatDuration(seconds, isTick = false) {
     if (seconds === 0) return '0s';
     const d = Math.floor(seconds / 86400);
     const h = Math.floor((seconds % 86400) / 3600);
@@ -18,7 +18,7 @@ function formatDuration(seconds, isTick = false) {
     return res.join(' ');
 }
 
-function secondsToDHMS(seconds) {
+export function secondsToDHMS(seconds) {
     const d = Math.floor(seconds / (3600*24));
     const h = Math.floor(seconds % (3600*24) / 3600);
     const m = Math.floor(seconds % 3600 / 60);
@@ -26,14 +26,14 @@ function secondsToDHMS(seconds) {
     return { d, h, m, s };
 }
 
-function formatMonth(d) { return d.toLocaleDateString([], { month: 'long', year: 'numeric' }); }
-function getFormattedISO(date = new Date()) { return date.toISOString().replace('T', ' ');}
+export function formatMonth(d) { return d.toLocaleDateString([], { month: 'long', year: 'numeric' }); }
+export function getFormattedISO(date = new Date()) { return date.toISOString().replace('T', ' ');}
 
-function getRunningTime(s) {
+export function getRunningTime(s) {
     if (!s.startTime) return '';
     const elapsedMs = Math.max(0, Date.now() - new Date(s.startTime).getTime());
     return formatDuration(Math.floor(elapsedMs / 1000));
 }
 
-function prevMonth(date) { return new Date(date.setMonth(date.getMonth()-1)); }
-function nextMonth(date) { return new Date(date.setMonth(date.getMonth()+1)); }
+export function prevMonth(date) { return new Date(date.setMonth(date.getMonth()-1)); }
+export function nextMonth(date) { return new Date(date.setMonth(date.getMonth()+1)); }

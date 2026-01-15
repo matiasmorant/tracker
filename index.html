@@ -19,9 +19,9 @@
     <script src="https://unpkg.com/papaparse@latest/papaparse.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <script src="./multiselect.js"></script>
-    <script src="./db.js"></script>
+    <script type="module" src="./db.js"></script>
     <script src="./analytics.js"></script>
-    <script src="./utils.js"></script>
+    <script type="module" src="./utils.js"></script>
     <script src="./chart-config.js"></script>
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -758,7 +758,10 @@
 
     <script type="module">
         import Alpine from 'https://unpkg.com/alpinejs@3.x.x/dist/module.esm.js'
+        import {formatDuration, secondsToDHMS, formatMonth, getFormattedISO, getRunningTime, prevMonth, nextMonth} from './utils.js';
+        import chronosDB from './db.js';
         Alpine.data('app', () => ({
+                formatDuration, secondsToDHMS, formatMonth, getFormattedISO, getRunningTime, prevMonth, nextMonth,
                 view: 'list', detailSubView: 'chart', calendarDate: new Date(), 
                 series: [], groups: [], currentSeries: null, currentSeriesEntries: [],
                 selectedGroups: [], sortField: 'name', sortOrder: 'asc',
@@ -783,7 +786,6 @@
                 ],
                 now: Date.now(),
                 theme: localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
-                
                 init() {
                     setInterval(() => { this.now = Date.now(); }, 1000);
                     this.initTheme();
