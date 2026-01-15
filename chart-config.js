@@ -1,6 +1,8 @@
+import {calculateStats,getPeriodData,calculateRunningMetric,filterByRange,calculateSeriesSummary} from './analytics.js';
+
 let chartInstance = null;
 
-function initChart(chartCanvasId, currentSeries, chartSettings, metrics, formatDuration) {
+export function initChart(chartCanvasId, currentSeries, chartSettings, metrics, formatDuration) {
     const ctx = document.getElementById(chartCanvasId)?.getContext('2d');
     if (!ctx) return null;
     
@@ -16,7 +18,7 @@ function initChart(chartCanvasId, currentSeries, chartSettings, metrics, formatD
     return chartInstance;
 }
 
-function getChartOptions(currentSeries, chartSettings, formatDuration) {
+export function getChartOptions(currentSeries, chartSettings, formatDuration) {
     return {
         layout: { padding: { top: 20 } },
         responsive: true, 
@@ -82,7 +84,7 @@ function getChartOptions(currentSeries, chartSettings, formatDuration) {
     };
 }
 
-function updateChart(chartInstance, currentSeries, currentSeriesEntries, chartSettings, metrics, analysisSelection) {
+export function updateChart(chartInstance, currentSeries, currentSeriesEntries, chartSettings, metrics, analysisSelection) {
     if (!chartInstance || !currentSeries) return;
     chartInstance.options.scales.y.type = chartSettings.logScale ? 'logarithmic' : 'linear';
     let datasets = prepareChartDatasets(currentSeries, currentSeriesEntries, chartSettings, metrics, analysisSelection);
@@ -91,7 +93,7 @@ function updateChart(chartInstance, currentSeries, currentSeriesEntries, chartSe
     chartInstance.update();
 }
 
-function prepareChartDatasets(currentSeries, currentSeriesEntries, chartSettings, metrics, analysisSelection) {
+export function prepareChartDatasets(currentSeries, currentSeriesEntries, chartSettings, metrics, analysisSelection) {
     let datasets = [];
     const rId = chartSettings.runningMetric;
     const win = chartSettings.window;
@@ -174,7 +176,7 @@ function prepareChartDatasets(currentSeries, currentSeriesEntries, chartSettings
     return datasets;
 }
 
-function updateChartTimeRange(chartInstance, chartSettings) {
+export function updateChartTimeRange(chartInstance, chartSettings) {
     if (!chartInstance) return;
     
     if (chartSettings.range !== 'all') {
@@ -196,9 +198,9 @@ function updateChartTimeRange(chartInstance, chartSettings) {
     }
 }
 
-function getChartInstance() { return chartInstance; }
+export function getChartInstance() { return chartInstance; }
 
-function destroyChart() {
+export function destroyChart() {
     if (chartInstance) {
         chartInstance.destroy();
         chartInstance = null;

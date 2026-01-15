@@ -1,4 +1,4 @@
-function calculateStats(sortedValues, originalOrder = [], entries = []) {
+export function calculateStats(sortedValues, originalOrder = [], entries = []) {
     if (!sortedValues || sortedValues.length === 0) {
         return {
             mean: 0, dayMean: 0, sum: 0, count: 0, min: 0,
@@ -56,7 +56,7 @@ function calculateStats(sortedValues, originalOrder = [], entries = []) {
     };
 }
 
-function getPeriodData(entries, period) {
+export function getPeriodData(entries, period) {
     if (period === 'none' || !entries || entries.length === 0) {
         return {
             labels: [],
@@ -137,7 +137,7 @@ function getPeriodData(entries, period) {
     return result;
 }
 
-function calculateRunningMetric(values, labels, metric, windowSize) {
+export function calculateRunningMetric(values, labels, metric, windowSize) {
     if (!values || !labels || values.length === 0 || windowSize < 2 || values.length < windowSize) {
         return [];
     }
@@ -163,7 +163,7 @@ function calculateRunningMetric(values, labels, metric, windowSize) {
     return result;
 }
 
-function filterByRange(entries, range = 'all', customDays = 30) {
+export function filterByRange(entries, range = 'all', customDays = 30) {
     if (range === 'all' || !entries || entries.length === 0) {
         return entries;
     }
@@ -187,7 +187,7 @@ function filterByRange(entries, range = 'all', customDays = 30) {
     });
 }
 
-function calculateSeriesSummary(series, entries, formatDuration) {
+export function calculateSeriesSummary(series, entries, formatDuration) {
     if (!series || !series.config || !entries || entries.length === 0) {
         return null;
     }
