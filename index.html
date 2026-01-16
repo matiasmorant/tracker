@@ -677,443 +677,443 @@
         import {initChart,getChartOptions,updateChart,prepareChartDatasets,updateChartTimeRange,getChartInstance,destroyChart} from './chart-config.js';
         import chronosDB from './db.js';
         Alpine.data('app', () => ({
-                formatDuration, secondsToDHMS, getFormattedISO, getRunningTime,
-                view: 'list', detailSubView: 'chart',
-                series: [], groups: [], currentSeries: null, currentSeriesEntries: [],
-                selectedGroups: [], sortField: 'name', sortOrder: 'asc',
-                modals: { series: false, entry: false, manageGroups: false },
-                showAddGroupForm: false,
-                groupForm: { name: '', color: '#6366f1' }, editingGroup: null,
-                editingSeries: null, 
-                seriesForm: { name: '', group: '', type: 'number', config: { stat: 'mean', period: 'all', quickAddAction: 'manual' } },
-                editingEntry: null, activeSeriesForEntry: null, 
-                entryForm: { timestamp: '', value: '', notes: '', dhms: { d:0, h:0, m:0, s:0 } },
-                toast: { show: false, message: '' },
-                chartSettings: { period: 'none', logScale: false, runningMetric: '', window: 7, range: 'all', customDays: 30 },
-                analysisSelection: ['mean', 'dayMean', 'count'],
-                metrics: [
-                    { id: 'mean', label: 'Mean', color: '#4f46e5' }, 
-                    { id: 'dayMean', label: 'Day Mean', color: '#10b981' }, 
-                    { id: 'sum', label: 'Sum', color: '#10b981' }, 
-                    { id: 'count', label: 'Count', color: '#f59e0b' },
-                    { id: 'min', label: 'Min', color: '#ef4444' }, { id: 'q1', label: 'Q1', color: '#8b5cf6' }, { id: 'median', label: 'Median', color: '#ec4899' },
-                    { id: 'q3', label: 'Q3', color: '#06b6d4' }, { id: 'max', label: 'Max', color: '#1e293b' },
-                    { id: 'first', label: 'First', color: '#6366f1' }, { id: 'last', label: 'Last', color: '#6366f1' }
-                ],
-                now: Date.now(),
-                theme: localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
-                init() {
-                    setInterval(() => { this.now = Date.now(); }, 1000);
-                    this.initTheme();
-                    this.loadData();
-                    
-                    const savedGroups = localStorage.getItem('chronos_selectedGroups');
-                    if (savedGroups) this.selectedGroups = JSON.parse(savedGroups);
+            formatDuration, secondsToDHMS, getFormattedISO, getRunningTime,
+            view: 'list', detailSubView: 'chart',
+            series: [], groups: [], currentSeries: null, currentSeriesEntries: [],
+            selectedGroups: [], sortField: 'name', sortOrder: 'asc',
+            modals: { series: false, entry: false, manageGroups: false },
+            showAddGroupForm: false,
+            groupForm: { name: '', color: '#6366f1' }, editingGroup: null,
+            editingSeries: null, 
+            seriesForm: { name: '', group: '', type: 'number', config: { stat: 'mean', period: 'all', quickAddAction: 'manual' } },
+            editingEntry: null, activeSeriesForEntry: null, 
+            entryForm: { timestamp: '', value: '', notes: '', dhms: { d:0, h:0, m:0, s:0 } },
+            toast: { show: false, message: '' },
+            chartSettings: { period: 'none', logScale: false, runningMetric: '', window: 7, range: 'all', customDays: 30 },
+            analysisSelection: ['mean', 'dayMean', 'count'],
+            metrics: [
+                { id: 'mean', label: 'Mean', color: '#4f46e5' }, 
+                { id: 'dayMean', label: 'Day Mean', color: '#10b981' }, 
+                { id: 'sum', label: 'Sum', color: '#10b981' }, 
+                { id: 'count', label: 'Count', color: '#f59e0b' },
+                { id: 'min', label: 'Min', color: '#ef4444' }, { id: 'q1', label: 'Q1', color: '#8b5cf6' }, { id: 'median', label: 'Median', color: '#ec4899' },
+                { id: 'q3', label: 'Q3', color: '#06b6d4' }, { id: 'max', label: 'Max', color: '#1e293b' },
+                { id: 'first', label: 'First', color: '#6366f1' }, { id: 'last', label: 'Last', color: '#6366f1' }
+            ],
+            now: Date.now(),
+            theme: localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
+            init() {
+                setInterval(() => { this.now = Date.now(); }, 1000);
+                this.initTheme();
+                this.loadData();
+                
+                const savedGroups = localStorage.getItem('chronos_selectedGroups');
+                if (savedGroups) this.selectedGroups = JSON.parse(savedGroups);
 
-                    const savedSortField = localStorage.getItem('chronos_sortField');
-                    if (savedSortField) this.sortField = savedSortField;
+                const savedSortField = localStorage.getItem('chronos_sortField');
+                if (savedSortField) this.sortField = savedSortField;
 
-                    const savedSortOrder = localStorage.getItem('chronos_sortOrder');
-                    if (savedSortOrder) this.sortOrder = savedSortOrder;
-                },
+                const savedSortOrder = localStorage.getItem('chronos_sortOrder');
+                if (savedSortOrder) this.sortOrder = savedSortOrder;
+            },
 
-                async loadData() {
-                    await this.loadGroups();
-                    await this.loadSeries();
-                },
+            async loadData() {
+                await this.loadGroups();
+                await this.loadSeries();
+            },
 
-                toggleTheme() {
-                    this.theme = this.theme === 'light' ? 'dark' : 'light';
-                    
-                    localStorage.setItem('theme', this.theme);
-                    
-                    if (this.theme === 'dark') {
-                        document.documentElement.classList.add('dark');
-                    } else {
-                        document.documentElement.classList.remove('dark');
-                    }
-                },
+            toggleTheme() {
+                this.theme = this.theme === 'light' ? 'dark' : 'light';
+                
+                localStorage.setItem('theme', this.theme);
+                
+                if (this.theme === 'dark') {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+            },
 
-                initTheme() {
-                    const storedTheme = localStorage.getItem('theme');
-                    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                    const isDark = storedTheme === 'dark' || (!storedTheme && prefersDark);
-                    
-                    this.theme = isDark ? 'dark' : 'light';
-                    
-                    if (isDark) { 
-                        document.documentElement.classList.add('dark');
-                    } else {      
-                        document.documentElement.classList.remove('dark'); 
-                    }
-                },
+            initTheme() {
+                const storedTheme = localStorage.getItem('theme');
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                const isDark = storedTheme === 'dark' || (!storedTheme && prefersDark);
+                
+                this.theme = isDark ? 'dark' : 'light';
+                
+                if (isDark) { 
+                    document.documentElement.classList.add('dark');
+                } else {      
+                    document.documentElement.classList.remove('dark'); 
+                }
+            },
 
-                async exportData() {
+            async exportData() {
+                try {
+                    const exportObj = await chronosDB.exportJSON();
+                    const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `chronos_export_${new Date().toISOString().split('T')[0]}.json`;
+                    a.click();
+                    this.showToast('JSON Exported');
+                } catch (err) {
+                    this.showToast('Export failed');
+                }
+            },
+
+            async importData(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = async (e) => {
                     try {
-                        const exportObj = await chronosDB.exportJSON();
-                        const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `chronos_export_${new Date().toISOString().split('T')[0]}.json`;
-                        a.click();
-                        this.showToast('JSON Exported');
-                    } catch (err) {
-                        this.showToast('Export failed');
+                        const importObj = JSON.parse(e.target.result);
+                        if (!confirm("Merge imported data?")) return;
+                        await chronosDB.importJSON(importObj, true);
+                        await this.loadData();
+                        this.showToast('Data merged');
+                    } catch (err) { 
+                        alert("Invalid JSON file"); 
                     }
-                },
+                };
+                reader.readAsText(file);
+            },
 
-                async importData(event) {
-                    const file = event.target.files[0];
-                    if (!file) return;
-                    const reader = new FileReader();
-                    reader.onload = async (e) => {
-                        try {
-                            const importObj = JSON.parse(e.target.result);
-                            if (!confirm("Merge imported data?")) return;
-                            await chronosDB.importJSON(importObj, true);
-                            await this.loadData();
-                            this.showToast('Data merged');
-                        } catch (err) { 
-                            alert("Invalid JSON file"); 
-                        }
-                    };
-                    reader.readAsText(file);
-                },
+            async exportCSV() {
+                try {
+                    const csv = await chronosDB.exportCSV();
+                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement("a");
+                    link.href = URL.createObjectURL(blob);
+                    link.setAttribute("download", `chronos_export_${new Date().toISOString().split('T')[0]}.csv`);
+                    link.click();
+                    this.showToast('CSV Exported');
+                } catch (err) {
+                    this.showToast('CSV Export failed');
+                }
+            },
 
-                async exportCSV() {
+            async importCSV(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = async (e) => {
                     try {
-                        const csv = await chronosDB.exportCSV();
-                        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-                        const link = document.createElement("a");
-                        link.href = URL.createObjectURL(blob);
-                        link.setAttribute("download", `chronos_export_${new Date().toISOString().split('T')[0]}.csv`);
-                        link.click();
-                        this.showToast('CSV Exported');
+                        await chronosDB.importCSV(e.target.result);
+                        await this.loadData();
+                        this.showToast("CSV Imported Successfully");
                     } catch (err) {
-                        this.showToast('CSV Export failed');
+                        alert("Failed to import CSV");
                     }
-                },
+                };
+                reader.readAsText(file);
+            },
 
-                async importCSV(event) {
-                    const file = event.target.files[0];
-                    if (!file) return;
+            async loadGroups() {
+                this.groups = await chronosDB.getAllGroups();
+                this.groups.sort((a,b) => a.name.localeCompare(b.name));
+            },
 
-                    const reader = new FileReader();
-                    reader.onload = async (e) => {
-                        try {
-                            await chronosDB.importCSV(e.target.result);
-                            await this.loadData();
-                            this.showToast("CSV Imported Successfully");
-                        } catch (err) {
-                            alert("Failed to import CSV");
-                        }
-                    };
-                    reader.readAsText(file);
-                },
-
-                async loadGroups() {
-                    this.groups = await chronosDB.getAllGroups();
-                    this.groups.sort((a,b) => a.name.localeCompare(b.name));
-                },
-
-                async saveGroup() {
-                    if (!this.groupForm.name.trim()) return;
-                
-                    if (this.editingGroup) {
-                        const oldName = this.editingGroup.name;
-                        const newName = this.groupForm.name.trim();
-                
-                        this.editingGroup.name = newName;
-                        this.editingGroup.color = this.groupForm.color;
-                
-                        if (oldName !== newName) {
-                            this.series.forEach(s => {
-                                if (s.group === oldName) {
-                                    s.group = newName;
-                                }
-                            });
-                            
-                            if (this.currentSeries && this.currentSeries.group === oldName) {
-                                this.currentSeries.group = newName;
+            async saveGroup() {
+                if (!this.groupForm.name.trim()) return;
+            
+                if (this.editingGroup) {
+                    const oldName = this.editingGroup.name;
+                    const newName = this.groupForm.name.trim();
+            
+                    this.editingGroup.name = newName;
+                    this.editingGroup.color = this.groupForm.color;
+            
+                    if (oldName !== newName) {
+                        this.series.forEach(s => {
+                            if (s.group === oldName) {
+                                s.group = newName;
                             }
-                        }
-                    } else {
-                        const groupData = {
-                            name: this.groupForm.name.trim(),
-                            color: this.groupForm.color
-                        };
-                        await chronosDB.saveGroup(groupData);
-                    }
-                
-                    await this.loadGroups();
-                    this.showAddGroupForm = false;
-                    this.editingGroup = null;
-                },
-
-                editGroupName(g) {
-                    this.editingGroup = g;
-                    this.groupForm = { name: g.name, color: g.color || '#6366f1' };
-                },
-
-                async deleteGroup(id) {
-                    if (!confirm('Delete group?')) return;
-                    await chronosDB.deleteGroup(id);
-                    await this.loadGroups();
-                    this.showToast('Group deleted');
-                },
-
-                async loadSeries() {
-                    this.series = await chronosDB.getAllSeries();
-                },
-
-                get filteredSeries() {
-                    let res = this.series.filter(s => this.selectedGroups.length === 0 || this.selectedGroups.includes(s.group || ''));
-                    return res.sort((a, b) => {
-                        let fA = (a[this.sortField] || '').toString().toLowerCase();
-                        let fB = (b[this.sortField] || '').toString().toLowerCase();
-                        return this.sortOrder === 'asc' ? fA.localeCompare(fB) : fB.localeCompare(fA);
-                    });
-                },
-
-                sortBy(field) {
-                    if (this.sortField === field) {
-                        this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
-                    } else {
-                        this.sortField = field;
-                        this.sortOrder = 'asc';
-                    }
-                    localStorage.setItem('chronos_sortField', this.sortField);
-                    localStorage.setItem('chronos_sortOrder', this.sortOrder);
-                },
-                
-                openNewSeriesModal() { 
-                    this.editingSeries = null; 
-                    this.seriesForm = { name: '', group: '', type: 'number', config: { stat: 'mean', period: 'all', quickAddAction: 'manual' } }; 
-                    this.modals.series = true; 
-                },
-                
-                editSeries(s) { 
-                    this.editingSeries = s; 
-                    this.seriesForm = { ...s }; 
-                    this.modals.series = true; 
-                },
-                
-                async updateSeriesName() {
-                    if (!this.currentSeries || !this.currentSeries.name.trim()) return;
-                    const index = this.series.findIndex(s => s.id === this.currentSeries.id);
-                    if (index !== -1) {
-                        this.series[index].name = this.currentSeries.name;
-                    }
-                    await chronosDB.saveSeries(this.currentSeries);
-                    await this.loadSeries();
-                },
-
-                async deleteSeries(id) {
-                    if (!confirm('Delete series and all data?')) return;
-                    await chronosDB.deleteSeries(id);
-                    await this.loadSeries();
-                    if (this.currentSeries?.id === id) this.view = 'list';
-                    this.showToast('Deleted');
-                },
-
-                async saveSeries() {
-                    if (!this.seriesForm.name) return;
-                    await chronosDB.saveSeries(this.seriesForm);
-                    await this.loadSeries();
-                    this.modals.series = false;
-                    this.showToast('Saved');
-                },
-
-                async openSeriesDetail(series) {
-                    this.currentSeries = series;
-                    this.analysisSelection = (series.config && series.config.analysisSelection) 
-                        ? [...series.config.analysisSelection] 
-                        : ['mean', 'median', 'max', 'min'];
-                    if (series.config && series.config.chartSettings) {
-                        this.chartSettings = { ...series.config.chartSettings };
-                    } else {
-                        this.chartSettings={period:'none',runningMetric:'',window:3,logScale:false,range: 'all'};
-                    }
-                
-                    this.view = 'detail';
-                    this.detailSubView = 'chart';
-                    await this.loadEntries(series.id);
-                    this.$nextTick(() => {
-                        this.updateChart();
-                    });
-                },
-
-                async loadEntries(id) {
-                    this.currentSeriesEntries = await chronosDB.getEntriesForSeries(id);
-                    this.currentSeriesEntries.sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
-                    this.recalculateSummaryDisplay();
-                    if (this.detailSubView === 'chart') this.$nextTick(() => this.initChart());
-                },
-
-                recalculateSummaryDisplay() {
-                    if (!this.currentSeries || !this.currentSeriesEntries.length || !this.currentSeries.config) return;
-                    
-                    this.currentSeries.summaryDisplay = calculateSeriesSummary(
-                        this.currentSeries,
-                        this.currentSeriesEntries,
-                        formatDuration.bind(this)
-                    );
-                },
-
-                async saveSeriesConfig() {
-                    if (!this.currentSeries) return;
-                    this.currentSeries.config.analysisSelection = [...this.analysisSelection];
-                    this.currentSeries.config.chartSettings = { ...this.chartSettings };
-                    this.recalculateSummaryDisplay();
-                    await chronosDB.saveSeries(this.currentSeries);
-                    await this.loadSeries();
-                },
-
-                get activeStats() {
-                    if (!this.currentSeriesEntries.length) return [];
-                    const vals = this.currentSeriesEntries.map(e => e.value).sort((a,b) => a-b);
-                    const s = calculateStats(vals, this.currentSeriesEntries.map(e => e.value), this.currentSeriesEntries);
-                    return this.metrics.filter(m => this.analysisSelection.includes(m.id)).map(m => ({ 
-                        label: m.label, 
-                        value: this.currentSeries.type === 'time' ? formatDuration(s[m.id]) : (s[m.id] ? s[m.id].toLocaleString() : '0')
-                    }));
-                },
-
-                handleCalendarDayClick(d) {
-                    this.activeSeriesForEntry = this.currentSeries;
-                    this.editingEntry = null;
-                    const now = new Date();
-                    const targetDate = new Date(d.date);
-                    targetDate.setHours(now.getHours(), now.getMinutes());
-                    this.entryForm = { timestamp: getFormattedISO(targetDate), value: '', notes: '', dhms: { d:0, h:0, m:0, s:0 } };
-                    this.modals.entry = true;
-                },
-
-                changeSubView(v) { this.detailSubView = v; if (v === 'chart') this.initChart(); },
-                
-                initChart() {
-                    this.$nextTick(() => {
-                        initChart('seriesChart', this.currentSeries, this.chartSettings, this.metrics, formatDuration.bind(this));
-                        this.updateChart();
-                    });
-                },
-
-                updateChart() {
-                    updateChart(getChartInstance(), this.currentSeries, this.currentSeriesEntries, this.chartSettings, this.metrics, this.analysisSelection);
-                },
-                
-                async openAddEntryModal(s) { 
-                    this.activeSeriesForEntry = s; 
-                    const action = s.config?.quickAddAction || 'manual';
-
-                    // Chronometer Logic
-                    if (action === 'chronometer' && s.type === 'time') {
-                        const now = new Date();
-                        if (!s.startTime) {
-                            s.startTime = now.toISOString();
-                            await chronosDB.saveSeries(s);
-                            this.showToast('Chronometer Started');
-                            return;
-                        } else {
-                            const start = new Date(s.startTime);
-                            const elapsedSeconds = Math.floor((now - start) / 1000);
-                            s.startTime = null;
-                            this.editingEntry = null;
-                            this.entryForm = { 
-                                timestamp: getFormattedISO(now), 
-                                value: elapsedSeconds, 
-                                notes: `Elapsed: ${formatDuration(elapsedSeconds)}`,
-                                dhms: secondsToDHMS(elapsedSeconds) 
-                            };
-                            await this.saveEntry();
-                            this.showToast(`Recorded ${formatDuration(elapsedSeconds)}`);
-                            return;
+                        });
+                        
+                        if (this.currentSeries && this.currentSeries.group === oldName) {
+                            this.currentSeries.group = newName;
                         }
                     }
-
-                    if (action === 'increment' && s.type === 'number') {
-                        const todayStr = new Date().toISOString().split('T')[0];
-                        const entries = await chronosDB.getEntriesForSeries(s.id);
-                        const todayEntry = entries.find(ent => ent.timestamp.startsWith(todayStr));
-                        if (todayEntry) {
-                            this.editingEntry = todayEntry;
-                            this.entryForm = { ...todayEntry, value: (todayEntry.value || 0) + 1 };
-                        } else {
-                            this.editingEntry = null;
-                            this.entryForm = { timestamp: getFormattedISO(), value: 1, notes: '' };
-                        }
-                        this.saveEntry();
-                        return;
-                    }
-
-                    if (action === 'currentTime' && s.type === 'time') {
-                        const now = new Date();
-                        const secondsSinceMidnight = (now.getHours() * 3600) + (now.getMinutes() * 60) + now.getSeconds();
-                        this.editingEntry = null;
-                        this.entryForm = { timestamp: getFormattedISO(), value: secondsSinceMidnight, notes: '', dhms: secondsToDHMS(secondsSinceMidnight) };
-                        this.saveEntry();
-                        return;
-                    }
-
-                    this.editingEntry = null; 
-                    this.entryForm = { timestamp: getFormattedISO(), value: '', notes: '', dhms: { d:0, h:0, m:0, s:0 } }; 
-                    this.modals.entry = true; 
-                },
-                
-                async saveEntry() {
-                    if (!this.entryForm.timestamp) return;
-                    let finalVal;
-                    if (this.activeSeriesForEntry.type === 'time') {
-                        const {d, h, m, s} = this.entryForm.dhms;
-                        finalVal = (parseInt(d||0)*86400) + (parseInt(h||0)*3600) + (parseInt(m||0)*60) + parseInt(s||0);
-                    } else { 
-                        finalVal = parseFloat(this.entryForm.value); 
-                    }
-                    if (isNaN(finalVal)) return;
-
-                    let cleanTimestamp = this.entryForm.timestamp.replace('T', ' ');
-                    const entryData = { 
-                        timestamp: cleanTimestamp, 
-                        notes: this.entryForm.notes, 
-                        seriesId: this.activeSeriesForEntry.id, 
-                        value: finalVal 
+                } else {
+                    const groupData = {
+                        name: this.groupForm.name.trim(),
+                        color: this.groupForm.color
                     };
-                    
-                    if (this.editingEntry) entryData.id = this.editingEntry.id;
-                    
-                    await chronosDB.saveEntry(entryData);
-                    
-                    // Update series summary
-                    const allEntries = await chronosDB.getEntriesForSeries(this.activeSeriesForEntry.id);
-                    const tempSeries = JSON.parse(JSON.stringify(this.activeSeriesForEntry));
-                    tempSeries.summaryDisplay = calculateSeriesSummary(tempSeries, allEntries, formatDuration.bind(this));
-                    await chronosDB.saveSeries(tempSeries);
-                    
-                    await this.loadSeries();
-                    if (this.currentSeries && this.currentSeries.id === this.activeSeriesForEntry.id) {
-                        await this.loadEntries(this.activeSeriesForEntry.id);
+                    await chronosDB.saveGroup(groupData);
+                }
+            
+                await this.loadGroups();
+                this.showAddGroupForm = false;
+                this.editingGroup = null;
+            },
+
+            editGroupName(g) {
+                this.editingGroup = g;
+                this.groupForm = { name: g.name, color: g.color || '#6366f1' };
+            },
+
+            async deleteGroup(id) {
+                if (!confirm('Delete group?')) return;
+                await chronosDB.deleteGroup(id);
+                await this.loadGroups();
+                this.showToast('Group deleted');
+            },
+
+            async loadSeries() {
+                this.series = await chronosDB.getAllSeries();
+            },
+
+            get filteredSeries() {
+                let res = this.series.filter(s => this.selectedGroups.length === 0 || this.selectedGroups.includes(s.group || ''));
+                return res.sort((a, b) => {
+                    let fA = (a[this.sortField] || '').toString().toLowerCase();
+                    let fB = (b[this.sortField] || '').toString().toLowerCase();
+                    return this.sortOrder === 'asc' ? fA.localeCompare(fB) : fB.localeCompare(fA);
+                });
+            },
+
+            sortBy(field) {
+                if (this.sortField === field) {
+                    this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+                } else {
+                    this.sortField = field;
+                    this.sortOrder = 'asc';
+                }
+                localStorage.setItem('chronos_sortField', this.sortField);
+                localStorage.setItem('chronos_sortOrder', this.sortOrder);
+            },
+            
+            openNewSeriesModal() { 
+                this.editingSeries = null; 
+                this.seriesForm = { name: '', group: '', type: 'number', config: { stat: 'mean', period: 'all', quickAddAction: 'manual' } }; 
+                this.modals.series = true; 
+            },
+            
+            editSeries(s) { 
+                this.editingSeries = s; 
+                this.seriesForm = { ...s }; 
+                this.modals.series = true; 
+            },
+            
+            async updateSeriesName() {
+                if (!this.currentSeries || !this.currentSeries.name.trim()) return;
+                const index = this.series.findIndex(s => s.id === this.currentSeries.id);
+                if (index !== -1) {
+                    this.series[index].name = this.currentSeries.name;
+                }
+                await chronosDB.saveSeries(this.currentSeries);
+                await this.loadSeries();
+            },
+
+            async deleteSeries(id) {
+                if (!confirm('Delete series and all data?')) return;
+                await chronosDB.deleteSeries(id);
+                await this.loadSeries();
+                if (this.currentSeries?.id === id) this.view = 'list';
+                this.showToast('Deleted');
+            },
+
+            async saveSeries() {
+                if (!this.seriesForm.name) return;
+                await chronosDB.saveSeries(this.seriesForm);
+                await this.loadSeries();
+                this.modals.series = false;
+                this.showToast('Saved');
+            },
+
+            async openSeriesDetail(series) {
+                this.currentSeries = series;
+                this.analysisSelection = (series.config && series.config.analysisSelection) 
+                    ? [...series.config.analysisSelection] 
+                    : ['mean', 'median', 'max', 'min'];
+                if (series.config && series.config.chartSettings) {
+                    this.chartSettings = { ...series.config.chartSettings };
+                } else {
+                    this.chartSettings={period:'none',runningMetric:'',window:3,logScale:false,range: 'all'};
+                }
+            
+                this.view = 'detail';
+                this.detailSubView = 'chart';
+                await this.loadEntries(series.id);
+                this.$nextTick(() => {
+                    this.updateChart();
+                });
+            },
+
+            async loadEntries(id) {
+                this.currentSeriesEntries = await chronosDB.getEntriesForSeries(id);
+                this.currentSeriesEntries.sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
+                this.recalculateSummaryDisplay();
+                if (this.detailSubView === 'chart') this.$nextTick(() => this.initChart());
+            },
+
+            recalculateSummaryDisplay() {
+                if (!this.currentSeries || !this.currentSeriesEntries.length || !this.currentSeries.config) return;
+                
+                this.currentSeries.summaryDisplay = calculateSeriesSummary(
+                    this.currentSeries,
+                    this.currentSeriesEntries,
+                    formatDuration.bind(this)
+                );
+            },
+
+            async saveSeriesConfig() {
+                if (!this.currentSeries) return;
+                this.currentSeries.config.analysisSelection = [...this.analysisSelection];
+                this.currentSeries.config.chartSettings = { ...this.chartSettings };
+                this.recalculateSummaryDisplay();
+                await chronosDB.saveSeries(this.currentSeries);
+                await this.loadSeries();
+            },
+
+            get activeStats() {
+                if (!this.currentSeriesEntries.length) return [];
+                const vals = this.currentSeriesEntries.map(e => e.value).sort((a,b) => a-b);
+                const s = calculateStats(vals, this.currentSeriesEntries.map(e => e.value), this.currentSeriesEntries);
+                return this.metrics.filter(m => this.analysisSelection.includes(m.id)).map(m => ({ 
+                    label: m.label, 
+                    value: this.currentSeries.type === 'time' ? formatDuration(s[m.id]) : (s[m.id] ? s[m.id].toLocaleString() : '0')
+                }));
+            },
+
+            handleCalendarDayClick(d) {
+                this.activeSeriesForEntry = this.currentSeries;
+                this.editingEntry = null;
+                const now = new Date();
+                const targetDate = new Date(d.date);
+                targetDate.setHours(now.getHours(), now.getMinutes());
+                this.entryForm = { timestamp: getFormattedISO(targetDate), value: '', notes: '', dhms: { d:0, h:0, m:0, s:0 } };
+                this.modals.entry = true;
+            },
+
+            changeSubView(v) { this.detailSubView = v; if (v === 'chart') this.initChart(); },
+            
+            initChart() {
+                this.$nextTick(() => {
+                    initChart('seriesChart', this.currentSeries, this.chartSettings, this.metrics, formatDuration.bind(this));
+                    this.updateChart();
+                });
+            },
+
+            updateChart() {
+                updateChart(getChartInstance(), this.currentSeries, this.currentSeriesEntries, this.chartSettings, this.metrics, this.analysisSelection);
+            },
+            
+            async openAddEntryModal(s) { 
+                this.activeSeriesForEntry = s; 
+                const action = s.config?.quickAddAction || 'manual';
+
+                // Chronometer Logic
+                if (action === 'chronometer' && s.type === 'time') {
+                    const now = new Date();
+                    if (!s.startTime) {
+                        s.startTime = now.toISOString();
+                        await chronosDB.saveSeries(s);
+                        this.showToast('Chronometer Started');
+                        return;
+                    } else {
+                        const start = new Date(s.startTime);
+                        const elapsedSeconds = Math.floor((now - start) / 1000);
+                        s.startTime = null;
+                        this.editingEntry = null;
+                        this.entryForm = { 
+                            timestamp: getFormattedISO(now), 
+                            value: elapsedSeconds, 
+                            notes: `Elapsed: ${formatDuration(elapsedSeconds)}`,
+                            dhms: secondsToDHMS(elapsedSeconds) 
+                        };
+                        await this.saveEntry();
+                        this.showToast(`Recorded ${formatDuration(elapsedSeconds)}`);
+                        return;
                     }
-                    this.modals.entry = false;
-                    this.showToast('Saved');
-                },
+                }
 
-                editEntry(e) { 
-                    this.activeSeriesForEntry = this.currentSeries; 
-                    this.editingEntry = e; 
-                    this.entryForm = { ...e, dhms: this.activeSeriesForEntry.type === 'time' ? secondsToDHMS(e.value) : { d:0, h:0, m:0, s:0 } }; 
-                    this.modals.entry = true; 
-                },
+                if (action === 'increment' && s.type === 'number') {
+                    const todayStr = new Date().toISOString().split('T')[0];
+                    const entries = await chronosDB.getEntriesForSeries(s.id);
+                    const todayEntry = entries.find(ent => ent.timestamp.startsWith(todayStr));
+                    if (todayEntry) {
+                        this.editingEntry = todayEntry;
+                        this.entryForm = { ...todayEntry, value: (todayEntry.value || 0) + 1 };
+                    } else {
+                        this.editingEntry = null;
+                        this.entryForm = { timestamp: getFormattedISO(), value: 1, notes: '' };
+                    }
+                    this.saveEntry();
+                    return;
+                }
 
-                async deleteEntry(id) { 
-                    if (confirm('Delete entry?')) { 
-                        await chronosDB.deleteEntry(id);
-                        await this.loadEntries(this.currentSeries.id);
-                    } 
-                },
+                if (action === 'currentTime' && s.type === 'time') {
+                    const now = new Date();
+                    const secondsSinceMidnight = (now.getHours() * 3600) + (now.getMinutes() * 60) + now.getSeconds();
+                    this.editingEntry = null;
+                    this.entryForm = { timestamp: getFormattedISO(), value: secondsSinceMidnight, notes: '', dhms: secondsToDHMS(secondsSinceMidnight) };
+                    this.saveEntry();
+                    return;
+                }
 
-                showToast(m) { this.toast.message = m; this.toast.show = true; setTimeout(() => this.toast.show = false, 3000); }
-            }));
+                this.editingEntry = null; 
+                this.entryForm = { timestamp: getFormattedISO(), value: '', notes: '', dhms: { d:0, h:0, m:0, s:0 } }; 
+                this.modals.entry = true; 
+            },
+            
+            async saveEntry() {
+                if (!this.entryForm.timestamp) return;
+                let finalVal;
+                if (this.activeSeriesForEntry.type === 'time') {
+                    const {d, h, m, s} = this.entryForm.dhms;
+                    finalVal = (parseInt(d||0)*86400) + (parseInt(h||0)*3600) + (parseInt(m||0)*60) + parseInt(s||0);
+                } else { 
+                    finalVal = parseFloat(this.entryForm.value); 
+                }
+                if (isNaN(finalVal)) return;
+
+                let cleanTimestamp = this.entryForm.timestamp.replace('T', ' ');
+                const entryData = { 
+                    timestamp: cleanTimestamp, 
+                    notes: this.entryForm.notes, 
+                    seriesId: this.activeSeriesForEntry.id, 
+                    value: finalVal 
+                };
+                
+                if (this.editingEntry) entryData.id = this.editingEntry.id;
+                
+                await chronosDB.saveEntry(entryData);
+                
+                // Update series summary
+                const allEntries = await chronosDB.getEntriesForSeries(this.activeSeriesForEntry.id);
+                const tempSeries = JSON.parse(JSON.stringify(this.activeSeriesForEntry));
+                tempSeries.summaryDisplay = calculateSeriesSummary(tempSeries, allEntries, formatDuration.bind(this));
+                await chronosDB.saveSeries(tempSeries);
+                
+                await this.loadSeries();
+                if (this.currentSeries && this.currentSeries.id === this.activeSeriesForEntry.id) {
+                    await this.loadEntries(this.activeSeriesForEntry.id);
+                }
+                this.modals.entry = false;
+                this.showToast('Saved');
+            },
+
+            editEntry(e) { 
+                this.activeSeriesForEntry = this.currentSeries; 
+                this.editingEntry = e; 
+                this.entryForm = { ...e, dhms: this.activeSeriesForEntry.type === 'time' ? secondsToDHMS(e.value) : { d:0, h:0, m:0, s:0 } }; 
+                this.modals.entry = true; 
+            },
+
+            async deleteEntry(id) { 
+                if (confirm('Delete entry?')) { 
+                    await chronosDB.deleteEntry(id);
+                    await this.loadEntries(this.currentSeries.id);
+                } 
+            },
+
+            showToast(m) { this.toast.message = m; this.toast.show = true; setTimeout(() => this.toast.show = false, 3000); }
+        }));
         Alpine.start()
 
     </script>
