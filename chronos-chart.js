@@ -1,7 +1,8 @@
 import { 
   parseDate, 
   formatValue, 
-  formatDate, 
+  formatDate,
+  getMonthIndex,
   generateYValues, 
   generateXLabels,
   generateMonthlyTickDates,
@@ -363,6 +364,8 @@ export class ChronosChart extends HTMLElement {
     return createYScale(points, chartHeight, this._options.logScale);
   }
 
+  // In the drawGrid method, modify the month shading logic:
+
   drawGrid(xScale, yScale, chartWidth, chartHeight, padding, allPoints) {
     const gridGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     gridGroup.classList.add('grid-group');
@@ -371,10 +374,88 @@ export class ChronosChart extends HTMLElement {
     
     const { minDate, maxDate } = getVisibleDateRange(allPoints, this._options.viewDays, this._panOffset);
     const dateRangeDays = (maxDate - minDate) / (24 * 60 * 60 * 1000);
-    let tickDates = [];
     
-    if (dateRangeDays > 90 && dateRangeDays <= 365) {
-      tickDates = generateMonthlyTickDates(minDate, maxDate);
+    if (dateRangeDays > 90 && dateRangeDays <= 310) {
+      // Get the first month of the ENTIRE dataset for consistent shading
+      const allDates = this._data?.datasets?.flatMap(d => 
+        d.data?.map(p => parseDate(p.x)) || []
+      ) || [];
+      
+      const globalMinDate = allDates.length > 0 ? Math.min(...allDates) : minDate;
+      const globalMaxDate = allDates.length > 0 ? Math.max(...allDates) : maxDate;
+      
+      // Generate months from the global dataset range
+      const globalFirstMonth = new Date(globalMinDate);
+      globalFirstMonth.setDate(1);
+      globalFirstMonth.setHours(0, 0, 0, 0);
+      
+      const globalLastMonth = new Date(globalMaxDate);
+      globalLastMonth.setDate(1);
+      globalLastMonth.setHours(0, 0, 0, 0);
+      
+      // Create all month boundaries in the global range
+      const globalMonthDates = [];
+      let currentMonth = new Date(globalFirstMonth);
+      
+      while (currentMonth <= globalLastMonth) {
+        globalMonthDates.push(new Date(currentMonth));
+        currentMonth.setMonth(currentMonth.getMonth() + 1);
+      }
+      
+      // Get the reference month index from the first month of global data
+      const firstMonthDate = new Date(globalMinDate);
+      const firstMonthIndex = firstMonthDate.getMonth() + (firstMonthDate.getFullYear() * 12);
+      
+      // Find the month that starts before or at the visible minDate
+      let startMonthIndex = 0;
+      for (let i = 0; i < globalMonthDates.length; i++) {
+        if (globalMonthDates[i].getTime() <= minDate) {
+          startMonthIndex = i;
+        }
+      }
+      
+      // Draw shaded regions for all months that intersect the visible range
+      for (let i = startMonthIndex; i < globalMonthDates.length; i++) {
+        const currentMonthStart = globalMonthDates[i].getTime();
+        const nextMonthStart = i < globalMonthDates.length - 1 
+          ? globalMonthDates[i + 1].getTime() 
+          : globalMonthDates[i].getTime() + (31 * 24 * 60 * 60 * 1000); // Approximate if no next month
+        
+        // Only draw if this month intersects the visible range
+        if (currentMonthStart <= maxDate && nextMonthStart >= minDate) {
+          // Calculate visible portion of this month
+          const visibleStart = Math.max(currentMonthStart, minDate);
+          const visibleEnd = Math.min(nextMonthStart, maxDate);
+          
+          // Determine if this month should be shaded
+          const currentDate = new Date(currentMonthStart);
+          const currentMonthIndex = currentDate.getMonth() + (currentDate.getFullYear() * 12);
+          const shouldShade = (currentMonthIndex - firstMonthIndex) % 2 === 0;
+          
+          if (shouldShade && visibleStart < visibleEnd) {
+            const xStart = padding.left + xScale(visibleStart);
+            const xEnd = padding.left + xScale(visibleEnd);
+            const width = xEnd - xStart;
+            
+            if (width > 0 && xStart <= padding.left + chartWidth && xEnd >= padding.left) {
+              const rect = this.createElement('rect', {
+                x: Math.max(padding.left, xStart),
+                y: padding.top,
+                width: Math.min(chartWidth, width - Math.max(0, padding.left - xStart)),
+                height: chartHeight,
+                fill: 'currentColor',
+                'fill-opacity': '0.1',
+              });
+              gridGroup.appendChild(rect);
+            }
+          }
+        }
+        
+        // Stop if we're past the visible range
+        if (currentMonthStart > maxDate) break;
+      }
+    } else if (dateRangeDays > 310 && dateRangeDays <= 365) {
+      const tickDates = generateMonthlyTickDates(minDate, maxDate);
       
       tickDates.forEach((tickDate) => {
         const x = padding.left + xScale(tickDate);
@@ -388,6 +469,7 @@ export class ChronosChart extends HTMLElement {
         }
       });
     } else {
+      // Original logic for other ranges
       for (let i = 0; i < 8; i++) {
         const tickDate = minDate + (i / 7) * (maxDate - minDate);
         const x = padding.left + xScale(tickDate);
@@ -402,6 +484,7 @@ export class ChronosChart extends HTMLElement {
       }
     }
     
+    // Horizontal grid lines (unchanged)
     yValues.forEach((yValue) => {
       if (yValue !== undefined) {
         const y = padding.top + yScale(yValue);
@@ -438,20 +521,50 @@ export class ChronosChart extends HTMLElement {
     const { minDate, maxDate } = getVisibleDateRange(points, this._options.viewDays, this._panOffset);
     const dateRangeDays = (maxDate - minDate) / (24 * 60 * 60 * 1000);
     
-    if (dateRangeDays > 90 && dateRangeDays <= 365) {
+    if (dateRangeDays > 90 && dateRangeDays <= 310) {
+      const tickDates = generateMonthlyTickDates(minDate, maxDate);
+      
+      tickDates.forEach((dateTimestamp, index) => {
+        const currentMonthStart = dateTimestamp;
+        const nextMonthStart = tickDates[index + 1] || maxDate;
+        
+        // Calculate midpoint for centered label
+        const midTimestamp = currentMonthStart + (nextMonthStart - currentMonthStart) / 2;
+        const x = padding.left + xScale(midTimestamp);
+        
+        // Only render if midpoint is within view
+        if (x >= padding.left && x <= padding.left + chartWidth) {
+          const date = new Date(currentMonthStart);
+          const text = this.createElement('text', {
+            x, 
+            y: padding.top + chartHeight + 20,
+            'text-anchor': 'middle', 
+            class: 'axis-text'
+          });
+          
+          // Use short month name (e.g., "Jan", "Feb") for centered labels
+          text.textContent = date.toLocaleDateString(undefined, { month: 'short' });
+          axisGroup.appendChild(text);
+        }
+      });
+    } else if (dateRangeDays > 310 && dateRangeDays <= 365) {
       const tickDates = generateMonthlyTickDates(minDate, maxDate);
       
       tickDates.forEach((dateTimestamp) => {
         const date = new Date(dateTimestamp);
         const x = padding.left + xScale(dateTimestamp);
-        const text = this.createElement('text', {
-          x, y: padding.top + chartHeight + 20,
-          'text-anchor': 'middle', class: 'axis-text'
-        });
-        text.textContent = formatDate(date, minDate, maxDate);
-        axisGroup.appendChild(text);
+        
+        if (x >= padding.left && x <= padding.left + chartWidth) {
+          const text = this.createElement('text', {
+            x, y: padding.top + chartHeight + 20,
+            'text-anchor': 'middle', class: 'axis-text'
+          });
+          text.textContent = formatDate(date, minDate, maxDate);
+          axisGroup.appendChild(text);
+        }
       });
     } else {
+      // Original logic for other ranges
       const xLabels = generateXLabels(points, 8, this._options.viewDays, this._panOffset);
       xLabels.forEach((label, i) => {
         const tickDate = minDate + (i / (xLabels.length - 1)) * (maxDate - minDate);
@@ -465,6 +578,7 @@ export class ChronosChart extends HTMLElement {
       });
     }
     
+    // Y-axis labels (unchanged)
     const yValues = generateYValues(points.map(p => p.y), 6, this._options.logScale);
     yValues.forEach((yValue) => {
       const y = padding.top + yScale(yValue);

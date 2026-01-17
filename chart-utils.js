@@ -135,6 +135,11 @@ export function generateXLabels(points, count = 8, viewDays = 0, panOffset = 0) 
   return labels;
 }
 
+export function getMonthIndex(timestamp) {
+  const date = new Date(timestamp);
+  return date.getMonth() + (date.getFullYear() * 12);
+}
+
 export function generateMonthlyTicks(startDateMs, endDateMs) {
   const startDate = new Date(startDateMs);
   const endDate = new Date(endDateMs);
@@ -307,6 +312,7 @@ export default {
   parseDate,
   formatValue,
   formatDate,
+  getMonthIndex,
   generateYValues,
   generateXLabels,
   generateMonthlyTicks,
