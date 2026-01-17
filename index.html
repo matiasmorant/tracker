@@ -21,6 +21,7 @@
     <script type="module" src="./analytics.js"></script>
     <script type="module" src="./utils.js"></script>
     <script type="module" src="./chronos-chart.js"></script>
+    <script type="module" src="./series-history.js"></script>
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -382,32 +383,15 @@
                     </chronos-calendar>
                 </div>
 
-                <div x-show="detailSubView === 'history'" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden dark:bg-slate-800 dark:border-slate-700" x-cloak>
-                    <div class="p-6 border-b border-slate-100 flex justify-between items-center dark:border-slate-700">
-                        <h3 class="text-lg font-semibold dark:text-slate-100">Data History</h3>
-                        <button @click="openAddEntryModal(currentSeries)" class="text-sm bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium dark:bg-indigo-700 dark:hover:bg-indigo-600">+ Add Entry</button>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider font-semibold dark:bg-slate-700 dark:text-slate-400">
-                                <tr><th class="px-6 py-3">Date</th><th class="px-6 py-3">Value</th><th class="px-6 py-3">Notes</th><th class="px-6 py-3 text-right">Actions</th></tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
-                                <template x-for="entry in currentSeriesEntries" :key="entry.id">
-                                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50">
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium dark:text-slate-300" x-text="entry.timestamp"></td>
-                                        <td class="px-6 py-4 text-sm text-indigo-600 font-bold dark:text-indigo-400" x-text="currentSeries.type === 'time' ? formatDuration(entry.value) : entry.value"></td>
-                                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-400" x-text="entry.notes || '-'"></td>
-                                        <td class="px-6 py-4 text-right space-x-3">
-                                            <button @click="editEntry(entry)" class="text-slate-400 hover:text-indigo-600 dark:text-slate-500 dark:hover:text-indigo-400">Edit</button>
-                                            <button @click="deleteEntry(entry.id)" class="text-slate-400 hover:text-red-600 dark:text-slate-500 dark:hover:text-red-400">Delete</button>
-                                        </td>
-                                    </tr>
-                                </template>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                <series-history 
+                    x-show="detailSubView === 'history'"
+                    :series="JSON.stringify(currentSeries)"
+                    :entries="JSON.stringify(currentSeriesEntries)"
+                    @add-entry-click="openAddEntryModal($event.detail.series)"
+                    @edit-entry-click="editEntry($event.detail.entry)"
+                    @delete-entry-click="deleteEntry($event.detail.id)"
+                    x-cloak>
+                </series-history>
 
                 <div x-show="detailSubView === 'config'" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 dark:bg-slate-800 dark:border-slate-700" x-cloak>
                     <div class="max-w-4xl space-y-8">
