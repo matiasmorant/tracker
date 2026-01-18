@@ -375,7 +375,7 @@ export class ChronosChart extends HTMLElement {
     const { minDate, maxDate } = getVisibleDateRange(allPoints, this._options.viewDays, this._panOffset);
     const dateRangeDays = (maxDate - minDate) / (24 * 60 * 60 * 1000);
     
-    if (dateRangeDays > 90 && dateRangeDays <= 310) {
+    if (dateRangeDays > 60 && dateRangeDays <= 310) {
       // Get the first month of the ENTIRE dataset for consistent shading
       const allDates = this._data?.datasets?.flatMap(d => 
         d.data?.map(p => parseDate(p.x)) || []
@@ -521,7 +521,7 @@ export class ChronosChart extends HTMLElement {
     const { minDate, maxDate } = getVisibleDateRange(points, this._options.viewDays, this._panOffset);
     const dateRangeDays = (maxDate - minDate) / (24 * 60 * 60 * 1000);
     
-    if (dateRangeDays > 90 && dateRangeDays <= 310) {
+    if (dateRangeDays > 60 && dateRangeDays <= 310) {
       const tickDates = generateMonthlyTickDates(minDate, maxDate);
       
       tickDates.forEach((dateTimestamp, index) => {
