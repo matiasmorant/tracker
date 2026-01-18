@@ -51,12 +51,14 @@ export class ChronosChart extends HTMLElement {
     this.setupResizeObserver();
     this.setupThemeObserver();
     this.setupPanningEvents();
+    this.setupLogScaleButton();
   }
 
   disconnectedCallback() {
     if (this._resizeObserver) this._resizeObserver.disconnect();
     if (this._animationFrame) cancelAnimationFrame(this._animationFrame);
     this.removePanningEvents();
+    this.removeLogScaleButtonEvents();
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
@@ -101,6 +103,9 @@ export class ChronosChart extends HTMLElement {
     this.handlePointerUp = this.handlePointerUp.bind(this);
     this.handlePointerEnter = this.handlePointerEnter.bind(this);
     this.handlePointerLeave = this.handlePointerLeave.bind(this);
+    
+    // Log scale button handler
+    this.toggleLogScale = this.toggleLogScale.bind(this);
   }
 
   setupResizeObserver() {
@@ -123,6 +128,55 @@ export class ChronosChart extends HTMLElement {
         }
       });
     }).observe(document.documentElement, { attributes: true });
+  }
+
+  setupLogScaleButton() {
+    if (this.shadowRoot) {
+      const logScaleButton = this.shadowRoot.getElementById('log-scale-btn');
+      if (logScaleButton) {
+        logScaleButton.addEventListener('click', this.toggleLogScale);
+      }
+    }
+  }
+
+  removeLogScaleButtonEvents() {
+    if (this.shadowRoot) {
+      const logScaleButton = this.shadowRoot.getElementById('log-scale-btn');
+      if (logScaleButton) {
+        logScaleButton.removeEventListener('click', this.toggleLogScale);
+      }
+    }
+  }
+
+  toggleLogScale(event) {
+    // Prevent default to avoid any native button behavior
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    
+    // Toggle the log scale state
+    this._options.logScale = !this._options.logScale;
+    
+    // Update button text
+    const logScaleButton = this.shadowRoot.getElementById('log-scale-btn');
+    if (logScaleButton) {
+      logScaleButton.textContent = this._options.logScale?'LOG':'LINEAR';
+    }
+    
+    // Dispatch custom event for Alpine.js or other frameworks
+    this.dispatchEvent(new CustomEvent('scale-click', {
+      bubbles: true,
+      composed: true,
+      detail: {
+        logScale: this._options.logScale,
+        timestamp: Date.now(),
+        element: this
+      }
+    }));
+    
+    // Update the chart
+    this.updateChart();
   }
 
   setupPanningEvents() {
@@ -263,17 +317,61 @@ export class ChronosChart extends HTMLElement {
         .no-data { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
           color: var(--no-data-color, #9ca3af); font-size: 14px; text-align: center; display: none; }
         .chart-clip { clip-path: url(#chartClip); }
+        
+        /* Log scale button styles - matching Tailwind: text-[10px] text-indigo-600 dark:text-indigo-400 font-black ring-1 ring-indigo-600/20 px-1 rounded */
+        .log-scale-container { position: absolute; bottom: 5px; left: 10px; z-index: 10; }
+        .log-scale-btn { 
+          font-size: 10px;
+          color: #4f46e5; /* text-indigo-600 */
+          font-weight: 900; /* font-black */
+          border: none;
+          outline: 1px solid rgba(79, 70, 229, 0.2); /* ring-1 ring-indigo-600/20 */
+          outline-offset: 0;
+          padding: 2px 4px; /* px-1 */
+          border-radius: 4px; /* rounded */
+          cursor: pointer; 
+          transition: all 0.2s ease;
+          font-family: inherit;
+          background: transparent;
+          backdrop-filter: blur(4px);
+          background-color: rgba(255, 255, 255, 0.8);
+        }
+        .log-scale-btn:hover { 
+          background-color: rgba(79, 70, 229, 0.05);
+          outline-color: rgba(79, 70, 229, 0.4);
+          transform: translateY(-1px);
+        }
+        .log-scale-btn:active { 
+          transform: translateY(0); 
+        }
+        
+        /* Dark mode support for log scale button */
+        :host-context(.dark) .log-scale-btn {
+          color: #818cf8; /* dark:text-indigo-400 */
+          background-color: rgba(0, 0, 0, 0.8);
+          outline-color: rgba(129, 140, 248, 0.2); /* ring-indigo-600/20 in dark mode */
+        }
+        :host-context(.dark) .log-scale-btn:hover {
+          background-color: rgba(79, 70, 229, 0.1);
+          outline-color: rgba(129, 140, 248, 0.4);
+        }
       </style>
       <div class="chart-container">
         <svg id="chart-svg"></svg>
         <div class="tooltip" id="tooltip"></div>
         <div class="no-data" id="no-data">No data to display</div>
+        <div class="log-scale-container">
+          <button class="log-scale-btn" id="log-scale-btn">${this._options.logScale?'LOG':'LINEAR'}</button>
+        </div>
       </div>
     `;
     
     this.svg = this.shadowRoot.getElementById('chart-svg');
     this.tooltip = this.shadowRoot.getElementById('tooltip');
     this.noData = this.shadowRoot.getElementById('no-data');
+    
+    // Setup log scale button events
+    this.setupLogScaleButton();
   }
 
   updateChart() {
@@ -340,6 +438,12 @@ export class ChronosChart extends HTMLElement {
         }
       }
     });
+    
+    // Update log scale button text
+    const logScaleButton = this.shadowRoot.getElementById('log-scale-btn');
+    if (logScaleButton) {
+      logScaleButton.textContent = this._options.logScale?'LOG':'LINEAR';
+    }
   }
 
   createClipPath(padding, chartWidth, chartHeight) {
