@@ -20,7 +20,7 @@ export class ChronosChart extends HTMLElement {
     this._data = [];
     this._datasets = [];
     this._defaultOptions = {
-      type: 'line', xScale: 'time', yScale: 'linear', padding: { top: 40, right: 40, bottom: 60, left: 60 },
+      type: 'line', xScale: 'time', yScale: 'linear', padding: { top: 20, right: 10, bottom: 30, left: 10 },
       grid: { show: true, color: '#e5e7eb' }, axis: { show: true, color: '#6b7280', fontSize: 12 },
       lineWidth: 2, pointRadius: 4, tension: 0.2, viewDays: 0, darkMode: false, logScale: false, showPoints: true,
       colors: ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6', '#f97316', '#8b5cf6']
@@ -583,7 +583,7 @@ export class ChronosChart extends HTMLElement {
     yValues.forEach((yValue) => {
       const y = padding.top + yScale(yValue);
       const text = this.createElement('text', {
-        x: padding.left - 10, y: y + 4,
+        x: padding.left + 20, y: y - 4,
         'text-anchor': 'end', class: 'axis-text'
       });
       text.textContent = this.formatValue(yValue);
