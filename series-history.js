@@ -5,6 +5,7 @@ class SeriesHistory extends HTMLElement {
         super();
         this._series = null;
         this._entries = [];
+        this.table = null;
     }
 
     static get observedAttributes() {
@@ -15,7 +16,6 @@ class SeriesHistory extends HTMLElement {
         if (name === 'series') {
             this._series = newValue ? JSON.parse(newValue) : null;
         } else if (name === 'entries') {
-            // Store entries; we sort them descending (newest first) for the history view
             this._entries = newValue ? JSON.parse(newValue).slice().reverse() : [];
         }
         this.render();
@@ -24,27 +24,19 @@ class SeriesHistory extends HTMLElement {
     render() {
         if (!this._series) return;
 
-        const entriesHtml = this._entries.length > 0 
-            ? this._entries.map(entry => `
-                <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium dark:text-slate-300">
-                        ${entry.timestamp}
-                    </td>
-                    <td class="px-6 py-4 text-sm text-indigo-600 font-bold dark:text-indigo-400">
-                        ${this._series.type === 'time' ? formatDuration(entry.value) : entry.value}
-                    </td>
-                    <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">
-                        ${entry.notes || '-'}
-                    </td>
-                    <td class="px-6 py-4 text-right space-x-3">
-                        <button data-id="${entry.id}" data-action="edit" class="text-slate-400 hover:text-indigo-600 dark:text-slate-500 dark:hover:text-indigo-400 transition-colors">Edit</button>
-                        <button data-id="${entry.id}" data-action="delete" class="text-slate-400 hover:text-red-600 dark:text-slate-500 dark:hover:text-red-400 transition-colors">Delete</button>
-                    </td>
-                </tr>
-            `).join('')
-            : `<tr><td colspan="4" class="px-6 py-12 text-center text-slate-400 italic">No historical data available.</td></tr>`;
-
         this.innerHTML = `
+            <style>
+                #table-container .tabulator-row .tabulator-cell:first-child {
+                    border-left: none !important;
+                }
+                .dark #table-container .tabulator {
+                    background-color: transparent;
+                    border: none;
+                }
+                .tabulator-header {
+                    font-size: 1em !important;
+                }
+            </style>
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden dark:bg-slate-800 dark:border-slate-700">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center dark:border-slate-700">
                     <h3 class="text-lg font-semibold dark:text-slate-100">Data History</h3>
@@ -52,35 +44,79 @@ class SeriesHistory extends HTMLElement {
                         + Add Entry
                     </button>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left">
-                        <thead class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider font-semibold dark:bg-slate-700 dark:text-slate-400">
-                            <tr>
-                                <th class="px-6 py-3">Date</th>
-                                <th class="px-6 py-3">Value</th>
-                                <th class="px-6 py-3">Notes</th>
-                                <th class="px-6 py-3 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
-                            ${entriesHtml}
-                        </tbody>
-                    </table>
-                </div>
+                <div id="table-container" class="w-full"></div>
             </div>
         `;
+
+        this.initTable();
 
         this.querySelector('#addEntryBtn').onclick = () => {
             this.dispatchEvent(new CustomEvent('add-entry-click', { detail: { series: this._series } }));
         };
+    }
 
-        this.querySelectorAll('button[data-id]').forEach(btn => {
-            btn.onclick = () => {
-                const id = btn.dataset.id;
-                const action = btn.dataset.action;
-                const entry = this._entries.find(e => e.id === id);
-                this.dispatchEvent(new CustomEvent(`${action}-entry-click`, { detail: { entry, id } }));
-            };
+    initTable() {
+        const container = this.querySelector('#table-container');
+        
+        this.table = new Tabulator(container, {
+            data: this._entries,
+            layout: "fitColumns",
+            responsiveLayout: false, 
+            resizableColumns: false,
+            resizableColumnFit: false,
+            placeholder: "No historical data available.",
+            columns: [
+                { 
+                    title: "Date", 
+                    field: "timestamp", 
+                    sorter: "string", 
+                    hozAlign: "left",
+                    width: 180,
+                    resizable: false,
+                    editor: "input"
+                },
+                { 
+                    title: "Value", 
+                    field: "value", 
+                    hozAlign: "right",
+                    width: 100,
+                    resizable: false,
+                    editor: "number",
+                    formatter: (cell) => {
+                        const val = cell.getValue();
+                        return this._series.type === 'time' ? formatDuration(val) : val;
+                    }
+                },
+                { 
+                    title: "Notes", 
+                    field: "notes", 
+                    editor: "textarea", 
+                    resizable: false,
+                    formatter: (cell) => cell.getValue() || "-" 
+                },
+                {
+                    title: "Actions",
+                    field: "id",
+                    headerSort: false,
+                    hozAlign: "right",
+                    width: 100,
+                    resizable: false,
+                    formatter: () => `<button class="text-slate-400 hover:text-red-600 dark:text-slate-500 dark:hover:text-red-400 transition-colors">Delete</button>`,
+                    cellClick: (e, cell) => {
+                        const entry = cell.getData();
+                        this.dispatchEvent(new CustomEvent('delete-entry-click', { 
+                            detail: { entry, id: entry.id } 
+                        }));
+                    }
+                }
+            ],
+        });
+
+        this.table.on("cellEdited", (cell) => {
+            const updatedEntry = cell.getData();
+            this.dispatchEvent(new CustomEvent('entry-updated', { 
+                detail: { entry: updatedEntry } 
+            }));
         });
     }
 }
