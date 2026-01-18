@@ -95,13 +95,13 @@ class SeriesHistory extends HTMLElement {
                     formatter: (cell) => cell.getValue() || "-" 
                 },
                 {
-                    title: "Actions",
+                    title: "",
                     field: "id",
                     headerSort: false,
                     hozAlign: "right",
-                    width: 100,
+                    width: 20,
                     resizable: false,
-                    formatter: () => `<button class="text-slate-400 hover:text-red-600 dark:text-slate-500 dark:hover:text-red-400 transition-colors">Delete</button>`,
+                    formatter: () => `<button class="text-slate-400 hover:text-red-600 dark:text-slate-500 dark:hover:text-red-400 transition-colors"><i class="fas fa-trash-alt"></i></button>`,
                     cellClick: (e, cell) => {
                         const entry = cell.getData();
                         this.dispatchEvent(new CustomEvent('delete-entry-click', { 
