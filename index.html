@@ -229,7 +229,6 @@
                     <div class="flex bg-slate-100 p-1 rounded-xl border border-slate-200 dark:bg-slate-800 dark:border-slate-700">
                         <template x-for="tab in [
                             {id: 'chart', icon: 'fa-chart-line'},
-                            {id: 'analysis', icon: 'fa-square-root-variable'},
                             {id: 'calendar', icon: 'fa-calendar-days'},
                             {id: 'history', icon: 'fa-table-list'},
                             {id: 'config', icon: 'fa-gear'}
@@ -341,42 +340,6 @@
                                     multi
                                     @change="chartSettings.compareSeriesIds = $event.detail.selection; saveSeriesConfig(); updateChart()">
                                 </multi-select>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div x-show="detailSubView === 'analysis'" class="space-y-6" x-cloak>
-                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm dark:bg-slate-800 dark:border-slate-700">
-                        <div class="mb-6">
-                            <h3 class="font-bold text-slate-800 py-4 dark:text-slate-100">Statistics Selection</h3>
-                            <div class="flex flex-wrap gap-2">
-                                <template x-for="m in metrics" :key="m.id">
-                                    <button @click="analysisSelection.includes(m.id) ? analysisSelection = analysisSelection.filter(i => i !== m.id) : analysisSelection.push(m.id);saveSeriesConfig();updateChart()"
-                                            :class="analysisSelection.includes(m.id) ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600 dark:hover:border-indigo-500'"
-                                            class="px-3 py-1.5 rounded-lg border text-xs font-bold transition-all flex items-center space-x-2">
-                                        <span x-text="m.label"></span>
-                                    </button>
-                                </template>
-                            </div>
-                        </div>
-
-                        <div class="border-t border-slate-100 dark:border-slate-700">
-                            <h3 class="font-bold text-slate-800 py-4 dark:text-slate-100">All Time Statistics</h3>
-                            <div class="overflow-hidden rounded-xl border border-slate-100 dark:border-slate-700">
-                                <table class="w-full text-left text-sm">
-                                    <thead class="bg-slate-50 text-slate-500 uppercase text-[10px] tracking-widest dark:bg-slate-700 dark:text-slate-400">
-                                        <tr><th class="px-6 py-3">Statistic</th><th class="px-6 py-3">Value</th></tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
-                                        <template x-for="stat in activeStats" :key="stat.label">
-                                            <tr class="hover:bg-slate-50/50 transition-colors dark:hover:bg-slate-700/50">
-                                                <td class="px-6 py-3 font-medium text-slate-600 dark:text-slate-300" x-text="stat.label"></td>
-                                                <td class="px-6 py-3 text-indigo-600 font-black text-base dark:text-indigo-400" x-text="stat.value"></td>
-                                            </tr>
-                                        </template>
-                                    </tbody>
-                                </table>
                             </div>
                         </div>
                     </div>
