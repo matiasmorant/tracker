@@ -468,8 +468,6 @@ export class ChronosChart extends HTMLElement {
     return createYScale(points, chartHeight, this._options.logScale);
   }
 
-  // In the drawGrid method, modify the month shading logic:
-
   drawGrid(xScale, yScale, chartWidth, chartHeight, padding, allPoints) {
     const gridGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     gridGroup.classList.add('grid-group');
@@ -479,7 +477,89 @@ export class ChronosChart extends HTMLElement {
     const { minDate, maxDate } = getVisibleDateRange(allPoints, this._options.viewDays, this._panOffset);
     const dateRangeDays = (maxDate - minDate) / (24 * 60 * 60 * 1000);
     
-    if (dateRangeDays > 60 && dateRangeDays <= 310) {
+    // YEAR SHADING (for date ranges > 400 days)
+    if (dateRangeDays > 400) {
+      // Get the first year of the ENTIRE dataset for consistent shading
+      const allDates = this._data?.datasets?.flatMap(d => 
+        d.data?.map(p => parseDate(p.x)) || []
+      ) || [];
+      
+      const globalMinDate = allDates.length > 0 ? Math.min(...allDates) : minDate;
+      const globalMaxDate = allDates.length > 0 ? Math.max(...allDates) : maxDate;
+      
+      // Generate years from the global dataset range
+      const globalFirstYear = new Date(globalMinDate);
+      globalFirstYear.setMonth(0, 1); // January 1st
+      globalFirstYear.setHours(0, 0, 0, 0);
+      
+      const globalLastYear = new Date(globalMaxDate);
+      globalLastYear.setMonth(0, 1); // January 1st
+      globalLastYear.setHours(0, 0, 0, 0);
+      
+      // Create all year boundaries in the global range
+      const globalYearDates = [];
+      let currentYear = new Date(globalFirstYear);
+      
+      while (currentYear <= globalLastYear) {
+        globalYearDates.push(new Date(currentYear));
+        currentYear.setFullYear(currentYear.getFullYear() + 1);
+      }
+      
+      // Get the reference year index from the first year of global data
+      const firstYearDate = new Date(globalMinDate);
+      const firstYearValue = firstYearDate.getFullYear();
+      
+      // Find the year that starts before or at the visible minDate
+      let startYearIndex = 0;
+      for (let i = 0; i < globalYearDates.length; i++) {
+        if (globalYearDates[i].getTime() <= minDate) {
+          startYearIndex = i;
+        }
+      }
+      
+      // Draw shaded regions for all years that intersect the visible range
+      for (let i = startYearIndex; i < globalYearDates.length; i++) {
+        const currentYearStart = globalYearDates[i].getTime();
+        const nextYearStart = i < globalYearDates.length - 1 
+          ? globalYearDates[i + 1].getTime() 
+          : globalYearDates[i].getTime() + (365 * 24 * 60 * 60 * 1000); // Approximate if no next year
+        
+        // Only draw if this year intersects the visible range
+        if (currentYearStart <= maxDate && nextYearStart >= minDate) {
+          // Calculate visible portion of this year
+          const visibleStart = Math.max(currentYearStart, minDate);
+          const visibleEnd = Math.min(nextYearStart, maxDate);
+          
+          // Determine if this year should be shaded
+          const currentYear = new Date(currentYearStart);
+          const currentYearValue = currentYear.getFullYear();
+          const shouldShade = (currentYearValue - firstYearValue) % 2 === 0;
+          
+          if (shouldShade && visibleStart < visibleEnd) {
+            const xStart = padding.left + xScale(visibleStart);
+            const xEnd = padding.left + xScale(visibleEnd);
+            const width = xEnd - xStart;
+            
+            if (width > 0 && xStart <= padding.left + chartWidth && xEnd >= padding.left) {
+              const rect = this.createElement('rect', {
+                x: Math.max(padding.left, xStart),
+                y: padding.top,
+                width: Math.min(chartWidth, width - Math.max(0, padding.left - xStart)),
+                height: chartHeight,
+                fill: 'currentColor',
+                'fill-opacity': '0.08', // Slightly lighter than month shading
+              });
+              gridGroup.appendChild(rect);
+            }
+          }
+        }
+        
+        // Stop if we're past the visible range
+        if (currentYearStart > maxDate) break;
+      }
+    }
+    // MONTH SHADING (for date ranges > 60 days and <= 310 days)
+    else if (dateRangeDays > 60 && dateRangeDays <= 310) {
       // Get the first month of the ENTIRE dataset for consistent shading
       const allDates = this._data?.datasets?.flatMap(d => 
         d.data?.map(p => parseDate(p.x)) || []
@@ -558,7 +638,9 @@ export class ChronosChart extends HTMLElement {
         // Stop if we're past the visible range
         if (currentMonthStart > maxDate) break;
       }
-    } else if (dateRangeDays > 310 && dateRangeDays <= 365) {
+    }
+    // MONTH TICKS (for date ranges > 310 days and <= 365 days)
+    else if (dateRangeDays > 310 && dateRangeDays <= 365) {
       const tickDates = generateMonthlyTickDates(minDate, maxDate);
       
       tickDates.forEach((tickDate) => {
@@ -572,7 +654,9 @@ export class ChronosChart extends HTMLElement {
           gridGroup.appendChild(line);
         }
       });
-    } else {
+    }
+    // WEEK TICKS (for shorter date ranges)
+    else {
       // Original logic for other ranges
       for (let i = 0; i < 8; i++) {
         const tickDate = minDate + (i / 7) * (maxDate - minDate);
@@ -603,6 +687,8 @@ export class ChronosChart extends HTMLElement {
     this.svg.appendChild(gridGroup);
   }
 
+  // In the drawAxes method, add year label handling:
+
   drawAxes(xScale, yScale, chartWidth, chartHeight, padding, points) {
     const axisGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     axisGroup.classList.add('axis-group');
@@ -625,7 +711,49 @@ export class ChronosChart extends HTMLElement {
     const { minDate, maxDate } = getVisibleDateRange(points, this._options.viewDays, this._panOffset);
     const dateRangeDays = (maxDate - minDate) / (24 * 60 * 60 * 1000);
     
-    if (dateRangeDays > 60 && dateRangeDays <= 310) {
+    // YEAR LABELS (for date ranges > 400 days)
+    if (dateRangeDays > 400) {
+      const yearTickDates = [];
+      const startYear = new Date(minDate);
+      startYear.setMonth(0, 1); // January 1st
+      startYear.setHours(0, 0, 0, 0);
+      
+      const endYear = new Date(maxDate);
+      endYear.setMonth(0, 1); // January 1st
+      endYear.setHours(0, 0, 0, 0);
+      
+      let currentYear = new Date(startYear);
+      while (currentYear <= endYear) {
+        yearTickDates.push(new Date(currentYear).getTime());
+        currentYear.setFullYear(currentYear.getFullYear() + 1);
+      }
+      
+      yearTickDates.forEach((yearTimestamp, index) => {
+        const currentYearStart = yearTimestamp;
+        const nextYearStart = yearTickDates[index + 1] || maxDate;
+        
+        // Calculate midpoint for centered label
+        const midTimestamp = currentYearStart + (nextYearStart - currentYearStart) / 2;
+        const x = padding.left + xScale(midTimestamp);
+        
+        // Only render if midpoint is within view
+        if (x >= padding.left && x <= padding.left + chartWidth) {
+          const date = new Date(currentYearStart);
+          const text = this.createElement('text', {
+            x, 
+            y: padding.top + chartHeight + 20,
+            'text-anchor': 'middle', 
+            class: 'axis-text'
+          });
+          
+          // Use year only for year-based shading
+          text.textContent = date.getFullYear().toString();
+          axisGroup.appendChild(text);
+        }
+      });
+    }
+    // MONTH SHADING PERIOD (60-310 days)
+    else if (dateRangeDays > 60 && dateRangeDays <= 310) {
       const tickDates = generateMonthlyTickDates(minDate, maxDate);
       
       tickDates.forEach((dateTimestamp, index) => {
@@ -651,7 +779,9 @@ export class ChronosChart extends HTMLElement {
           axisGroup.appendChild(text);
         }
       });
-    } else if (dateRangeDays > 310 && dateRangeDays <= 365) {
+    }
+    // MONTH TICK PERIOD (310-365 days)
+    else if (dateRangeDays > 310 && dateRangeDays <= 365) {
       const tickDates = generateMonthlyTickDates(minDate, maxDate);
       
       tickDates.forEach((dateTimestamp) => {
@@ -667,7 +797,9 @@ export class ChronosChart extends HTMLElement {
           axisGroup.appendChild(text);
         }
       });
-    } else {
+    }
+    // WEEK TICKS (for shorter date ranges)
+    else {
       // Original logic for other ranges
       const xLabels = generateXLabels(points, 8, this._options.viewDays, this._panOffset);
       xLabels.forEach((label, i) => {
