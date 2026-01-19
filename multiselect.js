@@ -58,13 +58,16 @@ export class MultiSelect extends HTMLElement {
     let selectedIds = this.parseSelectedIds();
     const isMulti = this.getAttribute('multi') !== null;
     
+    const normalizedId = (typeof this._items[0].id === 'number') ? Number(id) : id;
+    
     let newSelection;
     if (isMulti) {
-      newSelection = selectedIds.includes(id)
-        ? selectedIds.filter(i => i !== id)
-        : [...selectedIds, id];
+      const exists = selectedIds.some(sid => sid == normalizedId);
+      newSelection = exists
+        ? selectedIds.filter(i => i != normalizedId)
+        : [...selectedIds, normalizedId];
     } else {
-      newSelection = [id];
+      newSelection = [normalizedId];
     }
 
     this.dispatchEvent(new CustomEvent('change', {
@@ -85,8 +88,8 @@ export class MultiSelect extends HTMLElement {
       
       // Sort items: selected items first
       const sortedItems = [...this._items].sort((a, b) => {
-        const aSelected = this._selectedIds.includes(a.id);
-        const bSelected = this._selectedIds.includes(b.id);
+        const aSelected = this._selectedIds.some(sid => sid == a.id);
+        const bSelected = this._selectedIds.some(sid => sid == b.id);
         if (aSelected && !bSelected) return -1;
         if (!aSelected && bSelected) return 1;
         return 0;
@@ -183,7 +186,7 @@ export class MultiSelect extends HTMLElement {
       const existingChipsContainer = this.shadowRoot.querySelector('.chips-container');
       
       const chips = sortedItems.map(item => {
-        const isActive = this._selectedIds.includes(item.id);
+        const isActive = this._selectedIds.some(sid => sid == item.id);
         if (!isActive && !this.showAll) return '';
         
         let style = '';
@@ -191,7 +194,6 @@ export class MultiSelect extends HTMLElement {
           if (isActive) {
             style = `style="background-color: ${item.color}; border-color: ${item.color};"`;
           } else {
-            // Lightly color unselected options (10% opacity background, 25% border)
             style = `style="background-color: ${item.color}1a; border-color: ${item.color}40; color: ${item.color};"`;
           }
         }
