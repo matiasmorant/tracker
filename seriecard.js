@@ -10,6 +10,7 @@ export class SerieCard extends HTMLElement {
         this.now = Date.now();
         this.updateInterval = null;
         this.entries = [];
+        this.summaries = [];
     }
 
     static get observedAttributes() {
@@ -61,17 +62,32 @@ export class SerieCard extends HTMLElement {
         if (!this.series || !this.entries.length || !this.series.config) {
             if (this.series) {
                 this.series.summaryDisplay = '';
+                this.summaries = []; // Clear summaries array
             }
             return;
         }
         
-        this.series.summaryDisplay = calculateSeriesSummary(
-            this.series,
-            this.entries,
-            formatDuration.bind(this)
-        );
+        // Calculate summaries - if multiple summaries are defined in config
+        if (this.series.config.summaries && Array.isArray(this.series.config.summaries)) {
+            this.summaries = this.series.config.summaries.map(summaryConfig => {
+                return calculateSeriesSummary(
+                    this.series,
+                    this.entries,
+                    formatDuration.bind(this),
+                    summaryConfig
+                );
+            }).filter(summary => summary && summary.trim() !== '');
+        } else {
+            // Fallback to single summary for backward compatibility
+            const singleSummary = calculateSeriesSummary(
+                this.series,
+                this.entries,
+                formatDuration.bind(this)
+            );
+            this.summaries = singleSummary ? [singleSummary] : [];
+        }
         
-        // Re-render the component to show updated summary
+        // Re-render the component to show updated summaries
         this.render();
     }
 
@@ -250,7 +266,7 @@ export class SerieCard extends HTMLElement {
     }
 
     getCardClasses() {
-        let baseClasses = 'px-3 py-0 rounded-xl border shadow-sm transition-all cursor-pointer group flex flex-col justify-center min-h-[88px] max-h-[100px] relative';
+        let baseClasses = 'px-3 py-0 rounded-xl border shadow-sm transition-all cursor-pointer group flex flex-col justify-center min-h-[88px] max-h-[120px] relative';
         
         if (this.group) {
             return `${baseClasses} hover:shadow-md`;
@@ -264,6 +280,38 @@ export class SerieCard extends HTMLElement {
             return `background-color: ${this.group.color}12; border-color: ${this.group.color}40;`;
         }
         return '';
+    }
+
+    // Helper method to format individual summary display
+    formatSummaryDisplay(summaryText) {
+        if (!summaryText) return '';
+        
+        // Check if summary follows "Label: Value" format
+        const parts = summaryText.split(': ');
+        if (parts.length >= 2) {
+            const label = parts[0];
+            const value = parts.slice(1).join(': '); // In case value contains colons
+            
+            return `
+                <div class="flex items-baseline">
+                    <span class="text-sm font-black text-indigo-600 truncate dark:text-indigo-400">
+                        ${value}
+                    </span>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase ml-1.5 dark:text-slate-500">
+                        ${label}
+                    </span>
+                </div>
+            `;
+        } else {
+            // For simple summary text without label
+            return `
+                <div class="flex items-baseline">
+                    <span class="text-sm font-black text-indigo-600 truncate dark:text-indigo-400">
+                        ${summaryText}
+                    </span>
+                </div>
+            `;
+        }
     }
 
     render() {
@@ -294,6 +342,13 @@ export class SerieCard extends HTMLElement {
                 .add-button {
                     transition: background-color 0.2s;
                 }
+                .summary-column {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 2px; /* Small gap between summary items */
+                    margin-top: 2px;
+                    margin-bottom: 2px;
+                }
             </style>
             <div id="card" class="${this.getCardClasses()}" style="${this.getCardStyle()}">
                 <div class="flex flex-col justify-center min-w-0 flex-1">
@@ -309,7 +364,7 @@ export class SerieCard extends HTMLElement {
                         ` : ''}
                     </div>
 
-                    <div class="mt-1 flex items-baseline">
+                    <div class="mt-1">
                         ${this.series.startTime && this.series.config?.quickAddAction === 'chronometer' ? `
                             <div class="flex items-baseline animate-pulse">
                                 <span class="running-time text-sm font-black text-red-600 truncate dark:text-red-400">
@@ -320,20 +375,13 @@ export class SerieCard extends HTMLElement {
                                 </span>
                             </div>
                         ` : `
-                            <div class="flex items-baseline">
-                                ${this.series.summaryDisplay ? `
-                                    <div class="flex items-baseline">
-                                        <span class="text-sm font-black text-indigo-600 truncate dark:text-indigo-400">
-                                            ${this.series.summaryDisplay.split(': ')[1] || ''}
-                                        </span>
-                                        <span class="text-[10px] font-bold text-slate-400 uppercase ml-1.5 dark:text-slate-500">
-                                            ${this.series.summaryDisplay.split(': ')[0] || ''}
-                                        </span>
-                                    </div>
-                                ` : `
-                                    <span class="text-[10px] text-slate-300 italic dark:text-slate-600">No data</span>
-                                `}
-                            </div>
+                            ${this.summaries.length > 0 ? `
+                                <div class="summary-column">
+                                    ${this.summaries.map(summary => this.formatSummaryDisplay(summary)).join('')}
+                                </div>
+                            ` : `
+                                <span class="text-[10px] text-slate-300 italic dark:text-slate-600">No data</span>
+                            `}
                         `}
                         <button class="absolute bottom-2 right-2 p-1.5 rounded-full transition-colors ${this.getButtonClasses()}">
                             ${this.getButtonContent()}

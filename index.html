@@ -405,34 +405,83 @@
                                 </div>
 
                                 <div>
-                                    <label class="block text-[10px] font-bold text-slate-400 mb-3 uppercase tracking-wider dark:text-slate-500">Target Metric</label>
-                                    <div class="flex flex-wrap gap-2">
-                                        <template x-for="m in metrics" :key="m.id">
-                                            <button @click="currentSeries.config.stat = m.id; saveSeriesConfig()"
-                                                    :class="currentSeries.config?.stat === m.id ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600 dark:hover:border-indigo-500'"
-                                                    class="px-3 py-1.5 rounded-lg border text-xs font-bold transition-all flex items-center space-x-2">
-                                                <span x-text="m.label"></span>
-                                            </button>
+                                    <label class="block text-[10px] font-bold text-slate-400 mb-3 uppercase tracking-wider dark:text-slate-500">Summary Configuration</label>
+                                    <div class="space-y-3" x-data="{ summaries: [] }" x-init="summaries = currentSeries.config?.summaries || [{ period: 'all', operation: 'mean' }]">
+                                        <template x-for="(summary, index) in summaries" :key="index">
+                                            <div class="flex gap-2 items-center">
+                                                <select 
+                                                    x-model="summary.period" 
+                                                    @change="updateSummaries()"
+                                                    class="flex-1 text-xs border border-slate-200 rounded-md px-2 py-1.5 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
+                                                    <option value="all">All Data</option>
+                                                    <option value="today">Today</option>
+                                                    <option value="week">Current Week</option>
+                                                    <option value="month">Current Month</option>
+                                                    <option value="quarter">Current Quarter</option>
+                                                    <option value="year">Current Year</option>
+                                                    <option value="custom">Custom Days</option>
+                                                </select>
+                                                
+                                                <select 
+                                                    x-model="summary.operation" 
+                                                    @change="updateSummaries()"
+                                                    class="flex-1 text-xs border border-slate-200 rounded-md px-2 py-1.5 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
+                                                    <option value="mean">Mean</option>
+                                                    <option value="sum">Sum</option>
+                                                    <option value="count">Count</option>
+                                                    <option value="min">Min</option>
+                                                    <option value="max">Max</option>
+                                                    <option value="median">Median</option>
+                                                    <option value="first">First</option>
+                                                    <option value="last">Last</option>
+                                                </select>
+                                                
+                                                <template x-if="summary.period === 'custom'">
+                                                    <div class="flex items-center space-x-1">
+                                                        <input 
+                                                            type="number" 
+                                                            x-model.number="summary.customDays" 
+                                                            @input="updateSummaries()"
+                                                            placeholder="Days"
+                                                            min="1"
+                                                            class="w-16 text-xs border border-slate-200 rounded-md px-2 py-1.5 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
+                                                        <span class="text-[10px] text-slate-400 dark:text-slate-500">days</span>
+                                                    </div>
+                                                </template>
+                                                
+                                                <button 
+                                                    @click="summaries.splice(index, 1); updateSummaries()"
+                                                    class="p-1 text-slate-400 hover:text-red-600 dark:text-slate-500 dark:hover:text-red-400">
+                                                    <i class="fa-solid fa-trash text-xs"></i>
+                                                </button>
+                                            </div>
                                         </template>
+                                        
+                                        <button 
+                                            @click="summaries.push({ period: 'all', operation: 'mean' }); updateSummaries()"
+                                            class="text-xs text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center space-x-1">
+                                            <i class="fa-solid fa-plus"></i>
+                                            <span>Add Summary</span>
+                                        </button>
                                     </div>
                                 </div>
 
-                                <div class="grid grid-cols-2 gap-4 items-end">
-                                    <div>
-                                        <label class="block text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider dark:text-slate-500">Period</label>
-                                        <select x-model="currentSeries.config.period" @change="saveSeriesConfig()" class="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 bg-slate-50 text-xs font-bold text-slate-700 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
-                                            <option value="all">All Data</option>
-                                            <option value="day">Current Day</option>
-                                            <option value="week">Current Week</option>
-                                            <option value="month">Current Month</option>
-                                            <option value="quarter">Current Quarter</option>
-                                            <option value="year">Current Year</option>
-                                        </select>
-                                    </div>
-                                    <div class="bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2 flex flex-col justify-center dark:bg-indigo-900/30 dark:border-indigo-800">
-                                        <span class="text-[8px] font-black text-indigo-400 uppercase tracking-tighter dark:text-indigo-300">Preview</span>
-                                        <span class="text-sm font-black text-indigo-600 truncate dark:text-indigo-400" x-text="currentSeries.summaryDisplay || 'No Data'"></span>
-                                    </div>
+                                <div class="bg-indigo-50 border border-indigo-100 rounded-lg p-3 flex flex-col dark:bg-indigo-900/30 dark:border-indigo-800">
+                                    <span class="text-[8px] font-black text-indigo-400 uppercase tracking-tighter dark:text-indigo-300 mb-1">Preview</span>
+                                    <template x-if="currentSeries.summaryDisplay && Array.isArray(currentSeries.summaryDisplay)">
+                                        <div class="space-y-1">
+                                            <template x-for="(summary, index) in currentSeries.summaryDisplay" :key="index">
+                                                <div class="flex items-baseline">
+                                                    <span class="text-sm font-black text-indigo-600 truncate dark:text-indigo-400" 
+                                                          x-text="summary"></span>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
+                                    <template x-if="!currentSeries.summaryDisplay || !Array.isArray(currentSeries.summaryDisplay)">
+                                        <span class="text-sm font-black text-indigo-600 truncate dark:text-indigo-400" 
+                                              x-text="currentSeries.summaryDisplay || 'No Data'"></span>
+                                    </template>
                                 </div>
                             </div>
 
@@ -651,7 +700,16 @@
             showAddGroupForm: false,
             groupForm: { name: '', color: '#6366f1' }, editingGroup: null,
             editingSeries: null, 
-            seriesForm: { name: '', group: '', type: 'number', config: { stat: 'mean', period: 'all', quickAddAction: 'manual' } },
+            seriesForm: { 
+                name: '', 
+                group: '', 
+                type: 'number', 
+                config: { 
+                    summaryMetrics: ['mean'],  // Default selected metrics
+                    summaries: [{ period: 'all', operation: 'mean' }],  // Default summary config
+                    quickAddAction: 'manual' 
+                } 
+            },
             editingEntry: null, activeSeriesForEntry: null, 
             entryForm: { timestamp: '', value: '', notes: '', dhms: { d:0, h:0, m:0, s:0 } },
             toast: { show: false, message: '' },
@@ -933,13 +991,30 @@
             recalculateSummaryDisplay() {
                 if (!this.currentSeries || !this.currentSeriesEntries.length || !this.currentSeries.config) return;
                 
-                this.currentSeries.summaryDisplay = calculateSeriesSummary(
-                    this.currentSeries,
-                    this.currentSeriesEntries,
-                    formatDuration.bind(this)
-                );
+                // Calculate multiple summaries if summaries array exists
+                if (this.currentSeries.config.summaries && Array.isArray(this.currentSeries.config.summaries)) {
+                    this.currentSeries.summaryDisplay = this.currentSeries.config.summaries.map(summaryConfig => {
+                        return calculateSeriesSummary(
+                            this.currentSeries,
+                            this.currentSeriesEntries,
+                            formatDuration.bind(this),
+                            summaryConfig
+                        );
+                    }).filter(summary => summary && summary.trim() !== '');
+                } else {
+                    // Fallback to single summary for backward compatibility
+                    this.currentSeries.summaryDisplay = calculateSeriesSummary(
+                        this.currentSeries,
+                        this.currentSeriesEntries,
+                        formatDuration.bind(this)
+                    );
+                }
             },
 
+            updateSummaries() {
+                this.currentSeries.config.summaries = [...this.summaries];
+                this.saveSeriesConfig();
+            },
             async saveSeriesConfig() {
                 if (!this.currentSeries) return;
                 this.currentSeries.config.analysisSelection = [...this.analysisSelection];

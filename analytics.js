@@ -187,12 +187,98 @@ export function filterByRange(entries, range = 'all', customDays = 30) {
     });
 }
 
-export function calculateSeriesSummary(series, entries, formatDuration) {
-    if (!series || !series.config || !entries || entries.length === 0) {
+export function calculateSeriesSummary(series, entries, formatDuration, summaryConfig = null) {
+    if (!series || !entries || entries.length === 0) {
         return null;
     }
 
+    // Handle multiple summaries (new format)
+    if (summaryConfig) {
+        return calculateSingleSummary(series, entries, formatDuration, summaryConfig);
+    }
+
+    // Handle legacy single summary format
+    if (series.config) {
+        return calculateLegacySummary(series, entries, formatDuration);
+    }
+
+    return null;
+}
+
+function calculateSingleSummary(series, entries, formatDuration, summaryConfig) {
+    const { period = 'all', operation = 'mean', customDays = 30 } = summaryConfig;
+    let filteredEntries = filterEntriesByPeriod(entries, period, customDays);
+
+    if (filteredEntries.length === 0) {
+        return null;
+    }
+
+    // Calculate the requested operation
+    const values = filteredEntries.map(e => e.value).sort((a, b) => a - b);
+    const stats = calculateStats(values, filteredEntries.map(e => e.value), filteredEntries);
+    
+    let statValue = 0;
+    
+    // Special handling for certain operations
+    if (operation === 'dayMean' && filteredEntries.length > 0) {
+        // Calculate unique days
+        const uniqueDays = new Set(filteredEntries.map(e => {
+            if (!e.timestamp) return '';
+            return e.timestamp.split(' ')[0];
+        })).size;
+        const sum = stats.sum || 0;
+        statValue = uniqueDays > 0 ? sum / uniqueDays : 0;
+    } else {
+        statValue = stats[operation] || 0;
+    }
+
+    // Format based on series type
+    let formattedValue;
+    if (series.type === 'time') {
+        formattedValue = formatDuration ? formatDuration(statValue) : `${statValue}s`;
+    } else {
+        formattedValue = statValue.toLocaleString(undefined, { 
+            maximumFractionDigits: 2,
+            minimumFractionDigits: 0
+        });
+    }
+
+    // Map operation IDs to display names
+    const operationLabels = {
+        mean: 'Avg',
+        dayMean: 'Daily Avg',
+        sum: 'Total',
+        count: 'Count',
+        min: 'Min',
+        q1: 'Q1',
+        median: 'Median',
+        q3: 'Q3',
+        max: 'Max',
+        first: 'First',
+        last: 'Last'
+    };
+
+    // Map period to display label
+    const periodLabels = {
+        all: 'All',
+        today: 'Today',
+        week: 'Week',
+        month: 'Month',
+        quarter: 'Quarter',
+        year: 'Year',
+        custom: `${customDays}d`
+    };
+
+    const operationLabel = operationLabels[operation] || operation;
+    const periodLabel = periodLabels[period] || period;
+    
+    return `${operationLabel}: ${formattedValue}`;
+}
+
+function calculateLegacySummary(series, entries, formatDuration) {
     const config = series.config;
+    if (!config) return null;
+    
     let filteredEntries = [...entries];
 
     // Filter by period if not 'all'
@@ -261,4 +347,43 @@ export function calculateSeriesSummary(series, entries, formatDuration) {
 
     const label = statLabels[config.stat] || 'Value';
     return `${label}: ${formattedValue}`;
+}
+
+function filterEntriesByPeriod(entries, period, customDays = 30) {
+    if (period === 'all' || !entries || entries.length === 0) {
+        return entries;
+    }
+
+    const now = new Date();
+    let cutoff = new Date();
+    cutoff.setHours(0, 0, 0, 0);
+
+    switch (period) {
+        case 'today':
+            // Already at start of today
+            break;
+        case 'week':
+            cutoff.setDate(now.getDate() - now.getDay()); // Start of week (Sunday)
+            break;
+        case 'month':
+            cutoff.setDate(1); // Start of month
+            break;
+        case 'quarter':
+            const quarterMonth = Math.floor(now.getMonth() / 3) * 3;
+            cutoff.setMonth(quarterMonth, 1); // Start of quarter
+            break;
+        case 'year':
+            cutoff.setMonth(0, 1); // Start of year
+            break;
+        case 'custom':
+            cutoff.setDate(now.getDate() - customDays);
+            break;
+        default:
+            return entries;
+    }
+
+    return entries.filter(entry => {
+        const entryDate = new Date(entry.timestamp);
+        return entryDate >= cutoff;
+    });
 }
