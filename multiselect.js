@@ -58,7 +58,7 @@ export class MultiSelect extends HTMLElement {
     let selectedIds = this.parseSelectedIds();
     const isMulti = this.getAttribute('multi') !== null;
     
-    const normalizedId = (typeof this._items[0].id === 'number') ? Number(id) : id;
+    const normalizedId = (typeof this._items[0]?.id === 'number') ? Number(id) : id;
     
     let newSelection;
     if (isMulti) {
@@ -86,7 +86,6 @@ export class MultiSelect extends HTMLElement {
       this._items = this.parseItems();
       this._selectedIds = this.parseSelectedIds();
       
-      // Sort items: selected items first
       const sortedItems = [...this._items].sort((a, b) => {
         const aSelected = this._selectedIds.some(sid => sid == a.id);
         const bSelected = this._selectedIds.some(sid => sid == b.id);
@@ -110,7 +109,7 @@ export class MultiSelect extends HTMLElement {
                   
           .toggle-button {
             cursor: pointer;
-            padding: 0.25rem 0.25rem;
+            padding: 0.25rem;
             font-size: 0.6rem;
             font-weight: 900;
             text-transform: uppercase;
@@ -128,11 +127,6 @@ export class MultiSelect extends HTMLElement {
             justify-content: center;
           }
           
-          .toggle-button:hover {
-            color: #4f46e5;
-            background: rgba(99, 102, 241, 0.05);
-          }
-          
           .chips-container {
             display: flex; 
             flex-wrap: wrap; 
@@ -141,43 +135,36 @@ export class MultiSelect extends HTMLElement {
           }
           
           .chip {
+            --base-bg: var(--chip-color, #64748b);
             cursor: pointer;
             padding: 0.25rem 0.75rem;
             border-radius: 9999px;
-            border: 1px solid #e2e8f0;
             font-size: 0.75rem;
             font-weight: 500;
             transition: all 0.2s ease;
             user-select: none;
-            background: #f8fafc;
-            color: #64748b;
             white-space: nowrap;
+
+            /* Inactive state: 10% opacity background, 40% opacity border */
+            background: oklch(from var(--base-bg) L C H / 0.1);
+            border: 1px solid oklch(from var(--base-bg) L C H / 0.25);
+            color: var(--base-bg);
           }
           
           .chip.active {
-            color: white;
+            --text-l: clamp(15%, calc((L - 0.5) * -1000%), 98%);
+            background-color: var(--base-bg);
             border-color: transparent;
+            /* Derives text color from background hue but flips lightness */
+            color: oklch(from var(--base-bg) var(--text-l) C H);
             box-shadow: 0 1px 2px rgba(0,0,0,0.05);
           }
           
           .chip:hover { 
-            border-color: #6366f1; 
-            color: #6366f1; 
             transform: translateY(-1px);
+            filter: brightness(0.9);
           }
           
-          .chip.active:hover { 
-            opacity: 0.9; 
-            color: white;
-          }
-          
-          .dark .chip { 
-            background: #1e293b; 
-            border-color: #334155; 
-            color: #94a3b8; 
-          }
-          
-          .dark .chip.active { color: white; }
           .dark .toggle-button { color: #818cf8; }
         </style>
       `;
@@ -189,19 +176,13 @@ export class MultiSelect extends HTMLElement {
         const isActive = this._selectedIds.some(sid => sid == item.id);
         if (!isActive && !this.showAll) return '';
         
-        let style = '';
-        if (item.color) {
-          if (isActive) {
-            style = `style="background-color: ${item.color}; border-color: ${item.color};"`;
-          } else {
-            style = `style="background-color: ${item.color}1a; border-color: ${item.color}40; color: ${item.color};"`;
-          }
-        }
+        // Pass the item color as a CSS variable for OKLCH manipulation
+        const inlineStyle = item.color ? `style="--chip-color: ${item.color};"` : '';
         
         return `
           <div 
             class="chip ${isActive ? 'active' : ''}" 
-            ${style}
+            ${inlineStyle}
             data-id="${item.id}"
           >
             ${item.label}
