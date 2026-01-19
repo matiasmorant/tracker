@@ -242,104 +242,119 @@
                     </div>
                 </div>
 
-                <div x-show="detailSubView === 'chart'" class="bg-white p-2 mt-2 rounded-2xl shadow-sm border border-slate-200 dark:bg-slate-800 dark:border-slate-700">
-                    
-                    <div class="flex flex-col h-96">
-                        <chronos-chart
-                            id="seriesChart"
-                            @scale-click="chartSettings.logScale = !chartSettings.logScale; updateChart(); saveSeriesConfig()"
-                            style="width: 100%; height: 100%;">
-                        </chronos-chart>
-                    </div>
-
-                    <div class="p-4 border-t border-slate-100 dark:border-slate-700" x-data="{ showAllStats: false }">
-                        <div>
-                            <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest dark:text-slate-500">Statistics</h3>
-
-                            <template x-if="metrics && metrics.length > 0">
-                              <div class="flex felx-row gap-2 mt-2">
-                                <multi-select 
-                                  :items="JSON.stringify(metrics.map(m => ({ id: m.id, label: m.label, color: m.color })))"
-                                  :selected-ids="JSON.stringify(analysisSelection)"
-                                  multi
-                                  @change="analysisSelection = $event.detail.selection; saveSeriesConfig(); updateChart()">
-                                </multi-select>
-                                <div class="flex flex-col gap-1.5">
-                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter dark:text-slate-500">Period Grouping</span>
-                                    <select x-model="chartSettings.period" @change="updateChart(); saveSeriesConfig()" class="text-xs border border-slate-200 rounded-md px-2 py-1.5 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
-                                        <option value="none">Raw Data</option>
-                                        <option value="day">Day</option>
-                                        <option value="week">Week</option>
-                                        <option value="month">Month</option>
-                                        <option value="quarter">Quarter</option>
-                                        <option value="year">Year</option>
-                                    </select>
-                                </div>
-                              </div>
-                            </template>
+                <div x-show="detailSubView === 'chart'" class="space-y-6">
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 dark:bg-slate-800 dark:border-slate-700 overflow-hidden">
+                        <div :class="chartConfigCollapsed ? 'h-[calc(100vh-240px)]' : 'h-96'" 
+                             class="transition-all duration-300 ease-in-out p-2">
+                            <chronos-chart
+                                id="seriesChart"
+                                @scale-click="chartSettings.logScale = !chartSettings.logScale; updateChart(); saveSeriesConfig()"
+                                style="width: 100%; height: 100%;">
+                            </chronos-chart>
                         </div>
 
-                        <div class="flex flex-wrap items-center gap-4 my-3">
-                            <div class="flex flex-col gap-1.5">
-                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter dark:text-slate-500">Running Average/Stat</span>
-                                <div class="flex items-center space-x-2">
-                                    <select x-model="chartSettings.runningMetric" @change="updateChart(); saveSeriesConfig()" class="text-xs border border-slate-200 rounded-md px-2 py-1.5 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
-                                        <option value="">None</option>
-                                        <template x-for="m in metrics" :key="m.id">
-                                            <option :value="m.id" x-text="m.label"></option>
+                        <div class="px-4 py-0 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
+                            <button 
+                                @click="chartConfigCollapsed = !chartConfigCollapsed"
+                                class="text-xs font-medium text-indigo-600 hover:text-indigo-700 transition-colors dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center space-x-1"
+                            >
+                                <i class="fa-solid" :class="chartConfigCollapsed ? 'fa-chevron-down' : 'fa-chevron-up'"></i>
+                                <span x-text="chartConfigCollapsed ? 'Statistics' : 'Hide'"></span>
+                            </button>
+                        </div>
+
+                        <!-- Chart Configuration (Collapsible) -->
+                        <div x-show="!chartConfigCollapsed" x-collapse class="border-t border-slate-100 dark:border-slate-700">
+                            <div class="p-4" x-data="{ showAllStats: false }">
+                                <div>
+                                    <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest dark:text-slate-500">Statistics</h3>
+
+                                    <template x-if="metrics && metrics.length > 0">
+                                      <div class="flex felx-row gap-2 mt-2">
+                                        <multi-select 
+                                          :items="JSON.stringify(metrics.map(m => ({ id: m.id, label: m.label, color: m.color })))"
+                                          :selected-ids="JSON.stringify(analysisSelection)"
+                                          multi
+                                          @change="analysisSelection = $event.detail.selection; saveSeriesConfig(); updateChart()">
+                                        </multi-select>
+                                        <div class="flex flex-col gap-1.5">
+                                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter dark:text-slate-500">Period Grouping</span>
+                                            <select x-model="chartSettings.period" @change="updateChart(); saveSeriesConfig()" class="text-xs border border-slate-200 rounded-md px-2 py-1.5 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
+                                                <option value="none">Raw Data</option>
+                                                <option value="day">Day</option>
+                                                <option value="week">Week</option>
+                                                <option value="month">Month</option>
+                                                <option value="quarter">Quarter</option>
+                                                <option value="year">Year</option>
+                                            </select>
+                                        </div>
+                                      </div>
+                                    </template>
+                                </div>
+
+                                <div class="flex flex-wrap items-center gap-4 my-3">
+                                    <div class="flex flex-col gap-1.5">
+                                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter dark:text-slate-500">Running Average/Stat</span>
+                                        <div class="flex items-center space-x-2">
+                                            <select x-model="chartSettings.runningMetric" @change="updateChart(); saveSeriesConfig()" class="text-xs border border-slate-200 rounded-md px-2 py-1.5 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
+                                                <option value="">None</option>
+                                                <template x-for="m in metrics" :key="m.id">
+                                                    <option :value="m.id" x-text="m.label"></option>
+                                                </template>
+                                            </select>
+                                            <input type="number" x-model.number="chartSettings.window" @input="updateChart(); saveSeriesConfig()" min="2" step="1" placeholder="Win" class="w-14 text-xs border border-slate-200 rounded-md px-2 py-1.5 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex flex-row gap-2 mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
+                                    <h3 class="content-center text-[10px] font-bold text-slate-400 uppercase tracking-widest dark:text-slate-500">Time Range</h3>
+                                    
+                                    <div class="flex flex-row gap-3 items-start sm:items-center">
+                                        <div class="relative max-w-xs">
+                                            <select 
+                                                x-model="chartSettings.range" 
+                                                @change="updateChart(); saveSeriesConfig()"
+                                                class="w-full pl-3 pr-10 py-2 text-xs font-bold border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500 outline-none appearance-none cursor-pointer dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100"
+                                            >
+                                                <option value="all">All Time</option>
+                                                <option value="day">Day</option>
+                                                <option value="week">Week</option>
+                                                <option value="month">Month</option>
+                                                <option value="quarter">Quarter</option>
+                                                <option value="year">Year</option>
+                                                <option value="custom">Custom</option>
+                                            </select>
+                                            <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-slate-400">
+                                                <i class="fa-solid fa-chevron-down text-[10px]"></i>
+                                            </div>
+                                        </div>
+                                
+                                        <template x-if="chartSettings.range === 'custom'">
+                                            <div class="flex items-center space-x-2 animate-in fade-in slide-in-from-left-2 duration-200">
+                                                <input 
+                                                    type="number" 
+                                                    x-model.number="chartSettings.customDays" 
+                                                    @input.debounce.500ms="updateChart(); saveSeriesConfig()"
+                                                    placeholder="Days"
+                                                    class="w-16 px-2 py-2 text-xs font-bold border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500 outline-none dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100"
+                                                >
+                                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Days</span>
+                                            </div>
                                         </template>
-                                    </select>
-                                    <input type="number" x-model.number="chartSettings.window" @input="updateChart(); saveSeriesConfig()" min="2" step="1" placeholder="Win" class="w-14 text-xs border border-slate-200 rounded-md px-2 py-1.5 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="flex flex-row gap-2 mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
-                            <h3 class="content-center text-[10px] font-bold text-slate-400 uppercase tracking-widest dark:text-slate-500">Time Range</h3>
-                            
-                            <div class="flex flex-row gap-3 items-start sm:items-center">
-                                <div class="relative max-w-xs">
-                                    <select 
-                                        x-model="chartSettings.range" 
-                                        @change="updateChart(); saveSeriesConfig()"
-                                        class="w-full pl-3 pr-10 py-2 text-xs font-bold border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500 outline-none appearance-none cursor-pointer dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100"
-                                    >
-                                        <option value="all">All Time</option>
-                                        <option value="day">Day</option>
-                                        <option value="week">Week</option>
-                                        <option value="month">Month</option>
-                                        <option value="quarter">Quarter</option>
-                                        <option value="year">Year</option>
-                                        <option value="custom">Custom</option>
-                                    </select>
-                                    <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-slate-400">
-                                        <i class="fa-solid fa-chevron-down text-[10px]"></i>
                                     </div>
                                 </div>
-                        
-                                <template x-if="chartSettings.range === 'custom'">
-                                    <div class="flex items-center space-x-2 animate-in fade-in slide-in-from-left-2 duration-200">
-                                        <input 
-                                            type="number" 
-                                            x-model.number="chartSettings.customDays" 
-                                            @input.debounce.500ms="updateChart(); saveSeriesConfig()"
-                                            placeholder="Days"
-                                            class="w-16 px-2 py-2 text-xs font-bold border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500 outline-none dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100"
-                                        >
-                                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Days</span>
+                                <div class="p-4 border-t border-slate-100 dark:border-slate-700">
+                                    <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest dark:text-slate-500 mb-2">Compare with other series</h3>
+                                    <div class="flex flex-row gap-2">
+                                        <multi-select 
+                                            class="flex-1"
+                                            :items="JSON.stringify(series.filter(s => s.id !== currentSeries.id).map(s => ({ id: s.id, label: s.name })))"
+                                            :selected-ids="JSON.stringify(chartSettings.compareSeriesIds || [])"
+                                            multi
+                                            @change="chartSettings.compareSeriesIds = $event.detail.selection; saveSeriesConfig(); updateChart()">
+                                        </multi-select>
                                     </div>
-                                </template>
-                            </div>
-                        </div>
-                        <div class="p-4 border-t border-slate-100 dark:border-slate-700">
-                            <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest dark:text-slate-500 mb-2">Compare with other series</h3>
-                            <div class="flex flex-row gap-2">
-                                <multi-select 
-                                    class="flex-1"
-                                    :items="JSON.stringify(series.filter(s => s.id !== currentSeries.id).map(s => ({ id: s.id, label: s.name })))"
-                                    :selected-ids="JSON.stringify(chartSettings.compareSeriesIds || [])"
-                                    multi
-                                    @change="chartSettings.compareSeriesIds = $event.detail.selection; saveSeriesConfig(); updateChart()">
-                                </multi-select>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -653,6 +668,7 @@
             ],
             now: Date.now(),
             theme: localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
+            chartConfigCollapsed: false,
             init() {
                 setInterval(() => { this.now = Date.now(); }, 1000);
                 this.initTheme();
