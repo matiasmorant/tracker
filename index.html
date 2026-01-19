@@ -331,6 +331,18 @@
                                 </template>
                             </div>
                         </div>
+                        <div class="p-4 border-t border-slate-100 dark:border-slate-700">
+                            <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest dark:text-slate-500 mb-2">Compare with other series</h3>
+                            <div class="flex flex-row gap-2">
+                                <multi-select 
+                                    class="flex-1"
+                                    :items="JSON.stringify(series.filter(s => s.id !== currentSeries.id).map(s => ({ id: s.id, label: s.name })))"
+                                    :selected-ids="JSON.stringify(chartSettings.compareSeriesIds || [])"
+                                    multi
+                                    @change="chartSettings.compareSeriesIds = $event.detail.selection; saveSeriesConfig(); updateChart()">
+                                </multi-select>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -665,7 +677,7 @@
             editingEntry: null, activeSeriesForEntry: null, 
             entryForm: { timestamp: '', value: '', notes: '', dhms: { d:0, h:0, m:0, s:0 } },
             toast: { show: false, message: '' },
-            chartSettings: { period: 'none', logScale: false, runningMetric: '', window: 7, range: 'all', customDays: 30 },
+            chartSettings: { period: 'none', logScale: false, runningMetric: '', window: 7, range: 'all', customDays: 30, compareSeriesIds: [] },
             analysisSelection: ['mean', 'dayMean', 'count'],
             metrics: [
                 { id: 'mean', label: 'Mean', color: '#4f46e5' }, 
@@ -908,8 +920,20 @@
                     : ['mean', 'median', 'max', 'min'];
                 if (series.config && series.config.chartSettings) {
                     this.chartSettings = { ...series.config.chartSettings };
+                    // Ensure compareSeriesIds exists
+                    if (!this.chartSettings.compareSeriesIds) {
+                        this.chartSettings.compareSeriesIds = [];
+                    }
                 } else {
-                    this.chartSettings={period:'none',runningMetric:'',window:3,logScale:false,range: 'all'};
+                    this.chartSettings = {
+                        period: 'none',
+                        runningMetric: '',
+                        window: 3,
+                        logScale: false,
+                        range: 'all',
+                        customDays: 30,
+                        compareSeriesIds: []
+                    };
                 }
             
                 this.view = 'detail';
@@ -1002,103 +1026,156 @@
                     }
                 }
                 
-                // Create datasets based on period setting
                 const datasets = [];
                 const rId = this.chartSettings.runningMetric;
                 const win = this.chartSettings.window;
                 
-                if (this.chartSettings.period === 'none') {
-                    // Raw data
-                    const rawPoints = this.currentSeriesEntries.map(e => ({
-                        x: e.timestamp,
-                        y: e.value
-                    }));
-                    
-                    datasets.push({
-                        label: 'Raw Data',
-                        data: rawPoints,
-                        borderColor: '#4f46e5',
-                        borderWidth: 2,
-                        tension: 0.2
-                    });
-                    
-                    // Add rolling statistics if enabled
-                    if (rId && win >= 2 && this.currentSeriesEntries.length >= win) {
-                        const runningPoints = [];
-                        for (let i = 0; i <= this.currentSeriesEntries.length - win; i++) {
-                            const slice = this.currentSeriesEntries.slice(i, i + win);
-                            const vals = slice.map(e => e.value).sort((a,b) => a-b);
-                            const stats = calculateStats(vals, [], slice);
-                            const midIdx = Math.floor(i + (win-1)/2);
-                            
-                            runningPoints.push({
-                                x: this.currentSeriesEntries[midIdx].timestamp,
-                                y: stats[rId]
-                            });
-                        }
-                        
-                        datasets.push({
-                            label: `Rolling ${this.metrics.find(m => m.id === rId)?.label || rId}`,
-                            data: runningPoints,
-                            borderColor: '#f59e0b',
-                            borderDash: [5, 5],
-                            borderWidth: 1.5,
-                            pointRadius: 0,
-                            hidePoints: true
-                        });
-                    }
-                } else {
-                    // Aggregated data by period
-                    const agg = getPeriodData(this.currentSeriesEntries, this.chartSettings.period);
-                    this.analysisSelection.forEach(mId => {
-                        const m = this.metrics.find(x => x.id === mId);
-                        const points = agg.labels.map((k, i) => ({
-                            x: k + (this.chartSettings.period === 'day' ? '' : ' 12:00:00.000Z'),
-                            y: agg.datasets[mId][i]
+                // Helper function to add a series to datasets
+                const addSeriesToDatasets = (entries, label, color, isComparison = false) => {
+                    if (this.chartSettings.period === 'none') {
+                        // Raw data
+                        const rawPoints = entries.map(e => ({
+                            x: e.timestamp,
+                            y: e.value
                         }));
                         
                         datasets.push({
-                            label: m.label,
-                            data: points,
-                            borderColor: m.color,
-                            borderWidth: 2,
-                            tension: 0.2
+                            label: label,
+                            data: rawPoints,
+                            borderColor: color,
+                            borderWidth: isComparison ? 1.5 : 2,
+                            tension: 0.2,
+                            borderDash: isComparison ? [10, 2] : []
                         });
                         
-                        // Rolling statistics for aggregated data
-                        if (rId && win >= 2 && agg.labels.length >= win) {
+                        // Add rolling statistics if enabled (only for primary series)
+                        if (!isComparison && rId && win >= 2 && entries.length >= win) {
                             const runningPoints = [];
-                            const baseSource = agg.datasets[mId];
-                            
-                            for (let i = 0; i <= baseSource.length - win; i++) {
-                                const slice = baseSource.slice(i, i + win).filter(v => v !== null);
-                                if (slice.length === 0) continue;
-                                
-                                const sortedSlice = [...slice].sort((a, b) => a - b);
-                                const stats = calculateStats(sortedSlice);
+                            for (let i = 0; i <= entries.length - win; i++) {
+                                const slice = entries.slice(i, i + win);
+                                const vals = slice.map(e => e.value).sort((a,b) => a-b);
+                                const stats = calculateStats(vals, [], slice);
                                 const midIdx = Math.floor(i + (win-1)/2);
                                 
-                                if (stats[rId] !== undefined) {
-                                    runningPoints.push({
-                                        x: agg.labels[midIdx] + (this.chartSettings.period === 'day' ? '' : ' 12:00:00.000Z'),
-                                        y: stats[rId]
-                                    });
-                                }
+                                runningPoints.push({
+                                    x: entries[midIdx].timestamp,
+                                    y: stats[rId]
+                                });
                             }
                             
                             if (runningPoints.length > 0) {
                                 datasets.push({
-                                    label: `Rolling ${m.label} (${rId})`,
+                                    label: `Rolling ${this.metrics.find(m => m.id === rId)?.label || rId}`,
                                     data: runningPoints,
-                                    borderColor: m.color,
-                                    borderDash: [8, 4],
+                                    borderColor: '#f59e0b',
+                                    borderDash: [10, 2],
                                     borderWidth: 1.5,
                                     pointRadius: 0,
                                     hidePoints: true
                                 });
                             }
                         }
-                    });
+                    } else {
+                        // Aggregated data by period
+                        const agg = getPeriodData(entries, this.chartSettings.period);
+                        
+                        if (isComparison) {
+                            // For comparison series, use a single metric (default to mean)
+                            const metricToUse = 'mean';
+                            const points = agg.labels.map((k, i) => ({
+                                x: k + (this.chartSettings.period === 'day' ? '' : ' 12:00:00.000Z'),
+                                y: agg.datasets[metricToUse][i]
+                            })).filter(point => point.y !== null);
+                            
+                            if (points.length > 0) {
+                                datasets.push({
+                                    label: `${label} (${metricToUse})`,
+                                    data: points,
+                                    borderColor: color,
+                                    borderWidth: 1.5,
+                                    borderDash: [10, 2],
+                                    tension: 0.2
+                                });
+                            }
+                        } else {
+                            // Primary series - use all selected metrics
+                            this.analysisSelection.forEach(mId => {
+                                const m = this.metrics.find(x => x.id === mId);
+                                const points = agg.labels.map((k, i) => ({
+                                    x: k + (this.chartSettings.period === 'day' ? '' : ' 12:00:00.000Z'),
+                                    y: agg.datasets[mId][i]
+                                })).filter(point => point.y !== null);
+                                
+                                if (points.length > 0) {
+                                    datasets.push({
+                                        label: m.label,
+                                        data: points,
+                                        borderColor: m.color,
+                                        borderWidth: 2,
+                                        tension: 0.2
+                                    });
+                                }
+                                
+                                // Rolling statistics for aggregated data (only for primary series)
+                                if (rId && win >= 2 && agg.labels.length >= win) {
+                                    const runningPoints = [];
+                                    const baseSource = agg.datasets[mId];
+                                    
+                                    for (let i = 0; i <= baseSource.length - win; i++) {
+                                        const slice = baseSource.slice(i, i + win).filter(v => v !== null);
+                                        if (slice.length === 0) continue;
+                                        
+                                        const sortedSlice = [...slice].sort((a, b) => a - b);
+                                        const stats = calculateStats(sortedSlice);
+                                        const midIdx = Math.floor(i + (win-1)/2);
+                                        
+                                        if (stats[rId] !== undefined) {
+                                            runningPoints.push({
+                                                x: agg.labels[midIdx] + (this.chartSettings.period === 'day' ? '' : ' 12:00:00.000Z'),
+                                                y: stats[rId]
+                                            });
+                                        }
+                                    }
+                                    
+                                    if (runningPoints.length > 0) {
+                                        datasets.push({
+                                            label: `Rolling ${m.label} (${rId})`,
+                                            data: runningPoints,
+                                            borderColor: m.color,
+                                            borderDash: [8, 4],
+                                            borderWidth: 1.5,
+                                            pointRadius: 0,
+                                            hidePoints: true
+                                        });
+                                    }
+                                }
+                            });
+                        }
+                    }
+                };
+                
+                // 1. Add Primary Series
+                addSeriesToDatasets(this.currentSeriesEntries, this.currentSeries.name, '#4f46e5', false);
+                
+                // 2. Add Comparison Series
+                if (this.chartSettings.compareSeriesIds?.length) {
+                    const comparisonColors = ['#ec4899', '#10b981', '#f59e0b', '#06b6d4', '#8b5cf6', '#14b8a6', '#f97316'];
+                    let colorIndex = 0;
+                    
+                    for (const compareId of this.chartSettings.compareSeriesIds) {
+                        const compareSeries = this.series.find(s => s.id === compareId);
+                        if (compareSeries) {
+                            const compareEntries = await chronosDB.getEntriesForSeries(compareId);
+                            if (compareEntries.length > 0) {
+                                const compareGroup = this.groups.find(g => g.name === compareSeries.group);
+                                // Use group color if available, otherwise use from palette
+                                const color = compareGroup ? compareGroup.color : comparisonColors[colorIndex % comparisonColors.length];
+                                
+                                addSeriesToDatasets(compareEntries, compareSeries.name, color, true);
+                                colorIndex++;
+                            }
+                        }
+                    }
                 }
                 
                 // Prepare chart data
