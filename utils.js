@@ -27,7 +27,7 @@ export function secondsToDHMS(seconds) {
 }
 
 export function formatMonth(d) { return d.toLocaleDateString([], { month: 'long', year: 'numeric' }); }
-export function getFormattedISO(date = new Date()) { return date.toISOString().replace('T', ' ');}
+export function getFormattedISO(date = new Date()) { return date.toISOString().replace('T', ' ').split('.')[0];}
 
 export function getRunningTime(s) {
     if (!s.startTime) return '';
