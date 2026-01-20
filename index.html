@@ -24,6 +24,7 @@
     <script type="module" src="./utils.js"></script>
     <script type="module" src="./chronos-chart.js"></script>
     <script type="module" src="./series-history.js"></script>
+    <script type="module" src="./groupcard.js"></script>
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -167,8 +168,7 @@
     <main class="max-w-7xl mx-auto px-4 pb-8">
         <template x-if="view === 'list'">
             <div class="space-y-6">
-                <div class="py-1 border-b border-slate-200 flex flex-wrap items-center gap-y-3 dark:border-slate-700" :class="!showFilters ? 'gap-x-8' : ''" x-data="{ showFilters: true, showSort: true }">
-
+                <div class="py-1 border-b border-slate-200 flex flex-wrap items-center gap-y-3 dark:border-slate-700" :class="!showFilters ? 'gap-x-8' : ''" x-data="{ showFilters: true }">
                     <div class="flex items-center">
                         <span @click="showFilters = !showFilters" 
                               class="text-[10px] font-bold text-slate-400 tracking-widest dark:text-slate-500 cursor-pointer hover:text-indigo-600 transition-colors select-none">
@@ -183,41 +183,22 @@
                             </multi-select>
                         </div>
                     </div>
-                
-                    <div class="flex items-center gap-4 border-t sm:border-t-0 border-slate-100 dark:border-slate-800">
-                        <div class="flex items-center space-x-2">
-                            <span @click="showSort = !showSort" 
-                                  class="text-[10px] font-bold text-slate-400 tracking-widest dark:text-slate-500 cursor-pointer hover:text-indigo-600 transition-colors select-none">
-                                SORT
-                            </span>
-                            <div x-show="showSort" x-collapse class="flex bg-slate-200/50 p-1 rounded-lg dark:bg-slate-800">
-                                <button @click="sortBy('name')" 
-                                        :class="sortField === 'name' ? 'bg-white text-indigo-600 shadow-sm dark:bg-slate-700 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400'"
-                                        class="px-2 py-1 text-xs font-bold rounded-md transition-all flex items-center space-x-1">
-                                    <span>Name</span>
-                                    <span x-show="sortField === 'name'" x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
-                                </button>
-                                <button @click="sortBy('group')" 
-                                        :class="sortField === 'group' ? 'bg-white text-indigo-600 shadow-sm dark:bg-slate-700 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400'"
-                                        class="px-2 py-1 text-xs font-bold rounded-md transition-all flex items-center space-x-1">
-                                    <span>Group</span>
-                                    <span x-show="sortField === 'group'" x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
-                <div class="grid grid-cols-1 min-[400px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                    <template x-for="s in filteredSeries" :key="s.id">
-                        <serie-card
-                            :series="JSON.stringify(s)"
-                            :group="JSON.stringify(groups.find(g => g.name === s.group))"
-                            @series-click="openSeriesDetail($event.detail.series)"
-                            @add-entry-click="activeSeriesForEntry = $event.detail.series; modals.entry = true"
-                            @series-updated="loadSeries()"
-                            @entry-created="loadSeries(); if(currentSeries && currentSeries.id === $event.detail.seriesId) loadEntries(currentSeries.id)">
-                        </serie-card>
+                <!-- Group Cards Display -->
+                <div class="columns-1 min-[400px]:columns-2 md:columns-3 lg:columns-4 gap-3">
+                    <template x-for="group in filteredGroups" :key="group.id">
+                        <div class="break-inside-avoid mb-3">
+                            <group-card
+                                :group="JSON.stringify(group)"
+                                :series="JSON.stringify(filteredSeries)"
+                                :filtered="JSON.stringify(getSeriesForGroup(group))"
+                                @series-click="openSeriesDetail($event.detail.series)"
+                                @add-entry-click="openAddEntryModal($event.detail.series)"
+                                @series-updated="loadSeries()"
+                                @entry-created="loadSeries(); if(currentSeries && currentSeries.id === $event.detail.seriesId) loadEntries(currentSeries.id)">
+                            </group-card>
+                        </div>
                     </template>
                 </div>
             </div>
@@ -695,7 +676,7 @@
             formatDuration, secondsToDHMS, getFormattedISO, getRunningTime,
             view: 'list', detailSubView: 'chart',
             series: [], groups: [], currentSeries: null, currentSeriesEntries: [],
-            selectedGroups: [], sortField: 'name', sortOrder: 'asc',
+            selectedGroups: [],
             modals: { series: false, entry: false, manageGroups: false },
             showAddGroupForm: false,
             groupForm: { name: '', color: '#6366f1' }, editingGroup: null,
@@ -734,12 +715,6 @@
                 
                 const savedGroups = localStorage.getItem('chronos_selectedGroups');
                 if (savedGroups) this.selectedGroups = JSON.parse(savedGroups);
-
-                const savedSortField = localStorage.getItem('chronos_sortField');
-                if (savedSortField) this.sortField = savedSortField;
-
-                const savedSortOrder = localStorage.getItem('chronos_sortOrder');
-                if (savedSortOrder) this.sortOrder = savedSortOrder;
             },
 
             async loadData() {
@@ -894,22 +869,37 @@
 
             get filteredSeries() {
                 let res = this.series.filter(s => this.selectedGroups.length === 0 || this.selectedGroups.includes(s.group || ''));
+                // Sort by group first, then by name within each group
                 return res.sort((a, b) => {
-                    let fA = (a[this.sortField] || '').toString().toLowerCase();
-                    let fB = (b[this.sortField] || '').toString().toLowerCase();
-                    return this.sortOrder === 'asc' ? fA.localeCompare(fB) : fB.localeCompare(fA);
+                    const groupA = (a.group || '').toLowerCase();
+                    const groupB = (b.group || '').toLowerCase();
+                    
+                    if (groupA !== groupB) {
+                        return groupA.localeCompare(groupB);
+                    }
+                    
+                    // Same group, sort by name
+                    return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
                 });
             },
 
-            sortBy(field) {
-                if (this.sortField === field) {
-                    this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
-                } else {
-                    this.sortField = field;
-                    this.sortOrder = 'asc';
-                }
-                localStorage.setItem('chronos_sortField', this.sortField);
-                localStorage.setItem('chronos_sortOrder', this.sortOrder);
+            get filteredGroups() {
+                // Get unique groups from filtered series
+                const filteredSeries = this.filteredSeries;
+                const groupNames = [...new Set(filteredSeries.map(s => s.group).filter(g => g))];
+                
+                // Create group objects with their series
+                return this.groups
+                    .filter(g => groupNames.includes(g.name))
+                    .map(group => ({
+                        ...group,
+                        seriesCount: filteredSeries.filter(s => s.group === group.name).length
+                    }))
+                    .sort((a, b) => a.name.localeCompare(b.name));
+            },
+
+            getSeriesForGroup(group) {
+                return this.filteredSeries.filter(s => s.group === group.name);
             },
             
             openNewSeriesModal() { 
