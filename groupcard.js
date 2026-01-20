@@ -119,29 +119,11 @@ export class GroupCard extends HTMLElement {
     }
 
     async handleChronometer(series) {
-        const now = new Date();
-        
-        if (!series.startTime) {
-            series.startTime = now.toISOString();
-            await chronosDB.saveSeries(series);
-        } else {
-            const start = new Date(series.startTime);
-            const elapsedSeconds = Math.floor((now - start) / 1000);
-            series.startTime = null;
-            
-            await chronosDB.saveEntry({
-                timestamp: getFormattedISO(now),
-                value: elapsedSeconds,
-                notes: `Elapsed: ${formatDuration(elapsedSeconds)}`,
-                seriesId: series.id
-            });
-            
-            await chronosDB.saveSeries(series);
-        }
-        
+        await chronosDB.toggle(series);
         await this.refreshAllSummaries();
         this.render();
         this.notifyUpdate(series.id, true);
+        this.manageTimer();
     }
 
     async handleCurrentTime(series) {
@@ -181,9 +163,7 @@ export class GroupCard extends HTMLElement {
      */
     manageTimer() {
         const groupSeries = this.getGroupSeries();
-        const hasActiveChronometer = groupSeries.some(s => 
-            s.startTime && s.config?.quickAddAction === 'chronometer'
-        );
+        const hasActiveChronometer = groupSeries.some(s => chronosDB.isChrono(s) && chronosDB.isRunning(s) );
 
         if (hasActiveChronometer) {
             this.startTimer();
@@ -214,7 +194,7 @@ export class GroupCard extends HTMLElement {
 
         rows.forEach((row, index) => {
             const series = groupSeries[index];
-            if (series?.startTime && series.config?.quickAddAction === 'chronometer') {
+            if (series && chronosDB.isChrono(series) && chronosDB.isRunning(series)) {
                 activeFound = true;
                 const timeDisplay = row.querySelector('.running-time');
                 if (timeDisplay) {
@@ -295,7 +275,7 @@ export class GroupCard extends HTMLElement {
                                 <div class="font-bold text-sm text-slate-800 truncate dark:text-slate-100 mb-0.5">${series.name}</div>
                                 
                                 <div class="flex flex-col min-h-[16px]">
-                                    ${series.startTime && series.config?.quickAddAction === 'chronometer' ? `
+                                    ${chronosDB.isChrono(series) && chronosDB.isRunning(series) ? `
                                         <div class="flex items-baseline running-indicator">
                                             <span class="text-[11px] font-black text-red-600 dark:text-red-400 running-time">
                                                 ${getRunningTime(series)}
@@ -342,7 +322,7 @@ export class GroupCard extends HTMLElement {
     }
 
     getButtonContent(series) {
-        if (series.startTime && series.config?.quickAddAction === 'chronometer') {
+        if (chronosDB.isChrono(series) && chronosDB.isRunning(series)) {
             return '<i class="fa-solid fa-circle-stop text-base"></i>';
         }
         const action = series.config?.quickAddAction || 'manual';
@@ -355,7 +335,7 @@ export class GroupCard extends HTMLElement {
     }
 
     getButtonClasses(series) {
-        if (series.startTime && series.config?.quickAddAction === 'chronometer') {
+        if (chronosDB.isChrono(series) && chronosDB.isRunning(series)) {
             return 'bg-red-50 text-red-600 animate-pulse dark:bg-red-900/20';
         }
         return 'text-indigo-600';

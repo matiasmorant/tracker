@@ -137,7 +137,46 @@ export class ChronosDB {
         });
     }
 
-    // --- Export/Import Logic ---
+    isChrono(series) { return series.config?.quickAddAction === 'chronometer'; }
+
+    isRunning(series) {
+        if (!this.isChrono(series)) return false;
+        return !!series.startTime;
+    }
+
+    async start(chrono) {
+        if (!this.isChrono(chrono)) { throw new Error('Series is not a chronometer'); }
+        if (this.isRunning(chrono)) { throw new Error('Chronometer is already running'); }
+        chrono.startTime = new Date().toISOString();
+        return await this.saveSeries(chrono);
+    }
+
+    async stop(chrono) {
+        if (!this.isChrono(chrono)) { throw new Error('Series is not a chronometer'); }
+        if (!this.isRunning(chrono)) { throw new Error('Chronometer is not running'); }
+        
+        const start = new Date(chrono.startTime);
+        const now = new Date();
+        const elapsedSeconds = Math.floor((now - start) / 1000);
+        
+        chrono.startTime = null;
+        await this.saveSeries(chrono);
+        
+        const entry = await this.saveEntry({
+            timestamp: new Date().toISOString().replace('T', ' '),
+            value: elapsedSeconds,
+            notes: `Elapsed: ${this.formatDuration ? this.formatDuration(elapsedSeconds) : `${elapsedSeconds}s`}`,
+            seriesId: chrono.id
+        });
+        
+        return entry;
+    }
+
+    async toggle(chrono) {
+        if (!this.isChrono(chrono)) { throw new Error('Series is not a chronometer'); }
+        return await (this.isRunning(chrono) ? this.stop(chrono) : this.start(chrono));
+    }
+
     async exportJSON() {
         try {
             const [series, groups, entries] = await Promise.all([
