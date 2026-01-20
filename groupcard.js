@@ -290,7 +290,7 @@ export class GroupCard extends HTMLElement {
 
                 <div class="flex flex-col divide-y divide-slate-100 dark:divide-slate-700">
                     ${groupSeries.map(series => `
-                        <div class="series-row px-3 py-0 dark:hover:bg-slate-700/50 cursor-pointer flex items-center justify-between transition-colors">
+                        <div class="series-row px-3 py-1 dark:hover:bg-slate-700/50 cursor-pointer flex items-center justify-between transition-colors">
                             <div class="flex flex-col min-w-0 flex-1">
                                 <div class="font-bold text-sm text-slate-800 truncate dark:text-slate-100 mb-0.5">${series.name}</div>
                                 
