@@ -1,10 +1,9 @@
 import { formatMonth, formatDuration, prevMonth, nextMonth, getFormattedISO } from './utils.js';
+import { format, startOfMonth, endOfMonth, getDate, getDay, getMonth, getYear, getDaysInMonth,subDays,addDays,isSameDay,isSameMonth,isToday as dateFnsIsToday} from 'https://cdn.jsdelivr.net/npm/date-fns@4.1.0/+esm';
 
 class CalendarComponent extends HTMLElement {
     constructor() {
         super();
-        // this.attachShadow({ mode: 'open' });
-        
         // Initialize internal state
         this._calendarDate = new Date();
         this._entries = [];
@@ -73,13 +72,13 @@ class CalendarComponent extends HTMLElement {
     
     // Calendar logic methods
     createDayObj(date, isCurrentMonth) {
-        const dateString = date.toISOString().split('T')[0];
-        const isToday = new Date().toDateString() === date.toDateString();
+        const dateString = format(date, 'yyyy-MM-dd');
+        const isToday = dateFnsIsToday(date);
         
         return {
             date: date,
             dateString: dateString,
-            day: date.getDate(),
+            day: getDate(date),
             isCurrentMonth: isCurrentMonth,
             isToday: isToday,
             entries: this._entries.filter(e => e.timestamp && e.timestamp.startsWith(dateString))
@@ -87,29 +86,33 @@ class CalendarComponent extends HTMLElement {
     }
     
     get calendarDays() {
-        const year = this._calendarDate.getFullYear();
-        const month = this._calendarDate.getMonth();
-        const firstDayOfMonth = new Date(year, month, 1).getDay();
-        const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+        const currentDate = this._calendarDate;
+        const monthStart = startOfMonth(currentDate);
+        const monthEnd = endOfMonth(currentDate);
+        const startDay = getDay(monthStart); // 0 = Sunday, 1 = Monday, etc.
+        const daysInMonth = getDaysInMonth(currentDate);
         
         const days = [];
         
         // Previous month days
-        const prevMonthLastDay = new Date(year, month, 0).getDate();
-        for (let i = firstDayOfMonth - 1; i >= 0; i--) {
-            days.push(this.createDayObj(new Date(year, month - 1, prevMonthLastDay - i), false));
+        const prevMonthStart = subDays(monthStart, startDay);
+        for (let i = 0; i < startDay; i++) {
+            const date = addDays(prevMonthStart, i);
+            days.push(this.createDayObj(date, false));
         }
         
         // Current month days
-        for (let i = 1; i <= lastDayOfMonth; i++) {
-            days.push(this.createDayObj(new Date(year, month, i), true));
+        for (let i = 0; i < daysInMonth; i++) {
+            const date = addDays(monthStart, i);
+            days.push(this.createDayObj(date, true));
         }
         
         // Next month days (to fill 42 cells for 6 weeks)
         const totalCells = 42; // 6 weeks * 7 days
-        while (days.length < totalCells) {
-            const nextDay = days.length - lastDayOfMonth - firstDayOfMonth + 1;
-            days.push(this.createDayObj(new Date(year, month + 1, nextDay), false));
+        const daysToAdd = totalCells - days.length;
+        for (let i = 1; i <= daysToAdd; i++) {
+            const date = addDays(monthEnd, i);
+            days.push(this.createDayObj(date, false));
         }
         
         return days;
@@ -122,7 +125,7 @@ class CalendarComponent extends HTMLElement {
                 date: day.date,
                 dateString: day.dateString,
                 entries: day.entries,
-                formattedDate: getFormattedISO(new Date(day.date))
+                formattedDate: getFormattedISO(day.date)
             },
             bubbles: true,
             composed: true
@@ -131,12 +134,12 @@ class CalendarComponent extends HTMLElement {
     }
     
     navigatePrevMonth() {
-        this._calendarDate = prevMonth(new Date(this._calendarDate));
+        this._calendarDate = prevMonth(this._calendarDate);
         this.render();
     }
     
     navigateNextMonth() {
-        this._calendarDate = nextMonth(new Date(this._calendarDate));
+        this._calendarDate = nextMonth(this._calendarDate);
         this.render();
     }
     

@@ -7,51 +7,57 @@ export class GroupCard extends HTMLElement {
         super();
         this.group = null;
         this.series = [];
-        this.now = Date.now();
         this.updateInterval = null;
-        this.filteredSeries = [];
+        this.filteredSeries = []; // Keep if you still need internal filtering
     }
 
-    static get observedAttributes() {
-        return ['group', 'series', 'filtered'];
-    }
+    // Only observe 'group' attribute now
+    static get observedAttributes() { return ['group']; }
 
     async attributeChangedCallback(name, oldValue, newValue) {
         if (name === 'group') {
             this.group = newValue ? JSON.parse(newValue) : null;
-        } else if (name === 'series') {
-            this.series = newValue ? JSON.parse(newValue) : [];
-        } else if (name === 'filtered') {
-            this.filteredSeries = newValue ? JSON.parse(newValue) : [];
+            // Fetch series from DB when group changes
+            await this.fetchSeriesForGroup();
+            await this.refreshAllSummaries();
+            this.render();
+            this.toggleTimer();
         }
-        
-        // Refresh summaries whenever data changes
-        await this.refreshAllSummaries();
-        this.render();
-        this.manageTimer(); 
     }
 
     async connectedCallback() {
+        // If group is already set via attribute, fetch series
+        if (this.group) {
+            await this.fetchSeriesForGroup();
+        }
         await this.refreshAllSummaries();
         this.render();
-        this.manageTimer();
+        this.toggleTimer();
     }
 
-    disconnectedCallback() {
-        this.stopTimer();
+    disconnectedCallback() { this.stopTimer(); }
+
+    async fetchSeriesForGroup() {
+        if (!this.group || !this.group.name) {
+            this.series = [];
+            return;
+        }
+        // Assuming chronosDB has a method to get series by group
+        this.series = await chronosDB.getSeriesByGroup(this.group.name);
+        // If you still need filteredSeries, adjust accordingly
+        this.filteredSeries = [...this.series]; // or apply filtering logic
     }
 
-    /**
-     * ANALYTICS LOGIC
-     * Fetches entries for each series in the group and calculates the summary strings
-     */
+    eventSend(name, series) { 
+        this.dispatchEvent(new CustomEvent(name, {detail: {series}, bubbles: true, composed: true})); 
+    }
+
     async refreshAllSummaries() {
         const groupSeries = this.getGroupSeries();
         for (const series of groupSeries) {
             const entries = await chronosDB.getEntriesForSeries(series.id);
             
             if (series.config?.summaries && Array.isArray(series.config.summaries)) {
-                // Map through multiple summary configurations if they exist
                 const summaries = series.config.summaries.map(summaryConfig => {
                     return calculateSeriesSummary(
                         series,
@@ -61,10 +67,8 @@ export class GroupCard extends HTMLElement {
                     );
                 }).filter(summary => summary && summary.trim() !== '');
                 
-                // Store as an array for the renderer to handle multiple lines
                 series.summaries = summaries;
             } else {
-                // Fallback to single summary
                 const singleSummary = calculateSeriesSummary(
                     series,
                     entries,
@@ -75,109 +79,31 @@ export class GroupCard extends HTMLElement {
         }
     }
 
-    /**
-     * DATABASE HANDLERS
-     */
     async handleQuickAdd(series) {
+        await chronosDB.quickAction(series);
+
         const action = series.config?.quickAddAction || 'manual';
-        
-        if (action === 'increment' && series.type === 'number') {
-            await this.handleIncrement(series);
-        } else if (action === 'chronometer' && series.type === 'time') {
-            await this.handleChronometer(series);
-        } else if (action === 'currentTime' && series.type === 'time') {
-            await this.handleCurrentTime(series);
-        } else {
-            this.dispatchEvent(new CustomEvent('add-entry-click', {
-                detail: { series },
-                bubbles: true,
-                composed: true
-            }));
-        }
+        if (action === 'increment') { await this.handleSeriesUpdate(series); }
+        if (action === 'chronometer') { await this.handleSeriesUpdate(series); this.toggleTimer(); }
+        if (action === 'currentTime') { await this.handleSeriesUpdate(series); }
+        if (action === 'manual'){ this.eventSend('add-entry-click', series); }
     }
 
-    async handleIncrement(series) {
-        const todayStr = new Date().toISOString().split('T')[0];
-        const entries = await chronosDB.getEntriesForSeries(series.id);
-        const todayEntry = entries.find(ent => ent.timestamp.startsWith(todayStr));
-        
-        if (todayEntry) {
-            todayEntry.value = (todayEntry.value || 0) + 1;
-            await chronosDB.saveEntry(todayEntry);
-        } else {
-            await chronosDB.saveEntry({
-                timestamp: getFormattedISO(),
-                value: 1,
-                notes: '',
-                seriesId: series.id
-            });
-        }
-        
+    async handleSeriesUpdate(series) { 
         await this.refreshAllSummaries();
         this.render();
-        this.notifyUpdate(series.id, true);
+        this.eventSend('entry-created', series);
+        this.eventSend('series-updated', series);
     }
 
-    async handleChronometer(series) {
-        await chronosDB.toggle(series);
-        await this.refreshAllSummaries();
-        this.render();
-        this.notifyUpdate(series.id, true);
-        this.manageTimer();
-    }
-
-    async handleCurrentTime(series) {
-        const now = new Date();
-        const secondsSinceMidnight = (now.getHours() * 3600) + (now.getMinutes() * 60) + now.getSeconds();
-        
-        await chronosDB.saveEntry({
-            timestamp: getFormattedISO(),
-            value: secondsSinceMidnight,
-            notes: '',
-            seriesId: series.id
-        });
-        
-        await this.refreshAllSummaries();
-        this.render();
-        this.notifyUpdate(series.id, true);
-    }
-
-    notifyUpdate(seriesId, seriesChanged = false) {
-        this.dispatchEvent(new CustomEvent('entry-created', {
-            detail: { seriesId },
-            bubbles: true,
-            composed: true
-        }));
-
-        if (seriesChanged) {
-            this.dispatchEvent(new CustomEvent('series-updated', {
-                detail: { seriesId },
-                bubbles: true,
-                composed: true
-            }));
-        }
-    }
-
-    /**
-     * TIMER LOGIC
-     */
-    manageTimer() {
-        const groupSeries = this.getGroupSeries();
-        const hasActiveChronometer = groupSeries.some(s => chronosDB.isChrono(s) && chronosDB.isRunning(s) );
-
-        if (hasActiveChronometer) {
-            this.startTimer();
-        } else {
-            this.stopTimer();
-        }
+    toggleTimer() {
+        const hasActiveChronometer = this.getGroupSeries().some(s => chronosDB.isChrono(s) && chronosDB.isRunning(s) );
+        hasActiveChronometer ? this.startTimer() : this.stopTimer();
     }
 
     startTimer() {
         if (this.updateInterval) return;
-        this.updateInterval = setInterval(() => {
-            this.now = Date.now();
-            this.updateAllRunningTimes();
-        }, 1000);
+        this.updateInterval = setInterval(() => { this.updateAllRunningTimes(); }, 1000);
     }
 
     stopTimer() {
@@ -207,6 +133,7 @@ export class GroupCard extends HTMLElement {
     }
 
     getGroupSeries() {
+        // Now using internally fetched series
         const source = this.filteredSeries.length > 0 ? this.filteredSeries : this.series;
         return source.filter(s => s.group === this.group?.name);
     }
@@ -306,11 +233,7 @@ export class GroupCard extends HTMLElement {
             const series = groupSeries[index];
             row.addEventListener('click', (e) => {
                 if (!e.target.closest('button')) {
-                    this.dispatchEvent(new CustomEvent('series-click', {
-                        detail: { series },
-                        bubbles: true,
-                        composed: true
-                    }));
+                    this.eventSend('series-click', series);
                 }
             });
 

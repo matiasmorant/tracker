@@ -1,4 +1,4 @@
-import { formatDuration, secondsToDHMS, getFormattedISO, getRunningTime } from './utils.js';
+import { formatDuration, secondsToDHMS, getFormattedISO, getRunningTime, elapsedSeconds } from './utils.js';
 import { calculateSeriesSummary } from './analytics.js';
 import chronosDB from './db.js';
 
@@ -7,7 +7,6 @@ export class SerieCard extends HTMLElement {
         super();
         this.series = null;
         this.group = null;
-        this.now = Date.now();
         this.updateInterval = null;
         this.entries = [];
         this.summaries = [];
@@ -20,9 +19,7 @@ export class SerieCard extends HTMLElement {
     attributeChangedCallback(name, oldValue, newValue) {
         if (name === 'series') {
             this.series = newValue ? JSON.parse(newValue) : null;
-            if (this.series) {
-                this.loadEntries();
-            }
+            if (this.series) this.loadEntries();
         } else if (name === 'group') {
             this.group = newValue ? JSON.parse(newValue) : null;
         }
@@ -31,23 +28,15 @@ export class SerieCard extends HTMLElement {
 
     async connectedCallback() {
         this.render();
-        // Start interval for updating running time display
         this.updateInterval = setInterval(() => {
-            this.now = Date.now();
-            if (this.series?.startTime && this.series.config?.quickAddAction === 'chronometer') {
-                this.updateRunningTime();
-            }
+            if (chronosDB.isRunning(this.series)) this.updateRunningTime();
         }, 1000);
         
-        if (this.series) {
-            await this.loadEntries();
-        }
+        if (this.series) { await this.loadEntries(); }
     }
 
     disconnectedCallback() {
-        if (this.updateInterval) {
-            clearInterval(this.updateInterval);
-        }
+        if (this.updateInterval) clearInterval(this.updateInterval);
     }
 
     async loadEntries() {
@@ -87,200 +76,76 @@ export class SerieCard extends HTMLElement {
             this.summaries = singleSummary ? [singleSummary] : [];
         }
         
-        // Re-render the component to show updated summaries
         this.render();
     }
 
     updateRunningTime() {
         const runningTimeElement = this.querySelector('.running-time');
-        if (runningTimeElement && this.series?.startTime) {
-            const elapsedMs = Math.max(0, this.now - new Date(this.series.startTime).getTime());
-            runningTimeElement.textContent = formatDuration(Math.floor(elapsedMs / 1000));
+        if (runningTimeElement && chronosDB.isRunning(this.series)) {
+            runningTimeElement.textContent = formatDuration(elapsedSeconds(this.series));
         }
     }
 
     async handleAddEntryClick(e) {
         e.stopPropagation();
         
+        await chronosDB.quickAction(this.series)
+
         const action = this.series.config?.quickAddAction || 'manual';
         
-        // Handle quick actions directly
-        if (action === 'increment' && this.series.type === 'number') {
-            await this.handleIncrement();
-            return;
-        }
-        
-        if (action === 'chronometer' && this.series.type === 'time') {
-            await this.handleChronometer();
-            return;
-        }
-        
-        if (action === 'currentTime' && this.series.type === 'time') {
-            await this.handleCurrentTime();
-            return;
-        }
-        
-        // For manual action, emit event for parent to handle
-        this.dispatchEvent(new CustomEvent('add-entry-click', {
-            detail: { series: this.series },
-            bubbles: true,
-            composed: true
-        }));
+        if (action === 'increment') { await this.handleIncrement(); return; }
+        if (action === 'chronometer') { await this.handleChronometer(); return; }
+        if (action === 'currentTime') { await this.handleCurrentTime(); return; }
+
+        this.eventSend('add-entry-click');
     }
 
     async handleIncrement() {
-        const todayStr = new Date().toISOString().split('T')[0];
-        const entries = await chronosDB.getEntriesForSeries(this.series.id);
-        const todayEntry = entries.find(ent => ent.timestamp.startsWith(todayStr));
-        
-        if (todayEntry) {
-            // Update existing entry
-            todayEntry.value = (todayEntry.value || 0) + 1;
-            await chronosDB.saveEntry(todayEntry);
-        } else {
-            // Create new entry
-            await chronosDB.saveEntry({
-                timestamp: getFormattedISO(),
-                value: 1,
-                notes: '',
-                seriesId: this.series.id
-            });
-        }
-        
-        // Reload entries and recalculate summary
         await this.loadEntries();
-        
-        // Notify parent
-        this.dispatchEvent(new CustomEvent('entry-created', {
-            detail: { seriesId: this.series.id },
-            bubbles: true,
-            composed: true
-        }));
+        this.eventSend('entry-created');
     }
 
     async handleChronometer() {
-        const now = new Date();
-        
-        if (!this.series.startTime) {
-            // Start chronometer
-            this.series.startTime = now.toISOString();
-            await chronosDB.saveSeries(this.series);
-            
-            // Update running time display
+        if (chronosDB.isRunning(this.series)) {
             this.render();
-            
-            // Notify parent
-            this.dispatchEvent(new CustomEvent('series-updated', {
-                detail: { series: this.series },
-                bubbles: true,
-                composed: true
-            }));
+            this.eventSend('series-updated');
         } else {
-            // Stop chronometer and create entry
-            const start = new Date(this.series.startTime);
-            const elapsedSeconds = Math.floor((now - start) / 1000);
-            this.series.startTime = null;
-            
-            // Create entry
-            await chronosDB.saveEntry({
-                timestamp: getFormattedISO(now),
-                value: elapsedSeconds,
-                notes: `Elapsed: ${formatDuration(elapsedSeconds)}`,
-                seriesId: this.series.id
-            });
-            
-            // Save series without startTime
-            await chronosDB.saveSeries(this.series);
-            
-            // Reload entries and recalculate summary
             await this.loadEntries();
-            
-            // Notify parent of both updates
-            this.dispatchEvent(new CustomEvent('series-updated', {
-                detail: { series: this.series },
-                bubbles: true,
-                composed: true
-            }));
-            
-            this.dispatchEvent(new CustomEvent('entry-created', {
-                detail: { seriesId: this.series.id },
-                bubbles: true,
-                composed: true
-            }));
+            this.eventSend('series-updated');
+            this.eventSend('entry-created');
         }
     }
 
     async handleCurrentTime() {
-        const now = new Date();
-        const secondsSinceMidnight = (now.getHours() * 3600) + (now.getMinutes() * 60) + now.getSeconds();
-        
-        await chronosDB.saveEntry({
-            timestamp: getFormattedISO(),
-            value: secondsSinceMidnight,
-            notes: '',
-            seriesId: this.series.id
-        });
-        
-        // Reload entries and recalculate summary
         await this.loadEntries();
-        
-        this.dispatchEvent(new CustomEvent('entry-created', {
-            detail: { seriesId: this.series.id },
-            bubbles: true,
-            composed: true
-        }));
+        this.eventSend('entry-created');
     }
 
-    handleCardClick() {
-        this.dispatchEvent(new CustomEvent('series-click', {
-            detail: { series: this.series },
-            bubbles: true,
-            composed: true
-        }));
-    }
+    eventSend(name) { this.dispatchEvent(new CustomEvent(name, {detail: {series: this.series}, bubbles: true, composed: true})); }
 
     getButtonContent() {
-        if (this.series.startTime && this.series.config?.quickAddAction === 'chronometer') {
-            return '<i class="fa-solid fa-circle-stop text-lg"></i>';
-        }
-        
-        const action = this.series.config?.quickAddAction || 'manual';
-        
-        switch(action) {
-            case 'increment':
-                return '<span class="text-sm font-black">+1</span>';
-            case 'chronometer':
-                return '<i class="fa-solid fa-play text-lg"></i>';
-            case 'currentTime':
-                return '<i class="fa-solid fa-clock text-lg"></i>';
-            default:
-                return '<i class="fa-solid fa-plus text-lg"></i>';
-        }
+        return chronosDB.isRunning(this.series)?
+        '<i class="fa-solid fa-circle-stop text-lg"></i>' :
+        {
+            'increment': '<span class="text-sm font-black">+1</span>',
+            'chronometer': '<i class="fa-solid fa-play text-lg"></i>',
+            'currentTime': '<i class="fa-solid fa-clock text-lg"></i>',
+            'manual': '<i class="fa-solid fa-plus text-lg"></i>'
+        }[this.series.config?.quickAddAction || 'manual'];
     }
 
     getButtonClasses() {
-        if (this.series.startTime && this.series.config?.quickAddAction === 'chronometer') {
-            return 'bg-red-100 text-red-600 animate-pulse dark:bg-red-900/30 dark:text-red-400';
+        return chronosDB.isRunning(this.series)
+            ? 'bg-red-100 text-red-600 animate-pulse dark:bg-red-900/30 dark:text-red-400'
+            : 'text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-slate-700';
         }
-        return 'text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-slate-700';
-    }
 
     getCardClasses() {
         let baseClasses = 'px-3 py-0 rounded-xl border shadow-sm transition-all cursor-pointer group flex flex-col justify-center min-h-[88px] max-h-[120px] relative';
-        
-        if (this.group) {
-            return `${baseClasses} hover:shadow-md`;
-        } else {
-            return `${baseClasses} bg-white border-slate-200 hover:border-indigo-300 hover:shadow-md dark:bg-slate-800 dark:border-slate-700 dark:hover:border-indigo-500`;
-        }
+        return `${baseClasses} hover:shadow-md ${this.group ?'':'bg-white border-slate-200 hover:border-indigo-300 dark:bg-slate-800 dark:border-slate-700 dark:hover:border-indigo-500'}`;
     }
 
-    getCardStyle() {
-        if (this.group) {
-            return `background-color: ${this.group.color}12; border-color: ${this.group.color}40;`;
-        }
-        return '';
-    }
+    getCardStyle() { return this.group? `background-color: ${this.group.color}12; border-color: ${this.group.color}40;`:''; }
 
     // Helper method to format individual summary display
     formatSummaryDisplay(summaryText) {
@@ -365,7 +230,7 @@ export class SerieCard extends HTMLElement {
                     </div>
 
                     <div class="mt-1">
-                        ${this.series.startTime && this.series.config?.quickAddAction === 'chronometer' ? `
+                        ${chronosDB.isRunning(this.series) ? `
                             <div class="flex items-baseline animate-pulse">
                                 <span class="running-time text-sm font-black text-red-600 truncate dark:text-red-400">
                                     ${getRunningTime(this.series)}
@@ -396,17 +261,11 @@ export class SerieCard extends HTMLElement {
         const button = this.querySelector('button');
         
         card.addEventListener('click', (e) => {
-            if (e.target !== button && !button.contains(e.target)) {
-                this.handleCardClick();
-            }
+            if (e.target !== button && !button.contains(e.target)) this.eventSend('series-click');
         });
         
         button.addEventListener('click', (e) => this.handleAddEntryClick(e));
-        
-        // Update running time if needed
-        if (this.series?.startTime && this.series.config?.quickAddAction === 'chronometer') {
-            this.updateRunningTime();
-        }
+        if (chronosDB.isRunning(this.series)) this.updateRunningTime();
     }
 }
 

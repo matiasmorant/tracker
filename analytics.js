@@ -1,3 +1,6 @@
+import {format,subDays,subMonths,subYears,startOfDay,startOfWeek,startOfMonth,startOfYear,isWithinInterval,parseISO,differenceInDays } from 'https://cdn.jsdelivr.net/npm/date-fns@4.1.0/+esm';
+import { formatDuration } from './utils.js';
+
 export function calculateStats(sortedValues, originalOrder = [], entries = []) {
     if (!sortedValues || sortedValues.length === 0) {
         return {
@@ -16,7 +19,7 @@ export function calculateStats(sortedValues, originalOrder = [], entries = []) {
     if (entries.length > 0) {
         const uniqueDays = new Set(entries.map(e => {
             if (!e.timestamp) return '';
-            return e.timestamp.split(' ')[0];
+            return format(parseISO(e.timestamp), 'yyyy-MM-dd');
         })).size;
         dayMean = uniqueDays > 0 ? sum / uniqueDays : 0;
     }
@@ -67,36 +70,38 @@ export function getPeriodData(entries, period) {
     const groups = {};
 
     entries.forEach(entry => {
-        const date = new Date(entry.timestamp);
+        const date = parseISO(entry.timestamp);
         let key;
 
         switch (period) {
             case 'day':
                 // Group by date (YYYY-MM-DD)
-                key = entry.timestamp.split(' ')[0];
+                key = format(date, 'yyyy-MM-dd');
                 break;
 
             case 'week':
                 // Group by week start (Monday)
-                const weekStart = new Date(date);
-                weekStart.setDate(date.getDate() - date.getDay()); // Sunday start
-                key = weekStart.toISOString().split('T')[0];
+                const weekStart = startOfWeek(date, { weekStartsOn: 0 });
+                key = format(weekStart, 'yyyy-MM-dd');
                 break;
 
             case 'month':
                 // Group by month (YYYY-MM-01)
-                key = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-01`;
+                const monthStart = startOfMonth(date);
+                key = format(monthStart, 'yyyy-MM-dd');
                 break;
 
             case 'quarter':
                 // Group by quarter start
-                const quarterStartMonth = Math.floor(date.getMonth() / 3) * 3 + 1;
-                key = `${date.getFullYear()}-${quarterStartMonth.toString().padStart(2, '0')}-01`;
+                const quarterStartMonth = Math.floor(date.getMonth() / 3) * 3;
+                const quarterStart = new Date(date.getFullYear(), quarterStartMonth, 1);
+                key = format(quarterStart, 'yyyy-MM-dd');
                 break;
 
             case 'year':
                 // Group by year start
-                key = `${date.getFullYear()}-01-01`;
+                const yearStart = startOfYear(date);
+                key = format(yearStart, 'yyyy-MM-dd');
                 break;
 
             default:
@@ -169,21 +174,21 @@ export function filterByRange(entries, range = 'all', customDays = 30) {
     }
 
     const now = new Date();
-    let cutoff = new Date();
+    let cutoffDate;
 
     switch (range) {
-        case 'day': cutoff.setDate(now.getDate() - 1); break;
-        case 'week': cutoff.setDate(now.getDate() - 7); break;
-        case 'month': cutoff.setMonth(now.getMonth() - 1); break;
-        case 'quarter': cutoff.setMonth(now.getMonth() - 3); break;
-        case 'year': cutoff.setFullYear(now.getFullYear() - 1); break;
-        case 'custom': cutoff.setDate(now.getDate() - customDays); break;
+        case 'day': cutoffDate = subDays(now, 1); break;
+        case 'week': cutoffDate = subDays(now, 7); break;
+        case 'month': cutoffDate = subMonths(now, 1); break;
+        case 'quarter': cutoffDate = subMonths(now, 3); break;
+        case 'year': cutoffDate = subYears(now, 1); break;
+        case 'custom': cutoffDate = subDays(now, customDays); break;
         default: return entries;
     }
 
     return entries.filter(entry => {
-        const entryDate = new Date(entry.timestamp);
-        return entryDate >= cutoff;
+        const entryDate = parseISO(entry.timestamp);
+        return entryDate >= cutoffDate;
     });
 }
 
@@ -224,7 +229,8 @@ function calculateSingleSummary(series, entries, formatDuration, summaryConfig) 
         // Calculate unique days
         const uniqueDays = new Set(filteredEntries.map(e => {
             if (!e.timestamp) return '';
-            return e.timestamp.split(' ')[0];
+            const date = parseISO(e.timestamp);
+            return format(date, 'yyyy-MM-dd');
         })).size;
         const sum = stats.sum || 0;
         statValue = uniqueDays > 0 ? sum / uniqueDays : 0;
@@ -284,29 +290,33 @@ function calculateLegacySummary(series, entries, formatDuration) {
     // Filter by period if not 'all'
     if (config.period !== 'all') {
         const now = new Date();
-        const startOfPeriod = new Date();
-        startOfPeriod.setHours(0, 0, 0, 0);
+        let startOfPeriod;
 
         switch (config.period) {
             case 'day':
-                // Already at start of day
+                startOfPeriod = startOfDay(now);
                 break;
             case 'week':
-                startOfPeriod.setDate(now.getDate() - now.getDay());
+                startOfPeriod = startOfWeek(now, { weekStartsOn: 0 });
                 break;
             case 'month':
-                startOfPeriod.setDate(1);
+                startOfPeriod = startOfMonth(now);
                 break;
             case 'quarter':
                 const quarterMonth = Math.floor(now.getMonth() / 3) * 3;
-                startOfPeriod.setMonth(quarterMonth, 1);
+                startOfPeriod = new Date(now.getFullYear(), quarterMonth, 1);
                 break;
             case 'year':
-                startOfPeriod.setMonth(0, 1);
+                startOfPeriod = startOfYear(now);
                 break;
+            default:
+                startOfPeriod = startOfDay(now);
         }
 
-        filteredEntries = filteredEntries.filter(e => new Date(e.timestamp) >= startOfPeriod);
+        filteredEntries = filteredEntries.filter(e => {
+            const entryDate = parseISO(e.timestamp);
+            return entryDate >= startOfPeriod;
+        });
     }
 
     if (filteredEntries.length === 0) {
@@ -355,35 +365,34 @@ function filterEntriesByPeriod(entries, period, customDays = 30) {
     }
 
     const now = new Date();
-    let cutoff = new Date();
-    cutoff.setHours(0, 0, 0, 0);
+    let cutoff;
 
     switch (period) {
         case 'today':
-            // Already at start of today
+            cutoff = startOfDay(now);
             break;
         case 'week':
-            cutoff.setDate(now.getDate() - now.getDay()); // Start of week (Sunday)
+            cutoff = startOfWeek(now, { weekStartsOn: 0 });
             break;
         case 'month':
-            cutoff.setDate(1); // Start of month
+            cutoff = startOfMonth(now);
             break;
         case 'quarter':
             const quarterMonth = Math.floor(now.getMonth() / 3) * 3;
-            cutoff.setMonth(quarterMonth, 1); // Start of quarter
+            cutoff = new Date(now.getFullYear(), quarterMonth, 1);
             break;
         case 'year':
-            cutoff.setMonth(0, 1); // Start of year
+            cutoff = startOfYear(now);
             break;
         case 'custom':
-            cutoff.setDate(now.getDate() - customDays);
+            cutoff = subDays(now, customDays);
             break;
         default:
             return entries;
     }
 
     return entries.filter(entry => {
-        const entryDate = new Date(entry.timestamp);
+        const entryDate = parseISO(entry.timestamp);
         return entryDate >= cutoff;
     });
 }

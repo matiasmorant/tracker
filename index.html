@@ -23,7 +23,9 @@
     <script type="module" src="./analytics.js"></script>
     <script type="module" src="./utils.js"></script>
     <script type="module" src="./chronos-chart.js"></script>
+    <script type="module" src="./series-chart.js"></script>
     <script type="module" src="./series-history.js"></script>
+    <script type="module" src="./seriesConfig.js"></script>
     <script type="module" src="./groupcard.js"></script>
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -185,18 +187,15 @@
                     </div>
                 </div>
 
-                <!-- Group Cards Display -->
                 <div class="columns-1 min-[400px]:columns-2 md:columns-3 lg:columns-4 gap-3">
                     <template x-for="group in filteredGroups" :key="group.id">
                         <div class="break-inside-avoid mb-3">
                             <group-card
                                 :group="JSON.stringify(group)"
-                                :series="JSON.stringify(filteredSeries)"
-                                :filtered="JSON.stringify(getSeriesForGroup(group))"
                                 @series-click="openSeriesDetail($event.detail.series)"
                                 @add-entry-click="openAddEntryModal($event.detail.series)"
                                 @series-updated="loadSeries()"
-                                @entry-created="loadSeries(); if(currentSeries && currentSeries.id === $event.detail.seriesId) loadEntries(currentSeries.id)">
+                                @entry-created="loadSeries(); if(currentSeries && currentSeries.id === $event.detail.series.id) loadEntries(currentSeries.id)">
                             </group-card>
                         </div>
                     </template>
@@ -224,121 +223,11 @@
                 </div>
 
                 <div x-show="detailSubView === 'chart'" class="space-y-6">
-                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 dark:bg-slate-800 dark:border-slate-700 overflow-hidden">
-                        <div :class="chartConfigCollapsed ? 'h-[calc(100vh-240px)]' : 'h-96'" 
-                             class="transition-all duration-300 ease-in-out p-2">
-                            <chronos-chart
-                                id="seriesChart"
-                                @scale-click="chartSettings.logScale = !chartSettings.logScale; updateChart(); saveSeriesConfig()"
-                                style="width: 100%; height: 100%;">
-                            </chronos-chart>
-                        </div>
-
-                        <div class="px-4 py-0 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
-                            <button 
-                                @click="chartConfigCollapsed = !chartConfigCollapsed"
-                                class="text-xs font-medium text-indigo-600 hover:text-indigo-700 transition-colors dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center space-x-1"
-                            >
-                                <i class="fa-solid" :class="chartConfigCollapsed ? 'fa-chevron-down' : 'fa-chevron-up'"></i>
-                                <span x-text="chartConfigCollapsed ? 'Statistics' : 'Hide'"></span>
-                            </button>
-                        </div>
-
-                        <!-- Chart Configuration (Collapsible) -->
-                        <div x-show="!chartConfigCollapsed" x-collapse class="border-t border-slate-100 dark:border-slate-700">
-                            <div class="p-4" x-data="{ showAllStats: false }">
-                                <div>
-                                    <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest dark:text-slate-500">Statistics</h3>
-
-                                    <template x-if="metrics && metrics.length > 0">
-                                      <div class="flex felx-row gap-2 mt-2">
-                                        <multi-select 
-                                          :items="JSON.stringify(metrics.map(m => ({ id: m.id, label: m.label, color: m.color })))"
-                                          :selected-ids="JSON.stringify(analysisSelection)"
-                                          multi
-                                          @change="analysisSelection = $event.detail.selection; saveSeriesConfig(); updateChart()">
-                                        </multi-select>
-                                        <div class="flex flex-col gap-1.5">
-                                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter dark:text-slate-500">Period Grouping</span>
-                                            <select x-model="chartSettings.period" @change="updateChart(); saveSeriesConfig()" class="text-xs border border-slate-200 rounded-md px-2 py-1.5 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
-                                                <option value="none">Raw Data</option>
-                                                <option value="day">Day</option>
-                                                <option value="week">Week</option>
-                                                <option value="month">Month</option>
-                                                <option value="quarter">Quarter</option>
-                                                <option value="year">Year</option>
-                                            </select>
-                                        </div>
-                                      </div>
-                                    </template>
-                                </div>
-
-                                <div class="flex flex-wrap items-center gap-4 my-3">
-                                    <div class="flex flex-col gap-1.5">
-                                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter dark:text-slate-500">Running Average/Stat</span>
-                                        <div class="flex items-center space-x-2">
-                                            <select x-model="chartSettings.runningMetric" @change="updateChart(); saveSeriesConfig()" class="text-xs border border-slate-200 rounded-md px-2 py-1.5 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
-                                                <option value="">None</option>
-                                                <template x-for="m in metrics" :key="m.id">
-                                                    <option :value="m.id" x-text="m.label"></option>
-                                                </template>
-                                            </select>
-                                            <input type="number" x-model.number="chartSettings.window" @input="updateChart(); saveSeriesConfig()" min="2" step="1" placeholder="Win" class="w-14 text-xs border border-slate-200 rounded-md px-2 py-1.5 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="flex flex-row gap-2 mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
-                                    <h3 class="content-center text-[10px] font-bold text-slate-400 uppercase tracking-widest dark:text-slate-500">Time Range</h3>
-                                    
-                                    <div class="flex flex-row gap-3 items-start sm:items-center">
-                                        <div class="relative max-w-xs">
-                                            <select 
-                                                x-model="chartSettings.range" 
-                                                @change="updateChart(); saveSeriesConfig()"
-                                                class="w-full pl-3 pr-10 py-2 text-xs font-bold border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500 outline-none appearance-none cursor-pointer dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100"
-                                            >
-                                                <option value="all">All Time</option>
-                                                <option value="day">Day</option>
-                                                <option value="week">Week</option>
-                                                <option value="month">Month</option>
-                                                <option value="quarter">Quarter</option>
-                                                <option value="year">Year</option>
-                                                <option value="custom">Custom</option>
-                                            </select>
-                                            <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-slate-400">
-                                                <i class="fa-solid fa-chevron-down text-[10px]"></i>
-                                            </div>
-                                        </div>
-                                
-                                        <template x-if="chartSettings.range === 'custom'">
-                                            <div class="flex items-center space-x-2 animate-in fade-in slide-in-from-left-2 duration-200">
-                                                <input 
-                                                    type="number" 
-                                                    x-model.number="chartSettings.customDays" 
-                                                    @input.debounce.500ms="updateChart(); saveSeriesConfig()"
-                                                    placeholder="Days"
-                                                    class="w-16 px-2 py-2 text-xs font-bold border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500 outline-none dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100"
-                                                >
-                                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Days</span>
-                                            </div>
-                                        </template>
-                                    </div>
-                                </div>
-                                <div class="p-4 border-t border-slate-100 dark:border-slate-700">
-                                    <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest dark:text-slate-500 mb-2">Compare with other series</h3>
-                                    <div class="flex flex-row gap-2">
-                                        <multi-select 
-                                            class="flex-1"
-                                            :items="JSON.stringify(series.filter(s => s.id !== currentSeries.id).map(s => ({ id: s.id, label: s.name })))"
-                                            :selected-ids="JSON.stringify(chartSettings.compareSeriesIds || [])"
-                                            multi
-                                            @change="chartSettings.compareSeriesIds = $event.detail.selection; saveSeriesConfig(); updateChart()">
-                                        </multi-select>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <series-chart
+                        x-show="currentSeries"
+                        :series-id="currentSeries?.id"
+                        x-cloak>
+                    </series-chart>
                 </div>
 
                 <div x-show="detailSubView === 'calendar'" class="space-y-6" x-cloak>
@@ -360,144 +249,11 @@
                     x-cloak>
                 </series-history>
 
-                <div x-show="detailSubView === 'config'" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 dark:bg-slate-800 dark:border-slate-700" x-cloak>
-                    <div class="max-w-4xl space-y-8">
-                        <h3 class="text-lg font-bold text-slate-800 dark:text-slate-100">Configuration</h3>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div>
-                                <label class="block text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider dark:text-slate-500">Group</label>
-                                <select 
-                                    x-model="currentSeries.group" 
-                                    @change="updateSeriesName()" 
-                                    class="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 bg-slate-50 text-xs font-bold text-slate-700 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100"
-                                >
-                                    <option value="">No Group</option>
-                                    <template x-for="g in groups" :key="g.id">
-                                        <option :value="g.name" x-text="g.name" :selected="g.name === currentSeries.group"></option>
-                                    </template>
-                                </select>
-                            </div>
-
-                            <div class="space-y-6">
-                                <div class="flex items-center space-x-2 pb-2 border-b border-slate-100 dark:border-slate-700">
-                                    <i class="fa-solid fa-calculator text-indigo-500 text-xs"></i>
-                                    <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest dark:text-slate-500">Dashboard Summary</h4>
-                                </div>
-
-                                <div>
-                                    <label class="block text-[10px] font-bold text-slate-400 mb-3 uppercase tracking-wider dark:text-slate-500">Summary Configuration</label>
-                                    <div class="space-y-3" x-data="{ summaries: [] }" x-init="summaries = currentSeries.config?.summaries || [{ period: 'all', operation: 'mean' }]">
-                                        <template x-for="(summary, index) in summaries" :key="index">
-                                            <div class="flex gap-2 items-center">
-                                                <select 
-                                                    x-model="summary.period" 
-                                                    @change="updateSummaries()"
-                                                    class="flex-1 text-xs border border-slate-200 rounded-md px-2 py-1.5 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
-                                                    <option value="all">All Data</option>
-                                                    <option value="today">Today</option>
-                                                    <option value="week">Current Week</option>
-                                                    <option value="month">Current Month</option>
-                                                    <option value="quarter">Current Quarter</option>
-                                                    <option value="year">Current Year</option>
-                                                    <option value="custom">Custom Days</option>
-                                                </select>
-                                                
-                                                <select 
-                                                    x-model="summary.operation" 
-                                                    @change="updateSummaries()"
-                                                    class="flex-1 text-xs border border-slate-200 rounded-md px-2 py-1.5 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
-                                                    <option value="mean">Mean</option>
-                                                    <option value="sum">Sum</option>
-                                                    <option value="count">Count</option>
-                                                    <option value="min">Min</option>
-                                                    <option value="max">Max</option>
-                                                    <option value="median">Median</option>
-                                                    <option value="first">First</option>
-                                                    <option value="last">Last</option>
-                                                </select>
-                                                
-                                                <template x-if="summary.period === 'custom'">
-                                                    <div class="flex items-center space-x-1">
-                                                        <input 
-                                                            type="number" 
-                                                            x-model.number="summary.customDays" 
-                                                            @input="updateSummaries()"
-                                                            placeholder="Days"
-                                                            min="1"
-                                                            class="w-16 text-xs border border-slate-200 rounded-md px-2 py-1.5 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
-                                                        <span class="text-[10px] text-slate-400 dark:text-slate-500">days</span>
-                                                    </div>
-                                                </template>
-                                                
-                                                <button 
-                                                    @click="summaries.splice(index, 1); updateSummaries()"
-                                                    class="p-1 text-slate-400 hover:text-red-600 dark:text-slate-500 dark:hover:text-red-400">
-                                                    <i class="fa-solid fa-trash text-xs"></i>
-                                                </button>
-                                            </div>
-                                        </template>
-                                        
-                                        <button 
-                                            @click="summaries.push({ period: 'all', operation: 'mean' }); updateSummaries()"
-                                            class="text-xs text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center space-x-1">
-                                            <i class="fa-solid fa-plus"></i>
-                                            <span>Add Summary</span>
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div class="bg-indigo-50 border border-indigo-100 rounded-lg p-3 flex flex-col dark:bg-indigo-900/30 dark:border-indigo-800">
-                                    <span class="text-[8px] font-black text-indigo-400 uppercase tracking-tighter dark:text-indigo-300 mb-1">Preview</span>
-                                    <template x-if="currentSeries.summaryDisplay && Array.isArray(currentSeries.summaryDisplay)">
-                                        <div class="space-y-1">
-                                            <template x-for="(summary, index) in currentSeries.summaryDisplay" :key="index">
-                                                <div class="flex items-baseline">
-                                                    <span class="text-sm font-black text-indigo-600 truncate dark:text-indigo-400" 
-                                                          x-text="summary"></span>
-                                                </div>
-                                            </template>
-                                        </div>
-                                    </template>
-                                    <template x-if="!currentSeries.summaryDisplay || !Array.isArray(currentSeries.summaryDisplay)">
-                                        <span class="text-sm font-black text-indigo-600 truncate dark:text-indigo-400" 
-                                              x-text="currentSeries.summaryDisplay || 'No Data'"></span>
-                                    </template>
-                                </div>
-                            </div>
-
-                            <div class="space-y-6">
-                                <div class="flex items-center space-x-2 pb-2 border-b border-slate-100 dark:border-slate-700">
-                                    <i class="fa-solid fa-bolt text-indigo-500 text-xs"></i>
-                                    <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest dark:text-slate-500">Button Behavior</h4>
-                                </div>
-
-                                <div>
-                                    <label class="block text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider dark:text-slate-500">Quick Add (+) Action</label>
-                                    <select x-model="currentSeries.config.quickAddAction" @change="saveSeriesConfig()" class="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 bg-slate-50 text-xs font-bold text-slate-700 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
-                                        <option value="manual" :selected="'manual' === currentSeries.config.quickAddAction">Manual Entry Modal</option>
-                                        <template x-if="currentSeries.type === 'number'">
-                                            <option value="increment" :selected="'increment' === currentSeries.config.quickAddAction">One-Click (+1)</option>
-                                        </template>
-                                        <template x-if="currentSeries.type === 'time'">
-                                            <optgroup label="Time Shortcuts">
-                                            <option value="currentTime" :selected="'currentTime' === currentSeries.config.quickAddAction">Stamp Current Time</option>
-                                            <option value="chronometer" :selected="'chronometer' === currentSeries.config.quickAddAction">Start/Stop Chronometer</option>
-                                            </optgroup>
-                                        </template>
-                                    </select>
-                                </div>
-
-                                <div class="bg-slate-50 border border-slate-100 p-3 rounded-xl dark:bg-slate-700 dark:border-slate-600">
-                                    <p class="text-[10px] font-bold text-slate-400 uppercase mb-1 dark:text-slate-500">How it works</p>
-                                    <p class="text-[11px] text-slate-500 leading-relaxed italic dark:text-slate-400">
-                                        Sets the action triggered by the <span class="font-bold text-indigo-600 dark:text-indigo-400">plus (+)</span> icon on your dashboard for this series.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <series-configuration 
+                    x-show="detailSubView === 'config'"
+                    :series-id="currentSeries?.id"
+                    x-cloak>
+                </series-configuration>
             </div>
         </template>
     </main>
@@ -668,12 +424,12 @@
 
     <script type="module">
         import Alpine from 'https://unpkg.com/alpinejs@3.x.x/dist/module.esm.js'
-        import {formatDuration, secondsToDHMS, getFormattedISO, getRunningTime} from './utils.js';
-        import {calculateStats, getPeriodData, calculateRunningMetric, filterByRange, calculateSeriesSummary} from './analytics.js';
+        import {formatDuration, secondsToDHMS, getFormattedISO} from './utils.js';
+        import {calculateSeriesSummary} from './analytics.js';
         import chronosDB from './db.js';
         
         Alpine.data('app', () => ({
-            formatDuration, secondsToDHMS, getFormattedISO, getRunningTime,
+            formatDuration, secondsToDHMS, getFormattedISO,
             view: 'list', detailSubView: 'chart',
             series: [], groups: [], currentSeries: null, currentSeriesEntries: [],
             selectedGroups: [],
@@ -685,31 +441,13 @@
                 name: '', 
                 group: '', 
                 type: 'number', 
-                config: { 
-                    summaryMetrics: ['mean'],  // Default selected metrics
-                    summaries: [{ period: 'all', operation: 'mean' }],  // Default summary config
-                    quickAddAction: 'manual' 
-                } 
+                config: {summaryMetrics:[], summaries:[], quickAddAction:'manual'}
             },
             editingEntry: null, activeSeriesForEntry: null, 
             entryForm: { timestamp: '', value: '', notes: '', dhms: { d:0, h:0, m:0, s:0 } },
             toast: { show: false, message: '' },
-            chartSettings: { period: 'none', logScale: false, runningMetric: '', window: 7, range: 'all', customDays: 30, compareSeriesIds: [] },
-            analysisSelection: ['mean', 'dayMean', 'count'],
-            metrics: [
-                { id: 'mean', label: 'Mean', color: '#4f46e5' }, 
-                { id: 'dayMean', label: 'Day Mean', color: '#10b981' }, 
-                { id: 'sum', label: 'Sum', color: '#10b981' }, 
-                { id: 'count', label: 'Count', color: '#f59e0b' },
-                { id: 'min', label: 'Min', color: '#ef4444' }, { id: 'q1', label: 'Q1', color: '#8b5cf6' }, { id: 'median', label: 'Median', color: '#ec4899' },
-                { id: 'q3', label: 'Q3', color: '#06b6d4' }, { id: 'max', label: 'Max', color: '#1e293b' },
-                { id: 'first', label: 'First', color: '#6366f1' }, { id: 'last', label: 'Last', color: '#6366f1' }
-            ],
-            now: Date.now(),
             theme: localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
-            chartConfigCollapsed: false,
             init() {
-                setInterval(() => { this.now = Date.now(); }, 1000);
                 this.initTheme();
                 this.loadData();
                 
@@ -898,10 +636,6 @@
                     .sort((a, b) => a.name.localeCompare(b.name));
             },
 
-            getSeriesForGroup(group) {
-                return this.filteredSeries.filter(s => s.group === group.name);
-            },
-            
             openNewSeriesModal() { 
                 this.editingSeries = null; 
                 this.seriesForm = { name: '', group: '', type: 'number', config: { stat: 'mean', period: 'all', quickAddAction: 'manual' } }; 
@@ -941,41 +675,16 @@
             },
 
             async openSeriesDetail(series) {
-                this.currentSeries = series;
-                this.analysisSelection = (series.config && series.config.analysisSelection) 
-                    ? [...series.config.analysisSelection] 
-                    : ['mean', 'median', 'max', 'min'];
-                if (series.config && series.config.chartSettings) {
-                    this.chartSettings = { ...series.config.chartSettings };
-                    // Ensure compareSeriesIds exists
-                    if (!this.chartSettings.compareSeriesIds) {
-                        this.chartSettings.compareSeriesIds = [];
-                    }
-                } else {
-                    this.chartSettings = {
-                        period: 'none',
-                        runningMetric: '',
-                        window: 3,
-                        logScale: false,
-                        range: 'all',
-                        customDays: 30,
-                        compareSeriesIds: []
-                    };
-                }
-            
+                this.currentSeries = series;            
                 this.view = 'detail';
                 this.detailSubView = 'chart';
                 await this.loadEntries(series.id);
-                this.$nextTick(() => {
-                    this.updateChart();
-                });
             },
 
             async loadEntries(id) {
                 this.currentSeriesEntries = await chronosDB.getEntriesForSeries(id);
                 this.currentSeriesEntries.sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
                 this.recalculateSummaryDisplay();
-                if (this.detailSubView === 'chart') this.$nextTick(() => this.updateChart());
             },
 
             recalculateSummaryDisplay() {
@@ -1001,29 +710,6 @@
                 }
             },
 
-            updateSummaries() {
-                this.currentSeries.config.summaries = [...this.summaries];
-                this.saveSeriesConfig();
-            },
-            async saveSeriesConfig() {
-                if (!this.currentSeries) return;
-                this.currentSeries.config.analysisSelection = [...this.analysisSelection];
-                this.currentSeries.config.chartSettings = { ...this.chartSettings };
-                this.recalculateSummaryDisplay();
-                await chronosDB.saveSeries(this.currentSeries);
-                await this.loadSeries();
-            },
-
-            get activeStats() {
-                if (!this.currentSeriesEntries.length) return [];
-                const vals = this.currentSeriesEntries.map(e => e.value).sort((a,b) => a-b);
-                const s = calculateStats(vals, this.currentSeriesEntries.map(e => e.value), this.currentSeriesEntries);
-                return this.metrics.filter(m => this.analysisSelection.includes(m.id)).map(m => ({ 
-                    label: m.label, 
-                    value: this.currentSeries.type === 'time' ? formatDuration(s[m.id]) : (s[m.id] ? s[m.id].toLocaleString() : '0')
-                }));
-            },
-
             handleCalendarDayClick(d) {
                 this.activeSeriesForEntry = this.currentSeries;
                 this.editingEntry = null;
@@ -1034,283 +720,23 @@
                 this.modals.entry = true;
             },
 
-            changeSubView(v) { 
-                this.detailSubView = v; 
-                if (v === 'chart') this.$nextTick(() => this.updateChart());
-            },
+            changeSubView(v) { this.detailSubView = v; },
             
-            async updateChart() {
-                const chartElement = document.getElementById('seriesChart');
-                if (!chartElement || !this.currentSeriesEntries.length) return;
-                
-                // Calculate view days based on range
-                let viewDays = 0;
-                
-                const rangeConfig = {
-                    'day': 1,
-                    'week': 7,
-                    'month': 30,
-                    'quarter': 90,
-                    'year': 365
-                };
-                
-                if (this.chartSettings.range !== 'all') {
-                    if (this.chartSettings.range === 'custom' && this.chartSettings.customDays) {
-                        viewDays = this.chartSettings.customDays;
-                    } else if (rangeConfig[this.chartSettings.range]) {
-                        viewDays = rangeConfig[this.chartSettings.range];
+            async openAddEntryModal(series) {
+                const action = series.config?.quickAddAction;
+                if (action && action !== 'manual') {
+                    await chronosDB.quickAction(series);
+                    await this.loadSeries();
+                    if (this.currentSeries && this.currentSeries.id === series.id) {
+                        await this.loadEntries(series.id);
                     }
-                } else {
-                    // For "all" range, calculate from data
-                    if (this.currentSeriesEntries.length > 0) {
-                        const firstDate = new Date(this.currentSeriesEntries[0].timestamp);
-                        const lastDate = new Date(this.currentSeriesEntries[this.currentSeriesEntries.length - 1].timestamp);
-                        viewDays = Math.ceil((lastDate - firstDate) / (1000 * 60 * 60 * 24));
-                        if (viewDays < 1) viewDays = 1;
-                    }
-                }
-                
-                const datasets = [];
-                const rId = this.chartSettings.runningMetric;
-                const win = this.chartSettings.window;
-                
-                // Helper function to add a series to datasets
-                const addSeriesToDatasets = (entries, label, color, isComparison = false) => {
-                    if (this.chartSettings.period === 'none') {
-                        // Raw data
-                        const rawPoints = entries.map(e => ({
-                            x: e.timestamp,
-                            y: e.value
-                        }));
-                        
-                        datasets.push({
-                            label: label,
-                            data: rawPoints,
-                            borderColor: color,
-                            borderWidth: isComparison ? 1.5 : 2,
-                            tension: 0.2,
-                            borderDash: isComparison ? [10, 2] : []
-                        });
-                        
-                        // Add rolling statistics if enabled (only for primary series)
-                        if (!isComparison && rId && win >= 2 && entries.length >= win) {
-                            const runningPoints = [];
-                            for (let i = 0; i <= entries.length - win; i++) {
-                                const slice = entries.slice(i, i + win);
-                                const vals = slice.map(e => e.value).sort((a,b) => a-b);
-                                const stats = calculateStats(vals, [], slice);
-                                const midIdx = Math.floor(i + (win-1)/2);
-                                
-                                runningPoints.push({
-                                    x: entries[midIdx].timestamp,
-                                    y: stats[rId]
-                                });
-                            }
-                            
-                            if (runningPoints.length > 0) {
-                                datasets.push({
-                                    label: `Rolling ${this.metrics.find(m => m.id === rId)?.label || rId}`,
-                                    data: runningPoints,
-                                    borderColor: '#f59e0b',
-                                    borderDash: [10, 2],
-                                    borderWidth: 1.5,
-                                    pointRadius: 0,
-                                    hidePoints: true
-                                });
-                            }
-                        }
-                    } else {
-                        // Aggregated data by period
-                        const agg = getPeriodData(entries, this.chartSettings.period);
-                        
-                        if (isComparison) {
-                            // For comparison series, use a single metric (default to mean)
-                            const metricToUse = 'mean';
-                            const points = agg.labels.map((k, i) => ({
-                                x: k + (this.chartSettings.period === 'day' ? '' : ' 12:00:00.000Z'),
-                                y: agg.datasets[metricToUse][i]
-                            })).filter(point => point.y !== null);
-                            
-                            if (points.length > 0) {
-                                datasets.push({
-                                    label: `${label} (${metricToUse})`,
-                                    data: points,
-                                    borderColor: color,
-                                    borderWidth: 1.5,
-                                    borderDash: [10, 2],
-                                    tension: 0.2
-                                });
-                            }
-                        } else {
-                            // Primary series - use all selected metrics
-                            this.analysisSelection.forEach(mId => {
-                                const m = this.metrics.find(x => x.id === mId);
-                                const points = agg.labels.map((k, i) => ({
-                                    x: k + (this.chartSettings.period === 'day' ? '' : ' 12:00:00.000Z'),
-                                    y: agg.datasets[mId][i]
-                                })).filter(point => point.y !== null);
-                                
-                                if (points.length > 0) {
-                                    datasets.push({
-                                        label: m.label,
-                                        data: points,
-                                        borderColor: m.color,
-                                        borderWidth: 2,
-                                        tension: 0.2
-                                    });
-                                }
-                                
-                                // Rolling statistics for aggregated data (only for primary series)
-                                if (rId && win >= 2 && agg.labels.length >= win) {
-                                    const runningPoints = [];
-                                    const baseSource = agg.datasets[mId];
-                                    
-                                    for (let i = 0; i <= baseSource.length - win; i++) {
-                                        const slice = baseSource.slice(i, i + win).filter(v => v !== null);
-                                        if (slice.length === 0) continue;
-                                        
-                                        const sortedSlice = [...slice].sort((a, b) => a - b);
-                                        const stats = calculateStats(sortedSlice);
-                                        const midIdx = Math.floor(i + (win-1)/2);
-                                        
-                                        if (stats[rId] !== undefined) {
-                                            runningPoints.push({
-                                                x: agg.labels[midIdx] + (this.chartSettings.period === 'day' ? '' : ' 12:00:00.000Z'),
-                                                y: stats[rId]
-                                            });
-                                        }
-                                    }
-                                    
-                                    if (runningPoints.length > 0) {
-                                        datasets.push({
-                                            label: `Rolling ${m.label} (${rId})`,
-                                            data: runningPoints,
-                                            borderColor: m.color,
-                                            borderDash: [8, 4],
-                                            borderWidth: 1.5,
-                                            pointRadius: 0,
-                                            hidePoints: true
-                                        });
-                                    }
-                                }
-                            });
-                        }
-                    }
-                };
-                
-                // 1. Add Primary Series
-                addSeriesToDatasets(this.currentSeriesEntries, this.currentSeries.name, '#4f46e5', false);
-                
-                // 2. Add Comparison Series
-                if (this.chartSettings.compareSeriesIds?.length) {
-                    const comparisonColors = ['#ec4899', '#10b981', '#f59e0b', '#06b6d4', '#8b5cf6', '#14b8a6', '#f97316'];
-                    let colorIndex = 0;
-                    
-                    for (const compareId of this.chartSettings.compareSeriesIds) {
-                        const compareSeries = this.series.find(s => s.id === compareId);
-                        if (compareSeries) {
-                            const compareEntries = await chronosDB.getEntriesForSeries(compareId);
-                            if (compareEntries.length > 0) {
-                                const compareGroup = this.groups.find(g => g.name === compareSeries.group);
-                                // Use group color if available, otherwise use from palette
-                                const color = compareGroup ? compareGroup.color : comparisonColors[colorIndex % comparisonColors.length];
-                                
-                                addSeriesToDatasets(compareEntries, compareSeries.name, color, true);
-                                colorIndex++;
-                            }
-                        }
-                    }
-                }
-                
-                // Prepare chart data
-                const chartData = {
-                    datasets: datasets
-                };
-                
-                // Update the chronos-chart element
-                chartElement.options = {
-                    ...chartElement.options,
-                    logScale: this.chartSettings.logScale,
-                    darkMode: this.theme === 'dark',
-                    viewDays: viewDays,
-                    grid: { 
-                        show: true, 
-                        color: this.theme === 'dark' ? '#334155' : '#e5e7eb' 
-                    },
-                    axis: { 
-                        show: true, 
-                        color: this.theme === 'dark' ? '#cbd5e1' : '#6b7280',
-                        fontSize: 11
-                    },
-                    valueFormatter: (value) => {
-                        if (this.currentSeries?.type === 'time') {
-                            return formatDuration(value, true);
-                        }
-                        return Number(value).toLocaleString(undefined, { 
-                            maximumFractionDigits: 2 
-                        });
-                    }
-                };
-                
-                chartElement.data = chartData;
-            },
-            
-            async openAddEntryModal(s) { 
-                this.activeSeriesForEntry = s; 
-                const action = s.config?.quickAddAction || 'manual';
-
-                // Chronometer Logic
-                if (action === 'chronometer' && s.type === 'time') {
-                    const now = new Date();
-                    if (!s.startTime) {
-                        s.startTime = now.toISOString();
-                        await chronosDB.saveSeries(s);
-                        this.showToast('Chronometer Started');
-                        return;
-                    } else {
-                        const start = new Date(s.startTime);
-                        const elapsedSeconds = Math.floor((now - start) / 1000);
-                        s.startTime = null;
-                        this.editingEntry = null;
-                        this.entryForm = { 
-                            timestamp: getFormattedISO(now), 
-                            value: elapsedSeconds, 
-                            notes: `Elapsed: ${formatDuration(elapsedSeconds)}`,
-                            dhms: secondsToDHMS(elapsedSeconds) 
-                        };
-                        await this.saveEntry();
-                        this.showToast(`Recorded ${formatDuration(elapsedSeconds)}`);
-                        return;
-                    }
-                }
-
-                if (action === 'increment' && s.type === 'number') {
-                    const todayStr = new Date().toISOString().split('T')[0];
-                    const entries = await chronosDB.getEntriesForSeries(s.id);
-                    const todayEntry = entries.find(ent => ent.timestamp.startsWith(todayStr));
-                    if (todayEntry) {
-                        this.editingEntry = todayEntry;
-                        this.entryForm = { ...todayEntry, value: (todayEntry.value || 0) + 1 };
-                    } else {
-                        this.editingEntry = null;
-                        this.entryForm = { timestamp: getFormattedISO(), value: 1, notes: '' };
-                    }
-                    this.saveEntry();
                     return;
                 }
 
-                if (action === 'currentTime' && s.type === 'time') {
-                    const now = new Date();
-                    const secondsSinceMidnight = (now.getHours() * 3600) + (now.getMinutes() * 60) + now.getSeconds();
-                    this.editingEntry = null;
-                    this.entryForm = { timestamp: getFormattedISO(), value: secondsSinceMidnight, notes: '', dhms: secondsToDHMS(secondsSinceMidnight) };
-                    this.saveEntry();
-                    return;
-                }
-
-                this.editingEntry = null; 
-                this.entryForm = { timestamp: getFormattedISO(), value: '', notes: '', dhms: { d:0, h:0, m:0, s:0 } }; 
-                this.modals.entry = true; 
+                this.activeSeriesForEntry = series;
+                this.editingEntry = null;
+                this.entryForm = {timestamp: getFormattedISO(), value: 0, notes: '', dhms: { d: 0, h: 0, m: 0, s: 0 } };
+                this.modals.entry = true;
             },
             
             async saveEntry() {
