@@ -177,11 +177,13 @@ export class ChronosDB {
     async stop(chrono) {
         if (!this.isChrono(chrono)) { throw new Error('Series is not a chronometer'); }
         if (!this.isRunning(chrono)) { throw new Error('Chronometer is not running'); }
+        // Calculate elapsed time before clearing startTime
+        const elapsed = elapsedSeconds(chrono);
         chrono.startTime = null;
         await this.saveSeries(chrono);
         return await this.saveEntry({
             timestamp: getFormattedISO(new Date()),
-            value: elapsedSeconds(chrono),
+            value: elapsed,
             notes: '',
             seriesId: chrono.id
         });

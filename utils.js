@@ -36,7 +36,7 @@ export function formatMonth(d) { return format(d, 'MMMM yyyy'); }
 export function getFormattedISO(d = new Date()) { return format(d, 'yyyy-MM-dd HH:mm:ss'); }
 
 export function elapsedSeconds(s) {
-    if (!s.startTime) return '';
+    if (!s.startTime) return 0;
     const elapsedSeconds = differenceInSeconds(new Date(), new Date(s.startTime));
     return Math.max(0, elapsedSeconds);
 }
