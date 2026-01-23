@@ -57,6 +57,7 @@ class SeriesHistory extends HTMLElement {
 
     initTable() {
         const container = this.querySelector('#table-container');
+        const isTime = this._series.type === 'time';
         
         this.table = new Tabulator(container, {
             data: this._entries,
@@ -81,10 +82,16 @@ class SeriesHistory extends HTMLElement {
                     hozAlign: "right",
                     width: 100,
                     resizable: false,
-                    editor: "number",
+                    editor: isTime ? false : "number",
                     formatter: (cell) => {
                         const val = cell.getValue();
-                        return this._series.type === 'time' ? formatDuration(val) : val;
+                        return isTime ? formatDuration(val) : val;
+                    },
+                    cellClick: (e, cell) => {
+                        if (isTime) {
+                            e.stopPropagation();
+                            this.openDurationPicker(cell);
+                        }
                     }
                 },
                 { 
@@ -118,6 +125,33 @@ class SeriesHistory extends HTMLElement {
                 detail: { entry: updatedEntry } 
             }));
         });
+    }
+
+    async openDurationPicker(cell) {
+        const modal = document.getElementById('durationPickerModal');
+        if (!modal) {
+            console.error('Duration picker modal not found');
+            return;
+        }
+        
+        try {
+            const currentValue = cell.getValue();
+            const newValue = await modal.open(currentValue);
+            
+            // Update the cell value
+            cell.setValue(newValue);
+            
+            // Get the updated row data and dispatch event
+            const row = cell.getRow();
+            const updatedEntry = row.getData();
+            this.dispatchEvent(new CustomEvent('entry-updated', { 
+                detail: { entry: updatedEntry } 
+            }));
+            
+        } catch (error) {
+            // User cancelled or modal closed
+            console.log('Duration selection cancelled');
+        }
     }
 }
 

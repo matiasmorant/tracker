@@ -25,6 +25,7 @@
     <script type="module" src="./chronos-chart.js"></script>
     <script type="module" src="./series-chart.js"></script>
     <script type="module" src="./series-history.js"></script>
+    <script type="module" src="./duration-picker-modal.js"></script>
     <script type="module" src="./seriesConfig.js"></script>
     <script type="module" src="./groupcard.js"></script>
     <script type="module" src="./group-manager.js"></script>
@@ -371,6 +372,7 @@
             <button @click="toast.show = false" class="text-slate-400">&times;</button>
         </div>
     </div>
+    <duration-picker-modal id="durationPickerModal"></duration-picker-modal>
 
     <script type="module">
         import Alpine from 'https://unpkg.com/alpinejs@3.x.x/dist/module.esm.js'
