@@ -33,7 +33,7 @@ export class SeriesChart extends HTMLElement {
       { id: 'first', label: 'First', color: '#6366f1' },
       { id: 'last', label: 'Last', color: '#6366f1' }
     ];
-    this.chartConfigCollapsed = false;
+    this.chartConfigCollapsed = true;
     this.isDark = document.documentElement.classList.contains('dark');
   }
 
