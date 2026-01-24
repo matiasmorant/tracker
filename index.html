@@ -207,56 +207,62 @@
 
         <template x-if="view === 'detail'">
             <div class="flex-1 flex flex-col space-y-2">
-                <div class="flex items-center justify-between gap-4 py-2 border-b border-slate-200 dark:border-slate-700">                    
-                    <div class="flex bg-slate-100 p-1 rounded-xl border border-slate-200 dark:bg-slate-800 dark:border-slate-700">
-                        <template x-for="tab in [
-                            {id: 'chart', icon: 'fa-chart-line'},
-                            {id: 'calendar', icon: 'fa-calendar-days'},
-                            {id: 'history', icon: 'fa-table-list'},
-                            {id: 'config', icon: 'fa-gear'}
-                        ]">
-                            <button @click="changeSubView(tab.id)" 
-                                    :class="detailSubView === tab.id ? 'bg-white text-indigo-600 shadow-sm dark:bg-slate-700 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400'" 
-                                    class="px-3 py-1.5 rounded-lg text-sm transition-all flex justify-center items-center">
-                                <i class="fa-solid" :class="tab.icon"></i>
-                            </button>
-                        </template>
+                <div class="flex-1 flex flex-col md:flex-row md:items-start md:gap-4">
+                    <!-- Tabs container - will be on top in portrait, on right in landscape -->
+                    <div class="flex md:flex-col items-center justify-between md:justify-start gap-4 py-2 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-700 md:py-0 md:pr-4">                    
+                        <div class="flex md:flex-col bg-slate-100 p-1 rounded-xl border border-slate-200 dark:bg-slate-800 dark:border-slate-700">
+                            <template x-for="tab in [
+                                {id: 'chart', icon: 'fa-chart-line'},
+                                {id: 'calendar', icon: 'fa-calendar-days'},
+                                {id: 'history', icon: 'fa-table-list'},
+                                {id: 'config', icon: 'fa-gear'}
+                            ]">
+                                <button @click="changeSubView(tab.id)" 
+                                        :class="detailSubView === tab.id ? 'bg-white text-indigo-600 shadow-sm dark:bg-slate-700 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400'" 
+                                        class="px-3 py-1.5 rounded-lg text-sm transition-all flex justify-center items-center md:w-12 md:h-12">
+                                    <i class="fa-solid" :class="tab.icon"></i>
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Content area -->
+                    <div class="flex-1 flex flex-col min-w-0 h-full">
+                        <div x-show="detailSubView === 'chart'" class="flex-1 flex flex-col space-y-6">
+                            <series-chart
+                                class="flex-1 flex flex-col"
+                                x-show="currentSeries"
+                                :series-id="currentSeries?.id"
+                                x-cloak>
+                            </series-chart>
+                        </div>
+
+                        <div x-show="detailSubView === 'calendar'" class="space-y-6" x-cloak>
+                            <chronos-calendar
+                                x-show="detailSubView === 'calendar'"
+                                :series="JSON.stringify(currentSeries)"
+                                :entries="JSON.stringify(currentSeriesEntries)"
+                                @day-click="handleCalendarDayClick($event.detail)">
+                            </chronos-calendar>
+                        </div>
+
+                        <series-history 
+                            x-show="detailSubView === 'history'"
+                            :series="JSON.stringify(currentSeries)"
+                            :entries="JSON.stringify(currentSeriesEntries)"
+                            @add-entry-click="openAddEntryModal($event.detail.series)"
+                            @edit-entry-click="editEntry($event.detail.entry)"
+                            @delete-entry-click="deleteEntry($event.detail.id)"
+                            x-cloak>
+                        </series-history>
+
+                        <series-configuration 
+                            x-show="detailSubView === 'config'"
+                            :series-id="currentSeries?.id"
+                            x-cloak>
+                        </series-configuration>
                     </div>
                 </div>
-
-                <div x-show="detailSubView === 'chart'" class="flex-1 flex flex-col space-y-6">
-                    <series-chart
-                        class="flex-1 flex flex-col"
-                        x-show="currentSeries"
-                        :series-id="currentSeries?.id"
-                        x-cloak>
-                    </series-chart>
-                </div>
-
-                <div x-show="detailSubView === 'calendar'" class="space-y-6" x-cloak>
-                    <chronos-calendar
-                        x-show="detailSubView === 'calendar'"
-                        :series="JSON.stringify(currentSeries)"
-                        :entries="JSON.stringify(currentSeriesEntries)"
-                        @day-click="handleCalendarDayClick($event.detail)">
-                    </chronos-calendar>
-                </div>
-
-                <series-history 
-                    x-show="detailSubView === 'history'"
-                    :series="JSON.stringify(currentSeries)"
-                    :entries="JSON.stringify(currentSeriesEntries)"
-                    @add-entry-click="openAddEntryModal($event.detail.series)"
-                    @edit-entry-click="editEntry($event.detail.entry)"
-                    @delete-entry-click="deleteEntry($event.detail.id)"
-                    x-cloak>
-                </series-history>
-
-                <series-configuration 
-                    x-show="detailSubView === 'config'"
-                    :series-id="currentSeries?.id"
-                    x-cloak>
-                </series-configuration>
             </div>
         </template>
     </main>
