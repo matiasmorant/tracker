@@ -16,7 +16,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <link href="https://unpkg.com/tabulator-tables@5.6.1/dist/css/tabulator_modern.min.css" rel="stylesheet">
     <script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.6.1/dist/js/tabulator.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script type="module" src="./multiselect.js"></script>
     <script type="module" src="./calendar.js"></script>
     <script type="module" src="./db.js"></script>
@@ -54,50 +53,12 @@
             background: #475569; 
         }
 
-        /* Drag and drop styles */
-        .sortable-ghost {
-            opacity: 0.4;
-            background-color: #e0e7ff;
-        }
-        
-        .sortable-chosen {
-            background-color: #f3f4f6;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-        
-        .sortable-drag {
-            opacity: 0.8;
-            transform: rotate(2deg);
-        }
-        
-        .group-sort-handle {
-            cursor: move;
-            user-select: none;
-        }
-        
-        .sortable-handle {
-            cursor: move;
-            user-select: none;
-        }
-        
-        .no-drag {
-            cursor: default;
-        }
-        
         /* Dark mode transitions */
         * {
             transition: background-color 0.3s ease, border-color 0.3s ease;
             -webkit-user-select: none; /* Safari */
             -ms-user-select: none;      /* IE 10 and older */
             user-select: none;         /* Standard syntax */
-        }
-        
-        .dark .sortable-ghost {
-            background-color: #374151;
-        }
-        
-        .dark .sortable-chosen {
-            background-color: #4b5563;
         }
     </style>
     <!-- PWA -->
@@ -215,7 +176,7 @@
         <template x-if="view === 'list'">
             <div class="space-y-6">
                 <div class="py-1 border-b border-slate-200 flex flex-wrap items-center gap-y-3 dark:border-slate-700" :class="!showFilters ? 'gap-x-8' : ''" x-data="{ showFilters: true }">
-                    <div class="flex items-center gap-4">
+                    <div class="flex items-center">
                         <span @click="showFilters = !showFilters" 
                               class="text-[10px] font-bold text-slate-400 tracking-widest dark:text-slate-500 cursor-pointer hover:text-indigo-600 transition-colors select-none">
                             FILTER
@@ -231,9 +192,9 @@
                     </div>
                 </div>
 
-                <div class="columns-1 min-[400px]:columns-2 md:columns-3 lg:columns-4 gap-3" id="groups-container">
+                <div class="columns-1 min-[400px]:columns-2 md:columns-3 lg:columns-4 gap-3">
                     <template x-for="group in filteredGroups" :key="group.id">
-                        <div class="break-inside-avoid mb-3 group-card-item" :data-group-name="group.name">
+                        <div class="break-inside-avoid mb-3">
                             <group-card
                                 :group="JSON.stringify(group)"
                                 @series-click="openSeriesDetail($event.detail.series)"
@@ -434,8 +395,6 @@
             view: 'list', detailSubView: 'chart',
             series: [], groups: [], currentSeries: null, currentSeriesEntries: [],
             selectedGroups: [],
-            sortPreferences: {}, // Store sorting preferences per group
-            sortableInstances: [], // Store Sortable instances
             modals: { series: false, entry: false, group: false },
             editingSeries: null, 
             seriesForm: { 
@@ -455,12 +414,6 @@
                 const savedGroups = localStorage.getItem('chronos_selectedGroups');
                 if (savedGroups) this.selectedGroups = JSON.parse(savedGroups);
                 
-                // Load sorting preferences
-                const savedSortPrefs = localStorage.getItem('chronos_sortPreferences');
-                if (savedSortPrefs) this.sortPreferences = JSON.parse(savedSortPrefs);
-                
-                // Initialize drag and drop (always enabled)
-                this.initializeGroupSortable();
             },
 
             async loadData() {
@@ -746,86 +699,6 @@
                     await chronosDB.deleteEntry(id);
                     await this.loadEntries(this.currentSeries.id);
                 } 
-            },
-
-            // Sorting methods for group cards (always enabled)
-            initializeGroupSortable() {
-                // Destroy any existing Sortable instances
-                this.destroySortable();
-                
-                // Initialize Sortable for the groups container
-                this.$nextTick(() => {
-                    const groupsContainer = document.getElementById('groups-container');
-                    if (!groupsContainer) return;
-                    
-                    const sortable = Sortable.create(groupsContainer, {
-                        animation: 150,
-                        ghostClass: 'sortable-ghost',
-                        chosenClass: 'sortable-chosen',
-                        dragClass: 'sortable-drag',
-                        onEnd: (evt) => {
-                            this.handleGroupSortEnd(evt.oldIndex, evt.newIndex);
-                        }
-                    });
-                    
-                    // Store reference to destroy later
-                    this.sortableInstances = [sortable];
-                    
-                    // Apply saved group order if exists
-                    this.applySavedGroupOrder();
-                });
-            },
-            
-            destroySortable() {
-                if (this.sortableInstances) {
-                    this.sortableInstances.forEach(instance => instance.destroy());
-                    this.sortableInstances = [];
-                }
-            },
-            
-            handleGroupSortEnd(oldIndex, newIndex) {
-                if (oldIndex === newIndex) return;
-                
-                // Get the current filtered groups
-                const currentGroups = [...this.filteredGroups];
-                
-                // Reorder the groups
-                const [movedItem] = currentGroups.splice(oldIndex, 1);
-                currentGroups.splice(newIndex, 0, movedItem);
-                
-                // Update sort preferences
-                this.sortPreferences.groupOrder = currentGroups.map(g => g.name);
-                localStorage.setItem('chronos_sortPreferences', JSON.stringify(this.sortPreferences));
-                
-                this.showToast('Group order saved');
-            },
-            
-            applySavedGroupOrder() {
-                const groupOrder = this.sortPreferences.groupOrder;
-                if (!groupOrder || !Array.isArray(groupOrder)) return;
-                
-                const groupsContainer = document.getElementById('groups-container');
-                if (!groupsContainer) return;
-                
-                // Get all group card items
-                const groupItems = Array.from(groupsContainer.querySelectorAll('.group-card-item'));
-                
-                // Sort group items based on saved order
-                groupItems.sort((a, b) => {
-                    const aName = a.getAttribute('data-group-name');
-                    const bName = b.getAttribute('data-group-name');
-                    const aIndex = groupOrder.indexOf(aName);
-                    const bIndex = groupOrder.indexOf(bName);
-                    
-                    // If a group is not in the saved order, put it at the end
-                    if (aIndex === -1) return 1;
-                    if (bIndex === -1) return -1;
-                    
-                    return aIndex - bIndex;
-                });
-                
-                // Reappend group items in correct order
-                groupItems.forEach(item => groupsContainer.appendChild(item));
             },
 
             showToast(m) { this.toast.message = m; this.toast.show = true; setTimeout(() => this.toast.show = false, 3000); }

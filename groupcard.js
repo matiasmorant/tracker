@@ -191,16 +191,13 @@ export class GroupCard extends HTMLElement {
                  style="border-color: ${this.group.color}40;background-color: ${this.group.color}12;">
                 
                 <div class="px-3 pt-1 border-b flex justify-between items-center">
-                    <div class="flex items-center space-x-2">
-                        <span class="text-[10px] font-bold uppercase tracking-widest truncate" 
-                              style="color: ${this.group.color}">${this.group.name}</span>
-                    </div>
+                    <span class="text-[10px] font-bold uppercase tracking-widest truncate" 
+                          style="color: ${this.group.color}">${this.group.name}</span>
                 </div>
 
                 <div class="flex flex-col divide-y divide-slate-100 dark:divide-slate-700">
                     ${groupSeries.map(series => `
-                        <div class="series-row px-3 py-1 dark:hover:bg-slate-700/50 cursor-pointer flex items-center justify-between transition-colors"
-                             data-series-id="${series.id}">
+                        <div class="series-row px-3 py-1 dark:hover:bg-slate-700/50 cursor-pointer flex items-center justify-between transition-colors">
                             <div class="flex flex-col min-w-0 flex-1">
                                 <div class="font-bold text-sm text-slate-800 truncate dark:text-slate-100 mb-0.5">${series.name}</div>
                                 
@@ -223,7 +220,7 @@ export class GroupCard extends HTMLElement {
                                 </div>
                             </div>
 
-                            <button class="ml-3 p-2 rounded-lg transition-colors no-drag ${this.getButtonClasses(series)}">
+                            <button class="ml-3 p-2 rounded-lg transition-colors ${this.getButtonClasses(series)}">
                                 ${this.getButtonContent(series)}
                             </button>
                         </div>
