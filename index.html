@@ -18,7 +18,7 @@
     <script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.6.1/dist/js/tabulator.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script type="module" src="./multiselect.js"></script>
-<script type="module" src="./calendar.js"></script>
+    <script type="module" src="./calendar.js"></script>
     <script type="module" src="./db.js"></script>
     <script type="module" src="./seriecard.js"></script>
     <script type="module" src="./analytics.js"></script>
@@ -98,43 +98,6 @@
         
         .dark .sortable-chosen {
             background-color: #4b5563;
-        }
-
-        /* Long press drag and drop styles */
-        .group-card-item {
-            position: relative;
-            transition: transform 0.2s ease;
-            touch-action: pan-y; /* Allow vertical scrolling but prevent horizontal */
-        }
-
-        .group-card-item:active {
-            transform: scale(0.98);
-        }
-
-        .long-press-active {
-            animation: pulse 0.5s infinite alternate;
-        }
-
-        @keyframes pulse {
-            from {
-                box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4);
-            }
-            to {
-                box-shadow: 0 0 0 10px rgba(99, 102, 241, 0);
-            }
-        }
-
-        .drag-mode-active .group-card-item {
-            cursor: grab;
-        }
-
-        .drag-mode-active .group-card-item:active {
-            cursor: grabbing;
-        }
-        
-        .group-card-item.drag-handle-active {
-            cursor: move;
-            background-color: rgba(99, 102, 241, 0.05);
         }
     </style>
     <!-- PWA -->
@@ -269,16 +232,8 @@
                 </div>
 
                 <div class="columns-1 min-[400px]:columns-2 md:columns-3 lg:columns-4 gap-3" id="groups-container">
-                    <template x-for="(group, index) in filteredGroups" :key="group.id">
-                        <div class="break-inside-avoid mb-3 group-card-item" 
-                             :data-group-name="group.name"
-                             :data-group-index="index"
-                             :class="dragEnabled ? 'drag-mode-active' : ''"
-                             @pointerdown="handlePointerDown($event, group, index)"
-                             @pointerup="handlePointerUp($event)"
-                             @pointercancel="handlePointerCancel($event)"
-                             @pointerleave="handlePointerLeave($event)"
-                             @pointermove="handlePointerMove($event)">
+                    <template x-for="group in filteredGroups" :key="group.id">
+                        <div class="break-inside-avoid mb-3 group-card-item" :data-group-name="group.name">
                             <group-card
                                 :group="JSON.stringify(group)"
                                 @series-click="openSeriesDetail($event.detail.series)"
@@ -481,16 +436,6 @@
             selectedGroups: [],
             sortPreferences: {}, // Store sorting preferences per group
             sortableInstances: [], // Store Sortable instances
-            dragEnabled: false,
-            isLongPressMode: false,
-            longPressTimer: null,
-            longPressDuration: 500, // milliseconds
-            activePointerId: null, // Track which pointer is active
-            draggingElement: null, // Track which element is being dragged
-            dragStartPosition: { x: 0, y: 0 },
-            dragStartIndex: null, // Track the index of the element being dragged
-            pendingDragElement: null, // Element waiting to start dragging
-            pendingDragIndex: null, // Index of element waiting to start dragging
             modals: { series: false, entry: false, group: false },
             editingSeries: null, 
             seriesForm: { 
@@ -514,27 +459,8 @@
                 const savedSortPrefs = localStorage.getItem('chronos_sortPreferences');
                 if (savedSortPrefs) this.sortPreferences = JSON.parse(savedSortPrefs);
                 
-                // Initialize drag and drop (disabled by default)
+                // Initialize drag and drop (always enabled)
                 this.initializeGroupSortable();
-                
-                // Start long-press detection after groups are rendered
-                this.$nextTick(() => {
-                    this.startLongPressDetection();
-                });
-                
-                // Escape key disables drag
-                document.addEventListener('keydown', (e) => {
-                    if (e.key === 'Escape' && this.dragEnabled) {
-                        this.disableDragAndDrop();
-                    }
-                });
-                
-                // Click outside disables drag (except when dragging)
-                document.addEventListener('pointerdown', (e) => {
-                    if (this.dragEnabled && !e.target.closest('.group-card-item')) {
-                        this.disableDragAndDrop();
-                    }
-                });
             },
 
             async loadData() {
@@ -822,231 +748,34 @@
                 } 
             },
 
-            // Pointer event handlers for long press
-            handlePointerDown(event, group, index) {
-                // Only handle primary pointer (left mouse button or first touch)
-                if (event.button !== 0 && event.pointerType === 'mouse') return;
-                
-                // If drag is already enabled, let Sortable handle it
-                if (this.dragEnabled) return;
-                
-                // Store the pointer ID
-                this.activePointerId = event.pointerId;
-                
-                // Capture references BEFORE the timeout
-                const element = event.currentTarget;
-                const clientX = event.clientX;
-                const clientY = event.clientY;
-                
-                // Store which element might be dragged
-                this.draggingElement = element;
-                this.dragStartPosition = { x: clientX, y: clientY };
-                this.dragStartIndex = index;
-                
-                // Start long press timer with captured references
-                this.longPressTimer = setTimeout(() => {
-                    // Enable drag mode AND immediately start dragging this element
-                    this.startDragOnElement(element, index, clientX, clientY);
-                    
-                    // Add visual feedback
-                    element.classList.add('drag-handle-active');
-                    
-                    // Prevent default behavior
-                    event.preventDefault();
-                }, this.longPressDuration);
-            },
-
-            handlePointerUp(event) {
-                // Only handle the active pointer
-                if (event.pointerId !== this.activePointerId) return;
-                
-                this.cancelLongPress();
-                
-                // Remove visual feedback
-                if (this.draggingElement) {
-                    this.draggingElement.classList.remove('drag-handle-active');
-                }
-                
-                this.activePointerId = null;
-                this.draggingElement = null;
-                this.dragStartIndex = null;
-            },
-
-            handlePointerCancel(event) {
-                // Only handle the active pointer
-                if (event.pointerId !== this.activePointerId) return;
-                
-                this.cancelLongPress();
-                
-                // Remove visual feedback
-                if (this.draggingElement) {
-                    this.draggingElement.classList.remove('drag-handle-active');
-                }
-                
-                this.activePointerId = null;
-                this.draggingElement = null;
-                this.dragStartIndex = null;
-            },
-
-            handlePointerLeave(event) {
-                // Only handle the active pointer
-                if (event.pointerId !== this.activePointerId) return;
-                
-                // Don't cancel long press if pointer leaves, just track it
-            },
-
-            handlePointerMove(event) {
-                // If we're waiting for long press and pointer has moved too much, cancel
-                if (this.longPressTimer && this.dragStartPosition) {
-                    const moveThreshold = 10; // pixels
-                    const dx = Math.abs(event.clientX - this.dragStartPosition.x);
-                    const dy = Math.abs(event.clientY - this.dragStartPosition.y);
-                    
-                    if (dx > moveThreshold || dy > moveThreshold) {
-                        this.cancelLongPress();
-                        if (this.draggingElement) {
-                            this.draggingElement.classList.remove('drag-handle-active');
-                        }
-                    }
-                }
-            },
-
-            cancelLongPress() {
-                if (this.longPressTimer) {
-                    clearTimeout(this.longPressTimer);
-                    this.longPressTimer = null;
-                }
-            },
-
-            startDragOnElement(element, index, clientX, clientY) {
-                // First enable drag mode
-                this.dragEnabled = true;
-                
-                // Enable the Sortable instance
-                if (this.sortableInstances[0]) {
-                    const sortable = this.sortableInstances[0];
-                    sortable.option('disabled', false);
-                    
-                    // Now trigger the drag start on the specific element
-                    this.$nextTick(() => {
-                        // Create a simulated event to trigger drag
-                        const dragStartEvent = new MouseEvent('mousedown', {
-                            bubbles: true,
-                            cancelable: true,
-                            clientX: clientX,
-                            clientY: clientY,
-                            button: 0,
-                            view: window
-                        });
-                        
-                        // Dispatch the event on the element
-                        element.dispatchEvent(dragStartEvent);
-                        
-                        // After a short delay, trigger a mousemove to start dragging
-                        setTimeout(() => {
-                            const dragMoveEvent = new MouseEvent('mousemove', {
-                                bubbles: true,
-                                cancelable: true,
-                                clientX: clientX + 5,
-                                clientY: clientY + 5,
-                                button: 0,
-                                view: window
-                            });
-                            
-                            document.dispatchEvent(dragMoveEvent);
-                        }, 10);
-                    });
-                }
-                
-                // Visual feedback
-                document.body.style.cursor = 'grab';
-                this.showToast('Drag mode enabled - move to reorder');
-                
-                // Add overlay to indicate drag mode
-                const overlay = document.createElement('div');
-                overlay.id = 'drag-overlay';
-                overlay.style.cssText = `
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    background: rgba(99, 102, 241, 0.1);
-                    z-index: 9998;
-                    pointer-events: none;
-                `;
-                document.body.appendChild(overlay);
-            },
-
-            // Long press drag and drop methods
+            // Sorting methods for group cards (always enabled)
             initializeGroupSortable() {
                 // Destroy any existing Sortable instances
                 this.destroySortable();
                 
+                // Initialize Sortable for the groups container
                 this.$nextTick(() => {
                     const groupsContainer = document.getElementById('groups-container');
                     if (!groupsContainer) return;
                     
-                    // Initialize Sortable but disable it initially
                     const sortable = Sortable.create(groupsContainer, {
                         animation: 150,
                         ghostClass: 'sortable-ghost',
                         chosenClass: 'sortable-chosen',
                         dragClass: 'sortable-drag',
-                        disabled: true, // Initially disabled
-                        delay: 200, // Small delay to prevent accidental drags
-                        delayOnTouchOnly: false,
-                        onStart: (evt) => {
-                            // When drag starts, show visual feedback
-                            document.body.style.cursor = 'grabbing';
-                            // Remove any active visual feedback
-                            document.querySelectorAll('.drag-handle-active').forEach(el => {
-                                el.classList.remove('drag-handle-active');
-                            });
-                        },
                         onEnd: (evt) => {
-                            document.body.style.cursor = '';
                             this.handleGroupSortEnd(evt.oldIndex, evt.newIndex);
-                            this.disableDragAndDrop(); // Disable after drag ends
                         }
                     });
                     
+                    // Store reference to destroy later
                     this.sortableInstances = [sortable];
+                    
+                    // Apply saved group order if exists
                     this.applySavedGroupOrder();
                 });
             },
-
-            disableDragAndDrop() {
-                if (!this.dragEnabled) return;
-                
-                this.dragEnabled = false;
-                
-                // Disable the Sortable instance
-                if (this.sortableInstances[0]) {
-                    this.sortableInstances[0].option('disabled', true);
-                }
-                
-                // Remove visual feedback
-                document.body.style.cursor = '';
-                
-                // Remove overlay
-                const overlay = document.getElementById('drag-overlay');
-                if (overlay) {
-                    overlay.remove();
-                }
-                
-                // Remove any active visual feedback
-                document.querySelectorAll('.drag-handle-active').forEach(el => {
-                    el.classList.remove('drag-handle-active');
-                });
-                
-                // Clear dragging element
-                this.draggingElement = null;
-                this.dragStartIndex = null;
-                
-                this.showToast('Drag mode disabled');
-            },
-
+            
             destroySortable() {
                 if (this.sortableInstances) {
                     this.sortableInstances.forEach(instance => instance.destroy());
