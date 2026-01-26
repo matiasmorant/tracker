@@ -29,6 +29,7 @@
     <script type="module" src="./seriesConfig.js"></script>
     <script type="module" src="./groupcard.js"></script>
     <script type="module" src="./group-manager.js"></script>
+    <script type="module" src="./dashboard.js"></script>
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -174,38 +175,12 @@
 
     <main class="flex-1 flex flex-col px-4 pb-1">
         <template x-if="view === 'list'">
-            <div class="space-y-6">
-                <div class="py-1 border-b border-slate-200 flex flex-wrap items-center gap-y-3 dark:border-slate-700" :class="!showFilters ? 'gap-x-8' : ''" x-data="{ showFilters: true }">
-                    <div class="flex items-center">
-                        <span @click="showFilters = !showFilters" 
-                              class="text-[10px] font-bold text-slate-400 tracking-widest dark:text-slate-500 cursor-pointer hover:text-indigo-600 transition-colors select-none">
-                            FILTER
-                        </span>
-                        <div x-show="showFilters" x-collapse>
-                            <multi-select class="max-w-44 ml-2"
-                                :items="JSON.stringify(groups.map(g => ({ id: g.name, label: g.name, color: g.color })))"
-                                :selected-ids="JSON.stringify(selectedGroups)"
-                                multi
-                                @change="selectedGroups = $event.detail.selection; localStorage.setItem('chronos_selectedGroups', JSON.stringify(selectedGroups))">
-                            </multi-select>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="columns-1 min-[400px]:columns-2 md:columns-3 lg:columns-4 gap-3">
-                    <template x-for="group in filteredGroups" :key="group.id">
-                        <div class="break-inside-avoid mb-3">
-                            <group-card
-                                :group="JSON.stringify(group)"
-                                @series-click="openSeriesDetail($event.detail.series)"
-                                @add-entry-click="openAddEntryModal($event.detail.series)"
-                                @series-updated="loadSeries()"
-                                @entry-created="loadSeries(); if(currentSeries && currentSeries.id === $event.detail.series.id) loadEntries(currentSeries.id)">
-                            </group-card>
-                        </div>
-                    </template>
-                </div>
-            </div>
+            <dashboard-view
+                @series-click="openSeriesDetail($event.detail.series)"
+                @add-entry-click="openAddEntryModal($event.detail.series)"
+                @series-updated="loadSeries()"
+                @entry-created="loadSeries(); if(currentSeries && currentSeries.id === $event.detail.series.id) loadEntries(currentSeries.id)">
+            </dashboard-view>
         </template>
 
         <template x-if="view === 'detail'">
@@ -394,7 +369,6 @@
             formatDuration, secondsToDHMS, getFormattedISO,
             view: 'list', detailSubView: 'chart',
             series: [], groups: [], currentSeries: null, currentSeriesEntries: [],
-            selectedGroups: [],
             modals: { series: false, entry: false, group: false },
             editingSeries: null, 
             seriesForm: { 
@@ -410,10 +384,6 @@
             init() {
                 this.initTheme();
                 this.loadData();
-                
-                const savedGroups = localStorage.getItem('chronos_selectedGroups');
-                if (savedGroups) this.selectedGroups = JSON.parse(savedGroups);
-                
             },
 
             async loadData() {
@@ -521,36 +491,7 @@
                 this.series = await chronosDB.getAllSeries();
             },
 
-            get filteredSeries() {
-                let res = this.series.filter(s => this.selectedGroups.length === 0 || this.selectedGroups.includes(s.group || ''));
-                // Sort by group first, then by name within each group
-                return res.sort((a, b) => {
-                    const groupA = (a.group || '').toLowerCase();
-                    const groupB = (b.group || '').toLowerCase();
-                    
-                    if (groupA !== groupB) {
-                        return groupA.localeCompare(groupB);
-                    }
-                    
-                    // Same group, sort by name
-                    return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
-                });
-            },
 
-            get filteredGroups() {
-                // Get unique groups from filtered series
-                const filteredSeries = this.filteredSeries;
-                const groupNames = [...new Set(filteredSeries.map(s => s.group).filter(g => g))];
-                
-                // Create group objects with their series
-                return this.groups
-                    .filter(g => groupNames.includes(g.name))
-                    .map(group => ({
-                        ...group,
-                        seriesCount: filteredSeries.filter(s => s.group === group.name).length
-                    }))
-                    .sort((a, b) => a.name.localeCompare(b.name));
-            },
 
             openNewSeriesModal() { 
                 this.editingSeries = null; 

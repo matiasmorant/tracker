@@ -55,27 +55,31 @@ export class GroupCard extends HTMLElement {
     async refreshAllSummaries() {
         const groupSeries = this.getGroupSeries();
         for (const series of groupSeries) {
-            const entries = await chronosDB.getEntriesForSeries(series.id);
-            
-            if (series.config?.summaries && Array.isArray(series.config.summaries)) {
-                const summaries = series.config.summaries.map(summaryConfig => {
-                    return calculateSeriesSummary(
-                        series,
-                        entries,
-                        formatDuration.bind(this),
-                        summaryConfig
-                    );
-                }).filter(summary => summary && summary.trim() !== '');
-                
-                series.summaries = summaries;
-            } else {
-                const singleSummary = calculateSeriesSummary(
+            await this.refreshSeriesSummary(series);
+        }
+    }
+
+    async refreshSeriesSummary(series) {
+        const entries = await chronosDB.getEntriesForSeries(series.id);
+        
+        if (series.config?.summaries && Array.isArray(series.config.summaries)) {
+            const summaries = series.config.summaries.map(summaryConfig => {
+                return calculateSeriesSummary(
                     series,
                     entries,
-                    formatDuration.bind(this)
+                    formatDuration.bind(this),
+                    summaryConfig
                 );
-                series.summaries = singleSummary ? [singleSummary] : [];
-            }
+            }).filter(summary => summary && summary.trim() !== '');
+            
+            series.summaries = summaries;
+        } else {
+            const singleSummary = calculateSeriesSummary(
+                series,
+                entries,
+                formatDuration.bind(this)
+            );
+            series.summaries = singleSummary ? [singleSummary] : [];
         }
     }
 
@@ -90,8 +94,8 @@ export class GroupCard extends HTMLElement {
     }
 
     async handleSeriesUpdate(series) { 
-        await this.refreshAllSummaries();
-        this.render();
+        await this.refreshSeriesSummary(series);
+        this.updateSeriesRow(series);
         this.eventSend('entry-created', series);
         this.eventSend('series-updated', series);
     }
@@ -136,6 +140,46 @@ export class GroupCard extends HTMLElement {
         // Now using internally fetched series
         const source = this.filteredSeries.length > 0 ? this.filteredSeries : this.series;
         return source.filter(s => s.group === this.group?.name);
+    }
+
+    updateSeriesRow(updatedSeries) {
+        const groupSeries = this.getGroupSeries();
+        const seriesIndex = groupSeries.findIndex(s => s.id === updatedSeries.id);
+        
+        if (seriesIndex === -1) return;
+        
+        const rows = this.querySelectorAll('.series-row');
+        const targetRow = rows[seriesIndex];
+        
+        if (!targetRow) return;
+        
+        const series = groupSeries[seriesIndex];
+        
+        // Update the summary display
+        const summaryContainer = targetRow.querySelector('.summary-container, .running-indicator');
+        if (summaryContainer) {
+            if (chronosDB.isChrono(series) && chronosDB.isRunning(series)) {
+                summaryContainer.className = 'flex items-baseline running-indicator';
+                summaryContainer.innerHTML = `
+                    <span class="text-[11px] font-black text-red-600 dark:text-red-400 running-time">
+                        ${getRunningTime(series)}
+                    </span>
+                    <span class="text-[9px] font-bold text-red-400 uppercase ml-1.5 dark:text-red-300">Running</span>
+                `;
+            } else {
+                summaryContainer.className = 'summary-container';
+                summaryContainer.innerHTML = series.summaries && series.summaries.length > 0 ? 
+                    series.summaries.map(s => this.formatSummaryDisplay(s)).join('') : 
+                    `<span class="text-[9px] text-slate-300 italic dark:text-slate-600">No data</span>`;
+            }
+        }
+        
+        // Update button
+        const button = targetRow.querySelector('button');
+        if (button) {
+            button.className = `ml-3 p-2 rounded-lg transition-colors ${this.getButtonClasses(series)}`;
+            button.innerHTML = this.getButtonContent(series);
+        }
     }
 
     formatSummaryDisplay(summaryText) {
