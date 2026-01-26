@@ -250,13 +250,6 @@
         <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm" @click="modals.group = false"></div>
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-md relative z-10 overflow-hidden dark:bg-slate-800">
           <group-manager @groups-updated="loadData()"></group-manager>
-          <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end dark:bg-slate-700 dark:border-slate-600">
-            <button 
-              @click="modals.group = false"
-              class="text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors dark:text-slate-400 dark:hover:text-slate-300">
-              Close
-            </button>
-          </div>
         </div>
       </div>
     </div>

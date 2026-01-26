@@ -71,6 +71,11 @@ class GroupManager extends HTMLElement {
           
           <div class="flex gap-2">
             <button 
+              data-cancel-group
+              class="flex-1 bg-slate-200 text-slate-700 px-4 py-2 rounded-lg font-medium text-sm transition-colors hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-300 dark:hover:bg-slate-500">
+              Cancel
+            </button>
+            <button 
               data-save-group
               class="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors hover:bg-indigo-700 dark:bg-indigo-700 dark:hover:bg-indigo-600">
               Save Group
@@ -137,6 +142,13 @@ class GroupManager extends HTMLElement {
     // Save group
     this.querySelector('[data-save-group]')?.addEventListener('click', () => {
       this.saveGroup(true); // true means exit editing mode
+    });
+
+    // Cancel button
+    this.querySelector('[data-cancel-group]')?.addEventListener('click', () => {
+      this.showAddForm = false;
+      this.editingGroup = null;
+      this.updateFormVisibility();
     });
 
     // Enter key in name field
