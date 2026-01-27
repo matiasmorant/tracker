@@ -136,7 +136,7 @@
                             </div>
                         </div>
                         <div class="w-px h-6 bg-slate-200 dark:bg-slate-700"></div>
-                        <button @click="modals.group = true; $nextTick(() => { const modal = document.querySelector('group-manager'); if (modal) modal.resetForm(); })" class="text-slate-600 hover:text-indigo-600 text-sm font-medium dark:text-slate-300 dark:hover:text-indigo-400">Groups</button>
+                        <button @click="modals.group = true; $nextTick(() => { const modal = document.querySelector('group-manager'); console.log(modal);if (modal) modal.resetForm(); })" class="text-slate-600 hover:text-indigo-600 text-sm font-medium dark:text-slate-300 dark:hover:text-indigo-400">Groups</button>
                         <button @click="openNewSeriesModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm dark:bg-indigo-700 dark:hover:bg-indigo-600">
                             + New Series
                         </button>
@@ -248,18 +248,18 @@
         </template>
     </main>
 
-    <modal-wrapper x-show="modals.group" x-cloak>
+    <modal-wrapper x-show="modals.group" @modal-closed="modals.group = false" x-cloak>
       <group-manager @groups-updated="loadData()"></group-manager>
     </modal-wrapper>
 
-    <modal-wrapper x-show="modals.series" x-cloak>
+    <modal-wrapper x-show="modals.series" @modal-closed="modals.series = false" x-cloak>
       <series-modal
         @series-saved="modals.series = false; loadSeries();"
         @modal-closed="modals.series = false">
       </series-modal>
     </modal-wrapper>
 
-    <modal-wrapper x-show="modals.entry" x-cloak>
+    <modal-wrapper x-show="modals.entry" @modal-closed="modals.entry = false" x-cloak>
       <entry-modal
         @entry-saved="modals.entry = false; loadSeries(); if(currentSeries && currentSeries.id === $event.detail.series.id) loadEntries(currentSeries.id);"
         @modal-closed="modals.entry = false">
