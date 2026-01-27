@@ -2,6 +2,7 @@ import m from 'https://esm.sh/mithril';
 import { formatDuration, getFormattedISO, getRunningTime } from './utils.js';
 import { calculateSeriesSummary } from './analytics.js';
 import chronosDB from './db.js';
+import GroupCard from './groupcard.js';
 
 // We assume <group-card> and <multi-select> are either other Mithril components 
 // or custom elements. For this reimplementation, we'll treat them as 
@@ -14,6 +15,7 @@ const Dashboard = {
     groups: [],
     selectedGroups: [],
     updateInterval: null,
+    groupSeriesData: new Map(), // Cache for series data per group
 
     // --- Data Logic ---
     async loadData() {
@@ -22,10 +24,22 @@ const Dashboard = {
         
         this.series = await chronosDB.getAllSeries();
         
+        // Load series data for all groups
+        for (const group of this.groups) {
+            const seriesData = await this.getSeriesWithSummaries(group.name);
+            this.groupSeriesData.set(group.name, seriesData);
+        }
+        
         const savedGroups = localStorage.getItem('chronos_selectedGroups');
         if (savedGroups) {
             this.selectedGroups = JSON.parse(savedGroups);
         }
+        m.redraw();
+    },
+
+    async refreshGroupData(groupName) {
+        const seriesData = await this.getSeriesWithSummaries(groupName);
+        this.groupSeriesData.set(groupName, seriesData);
         m.redraw();
     },
 
@@ -56,6 +70,21 @@ const Dashboard = {
                 seriesCount: filteredSeries.filter(s => s.group === group.name).length
             }))
             .sort((a, b) => a.name.localeCompare(b.name));
+    },
+
+    async getSeriesWithSummaries(groupName) {
+        const seriesList = await chronosDB.getSeriesByGroup(groupName);
+        
+        for (const series of seriesList) {
+            const entries = await chronosDB.getEntriesForSeries(series.id);
+            const configs = series.config?.summaries || [null];
+
+            series.summaries = configs.map(config => 
+                calculateSeriesSummary(series, entries, formatDuration, config)
+            ).filter(s => s && s.trim() !== '');
+        }
+        
+        return seriesList;
     },
 
     // --- Realtime Logic ---
@@ -125,15 +154,19 @@ const Dashboard = {
                 this.groups.length === 0 
                 ? m(".text-center.py-8.text-slate-500.dark:text-slate-400", "No groups found. Create some groups to get started!")
                 : filteredGroups.length > 0 
-                    ? filteredGroups.map(group => m(".break-inside-avoid.mb-3", [
-                        m("group-card", {
-                            group: group,
-                            // Handle custom events from the web component
-                            onseriesclick: (e) => m.route.set(`/series/${e.detail.series.id}`), // Example action
-                            onaddentryclick: (e) => console.log("Add entry", e.detail.series),
-                            onseriesupdated: () => this.loadData()
-                        })
-                    ]))
+                    ? filteredGroups.map(group => {
+                        const seriesList = this.groupSeriesData.get(group.name) || [];
+                        return m(".break-inside-avoid.mb-3", [
+                            m(GroupCard, {
+                                group: JSON.stringify(group),
+                                seriesList: seriesList,
+                                // Handle custom events from the web component
+                                onseriesclick: (e) => m.route.set(`/series/${e.detail.series.id}`), // Example action
+                                onaddentryclick: (e) => console.log("Add entry", e.detail.series),
+                                onseriesupdated: () => this.refreshGroupData(group.name)
+                            })
+                        ]);
+                    })
                     : m(".column-span-full.text-center.py-8.text-slate-500.dark:text-slate-400", 
                         this.series.length === 0 ? "No series found." : "No series match filters."
                     )
@@ -148,6 +181,11 @@ class DashboardView extends HTMLElement {
         m.mount(this, Dashboard);
     }
     
+    async refreshData() {
+        await Dashboard.loadData();
+        m.redraw();
+    }
+
     disconnectedCallback() {
         // Unmount when removed from DOM
         m.mount(this, null);
