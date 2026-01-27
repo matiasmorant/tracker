@@ -410,7 +410,10 @@
                 this.modals.series = true; 
                 this.$nextTick(() => {
                     const modal = document.querySelector('series-modal');
-                    if (modal) modal.openForNew();
+                    if (modal) {
+                        modal.loadGroups(); 
+                        modal.openForNew();
+                    }
                 });
             },
             
