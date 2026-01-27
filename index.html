@@ -31,6 +31,7 @@
     <script type="module" src="./group-manager.js"></script>
     <script type="module" src="./series-modal.js"></script>
     <script type="module" src="./entry-modal.js"></script>
+    <script type="module" src="./modal.js"></script>
     <script type="module" src="./dashboard.js"></script>
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -247,46 +248,23 @@
         </template>
     </main>
 
-    <div x-show="modals.group" @keydown.window.escape="modals.group = false" class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
-      <div class="flex items-center justify-center min-h-screen px-4">
-        <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm" @click="modals.group = false"></div>
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md relative z-10 overflow-hidden dark:bg-slate-800">
-          <group-manager @groups-updated="loadData()"></group-manager>
-        </div>
-      </div>
-    </div>
+    <modal-wrapper x-show="modals.group" x-cloak>
+      <group-manager @groups-updated="loadData()"></group-manager>
+    </modal-wrapper>
 
-    <div 
-      x-show="modals.series" 
-      @keydown.window.escape="modals.series = false" 
-      class="fixed inset-0 z-50 overflow-y-auto" 
-      x-cloak>
-      <div class="flex items-center justify-center min-h-screen px-4">
-        <div class="fixed inset-0 bg-slate-900/50" @click="modals.series = false"></div>
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg relative z-10 overflow-hidden dark:bg-slate-800">
-          <series-modal
-            @series-saved="modals.series = false; loadSeries();"
-            @modal-closed="modals.series = false">
-          </series-modal>
-        </div>
-      </div>
-    </div>
+    <modal-wrapper x-show="modals.series" x-cloak>
+      <series-modal
+        @series-saved="modals.series = false; loadSeries();"
+        @modal-closed="modals.series = false">
+      </series-modal>
+    </modal-wrapper>
 
-    <div 
-      x-show="modals.entry" 
-      @keydown.window.escape="modals.entry = false" 
-      class="fixed inset-0 z-50 overflow-y-auto" 
-      x-cloak>
-      <div class="flex items-center justify-center min-h-screen px-4">
-        <div class="fixed inset-0 bg-slate-900/50" @click="modals.entry = false"></div>
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg relative z-10 overflow-hidden dark:bg-slate-800">
-          <entry-modal
-            @entry-saved="modals.entry = false; loadSeries(); if(currentSeries && currentSeries.id === $event.detail.series.id) loadEntries(currentSeries.id);"
-            @modal-closed="modals.entry = false">
-          </entry-modal>
-        </div>
-      </div>
-    </div>
+    <modal-wrapper x-show="modals.entry" x-cloak>
+      <entry-modal
+        @entry-saved="modals.entry = false; loadSeries(); if(currentSeries && currentSeries.id === $event.detail.series.id) loadEntries(currentSeries.id);"
+        @modal-closed="modals.entry = false">
+      </entry-modal>
+    </modal-wrapper>
 
     <div class="fixed bottom-5 right-5 z-[100]" x-show="toast.show" x-transition x-cloak>
         <div class="bg-slate-800 text-white px-6 py-3 rounded-xl shadow-lg flex items-center space-x-3 dark:bg-slate-700">
