@@ -30,6 +30,7 @@
     <script type="module" src="./groupcard.js"></script>
     <script type="module" src="./group-manager.js"></script>
     <script type="module" src="./series-modal.js"></script>
+    <script type="module" src="./entry-modal.js"></script>
     <script type="module" src="./dashboard.js"></script>
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -271,59 +272,20 @@
       </div>
     </div>
 
-    <div x-show="modals.entry" @keydown.window.escape="modals.entry = false" @keydown.enter="saveEntry()" class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
-        <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-slate-900/50" @click="modals.entry = false"></div>
-            <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg relative z-10 overflow-hidden dark:bg-slate-800">
-                <div class="p-6">
-                    <h3 class="text-xl font-bold text-slate-900 dark:text-slate-100" x-text="editingEntry ? 'Edit Entry' : 'Add New Entry'"></h3>
-                    <div class="mt-6 space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">Date & Time (yyyy-MM-dd HH:mm:ss)</label>
-                            <input type="text" x-model="entryForm.timestamp" placeholder="2025-07-13 18:36:00" class="w-full mt-1 px-4 py-2 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100" autofocus>
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">Value</label>
-                            
-                            <template x-if="activeSeriesForEntry?.type !== 'time'">
-                                <input type="number" step="any" x-model="entryForm.value" class="w-full mt-1 px-4 py-2 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
-                            </template>
-
-                            <template x-if="activeSeriesForEntry?.type === 'time'">
-                                <div class="grid grid-cols-4 gap-2 mt-1">
-                                    <div>
-                                        <span class="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500">Days</span>
-                                        <input type="number" x-model.number="entryForm.dhms.d" min="0" class="w-full px-2 py-2 border rounded-lg text-center outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
-                                    </div>
-                                    <div>
-                                        <span class="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500">Hours</span>
-                                        <input type="number" x-model.number="entryForm.dhms.h" min="0" max="23" class="w-full px-2 py-2 border rounded-lg text-center outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
-                                    </div>
-                                    <div>
-                                        <span class="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500">Mins</span>
-                                        <input type="number" x-model.number="entryForm.dhms.m" min="0" max="59" class="w-full px-2 py-2 border rounded-lg text-center outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
-                                    </div>
-                                    <div>
-                                        <span class="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500">Secs</span>
-                                        <input type="number" x-model.number="entryForm.dhms.s" min="0" max="59" class="w-full px-2 py-2 border rounded-lg text-center outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
-                                    </div>
-                                </div>
-                            </template>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">Notes (Optional)</label>
-                            <input type="text" x-model="entryForm.notes" class="w-full mt-1 px-4 py-2 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
-                        </div>
-                    </div>
-                </div>
-                <div class="px-6 py-4 bg-slate-50 flex justify-end space-x-3 dark:bg-slate-700">
-                    <button @click="modals.entry = false" class="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300">Cancel</button>
-                    <button @click="saveEntry()" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg dark:bg-indigo-700 dark:hover:bg-indigo-600">Save Entry</button>
-                </div>
-            </div>
+    <div 
+      x-show="modals.entry" 
+      @keydown.window.escape="modals.entry = false" 
+      class="fixed inset-0 z-50 overflow-y-auto" 
+      x-cloak>
+      <div class="flex items-center justify-center min-h-screen px-4">
+        <div class="fixed inset-0 bg-slate-900/50" @click="modals.entry = false"></div>
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg relative z-10 overflow-hidden dark:bg-slate-800">
+          <entry-modal
+            @entry-saved="modals.entry = false; loadSeries(); if(currentSeries && currentSeries.id === $event.detail.series.id) loadEntries(currentSeries.id);"
+            @modal-closed="modals.entry = false">
+          </entry-modal>
         </div>
+      </div>
     </div>
 
     <div class="fixed bottom-5 right-5 z-[100]" x-show="toast.show" x-transition x-cloak>
@@ -352,8 +314,6 @@
                 type: 'number', 
                 config: {summaryMetrics:[], summaries:[], quickAddAction:'manual'}
             },
-            editingEntry: null, activeSeriesForEntry: null, 
-            entryForm: { timestamp: '', value: '', notes: '', dhms: { d:0, h:0, m:0, s:0 } },
             toast: { show: false, message: '' },
             theme: localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
             init() {
@@ -539,13 +499,23 @@
             },
 
             handleCalendarDayClick(d) {
-                this.activeSeriesForEntry = this.currentSeries;
-                this.editingEntry = null;
-                const now = new Date();
-                const targetDate = new Date(d.date);
-                targetDate.setHours(now.getHours(), now.getMinutes());
-                this.entryForm = { timestamp: getFormattedISO(targetDate), value: '', notes: '', dhms: { d:0, h:0, m:0, s:0 } };
                 this.modals.entry = true;
+                this.$nextTick(() => {
+                    const modal = document.querySelector('entry-modal');
+                    const now = new Date();
+                    const targetDate = new Date(d.date);
+                    targetDate.setHours(now.getHours(), now.getMinutes());
+                    
+                    // Create a temporary entry object with the target date
+                    const tempEntry = { 
+                        timestamp: getFormattedISO(targetDate), 
+                        value: 0, 
+                        notes: '', 
+                        dhms: { d:0, h:0, m:0, s:0 } 
+                    };
+                    
+                    modal.openForEdit(tempEntry, this.currentSeries);
+                });
             },
 
             changeSubView(v) { this.detailSubView = v; },
@@ -561,54 +531,19 @@
                     return;
                 }
 
-                this.activeSeriesForEntry = series;
-                this.editingEntry = null;
-                this.entryForm = {timestamp: getFormattedISO(), value: 0, notes: '', dhms: { d: 0, h: 0, m: 0, s: 0 } };
                 this.modals.entry = true;
+                this.$nextTick(() => {
+                    const modal = document.querySelector('entry-modal');
+                    if (modal) modal.openForNew(series);
+                });
             },
             
-            async saveEntry() {
-                if (!this.entryForm.timestamp) return;
-                let finalVal;
-                if (this.activeSeriesForEntry.type === 'time') {
-                    const {d, h, m, s} = this.entryForm.dhms;
-                    finalVal = (parseInt(d||0)*86400) + (parseInt(h||0)*3600) + (parseInt(m||0)*60) + parseInt(s||0);
-                } else { 
-                    finalVal = parseFloat(this.entryForm.value); 
-                }
-                if (isNaN(finalVal)) return;
-
-                let cleanTimestamp = this.entryForm.timestamp.replace('T', ' ');
-                const entryData = { 
-                    timestamp: cleanTimestamp, 
-                    notes: this.entryForm.notes, 
-                    seriesId: this.activeSeriesForEntry.id, 
-                    value: finalVal 
-                };
-                
-                if (this.editingEntry) entryData.id = this.editingEntry.id;
-                
-                await chronosDB.saveEntry(entryData);
-                
-                // Update series summary
-                const allEntries = await chronosDB.getEntriesForSeries(this.activeSeriesForEntry.id);
-                const tempSeries = JSON.parse(JSON.stringify(this.activeSeriesForEntry));
-                tempSeries.summaryDisplay = calculateSeriesSummary(tempSeries, allEntries, formatDuration.bind(this));
-                await chronosDB.saveSeries(tempSeries);
-                
-                await this.loadSeries();
-                if (this.currentSeries && this.currentSeries.id === this.activeSeriesForEntry.id) {
-                    await this.loadEntries(this.activeSeriesForEntry.id);
-                }
-                this.modals.entry = false;
-                this.showToast('Saved');
-            },
-
             editEntry(e) { 
-                this.activeSeriesForEntry = this.currentSeries; 
-                this.editingEntry = e; 
-                this.entryForm = { ...e, dhms: this.activeSeriesForEntry.type === 'time' ? secondsToDHMS(e.value) : { d:0, h:0, m:0, s:0 } }; 
-                this.modals.entry = true; 
+                this.modals.entry = true;
+                this.$nextTick(() => {
+                    const modal = document.querySelector('entry-modal');
+                    if (modal) modal.openForEdit(e, this.currentSeries);
+                });
             },
 
             async deleteEntry(id) { 
