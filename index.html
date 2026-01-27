@@ -29,6 +29,7 @@
     <script type="module" src="./seriesConfig.js"></script>
     <script type="module" src="./groupcard.js"></script>
     <script type="module" src="./group-manager.js"></script>
+    <script type="module" src="./series-modal.js"></script>
     <script type="module" src="./dashboard.js"></script>
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -254,39 +255,20 @@
       </div>
     </div>
 
-    <div x-show="modals.series" @keydown.window.escape="modals.series = false" @keydown.enter="saveSeries()" class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
-        <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-slate-900/50" @click="modals.series = false"></div>
-            <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg relative z-10 overflow-hidden dark:bg-slate-800">
-                <div class="p-6">
-                    <h3 class="text-xl font-bold text-slate-900 dark:text-slate-100" x-text="editingSeries ? 'Edit Series' : 'Create New Series'"></h3>
-                    <div class="mt-6 space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">Name</label>
-                            <input type="text" x-model="seriesForm.name" class="w-full mt-1 px-4 py-2 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100" autofocus>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">Type</label>
-                            <select x-model="seriesForm.type" class="w-full mt-1 px-4 py-2 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
-                                <option value="number">Number</option>
-                                <option value="time">Time</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">Group</label>
-                            <select x-model="seriesForm.group" class="w-full mt-1 px-4 py-2 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
-                                <option value="">Uncategorized</option>
-                                <template x-for="g in groups" :key="g.id"><option :value="g.name" x-text="g.name"></option></template>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                <div class="px-6 py-4 bg-slate-50 flex justify-end space-x-3 dark:bg-slate-700">
-                    <button @click="modals.series = false" class="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300">Cancel</button>
-                    <button @click="saveSeries()" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg dark:bg-indigo-700 dark:hover:bg-indigo-600">Save Series</button>
-                </div>
-            </div>
+    <div 
+      x-show="modals.series" 
+      @keydown.window.escape="modals.series = false" 
+      class="fixed inset-0 z-50 overflow-y-auto" 
+      x-cloak>
+      <div class="flex items-center justify-center min-h-screen px-4">
+        <div class="fixed inset-0 bg-slate-900/50" @click="modals.series = false"></div>
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg relative z-10 overflow-hidden dark:bg-slate-800">
+          <series-modal
+            @series-saved="modals.series = false; loadSeries();"
+            @modal-closed="modals.series = false">
+          </series-modal>
         </div>
+      </div>
     </div>
 
     <div x-show="modals.entry" @keydown.window.escape="modals.entry = false" @keydown.enter="saveEntry()" class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
@@ -482,16 +464,17 @@
 
             async loadSeries() {
                 this.series = await chronosDB.getAllSeries();
+                const dashboard = document.querySelector('dashboard-view');
+                if (dashboard) await dashboard.refreshData();
             },
-
-
 
             openNewSeriesModal() { 
-                this.editingSeries = null; 
-                this.seriesForm = { name: '', group: '', type: 'number', config: { stat: 'mean', period: 'all', quickAddAction: 'manual' } }; 
                 this.modals.series = true; 
+                this.$nextTick(() => {
+                    const modal = document.querySelector('series-modal');
+                    if (modal) modal.openForNew();
+                });
             },
-            
             
             async updateSeriesName() {
                 if (!this.currentSeries || !this.currentSeries.name.trim()) return;
