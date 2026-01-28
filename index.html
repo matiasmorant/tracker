@@ -276,22 +276,15 @@
 
     <script type="module">
         import Alpine from 'https://unpkg.com/alpinejs@3.x.x/dist/module.esm.js'
-        import {formatDuration, secondsToDHMS, getFormattedISO} from './utils.js';
+        import {formatDuration, getFormattedISO} from './utils.js';
         import {calculateSeriesSummary} from './analytics.js';
         import chronosDB from './db.js';
         
         Alpine.data('app', () => ({
-            formatDuration, secondsToDHMS, getFormattedISO,
+            formatDuration, getFormattedISO,
             view: 'list', detailSubView: 'chart',
-            series: [], groups: [], currentSeries: null, currentSeriesEntries: [],
+            series: [], currentSeries: null, currentSeriesEntries: [],
             modals: { series: false, entry: false, group: false },
-            editingSeries: null, 
-            seriesForm: { 
-                name: '', 
-                group: '', 
-                type: 'number', 
-                config: {summaryMetrics:[], summaries:[], quickAddAction:'manual'}
-            },
             toast: { show: false, message: '' },
             theme: localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
             init() {
@@ -300,7 +293,6 @@
             },
 
             async loadData() {
-                await this.loadGroups();
                 await this.loadSeries();
             },
 
@@ -394,12 +386,6 @@
                 reader.readAsText(file);
             },
 
-            async loadGroups() {
-                this.groups = await chronosDB.getAllGroups();
-                this.groups.sort((a,b) => a.name.localeCompare(b.name));
-            },
-
-
             async loadSeries() {
                 this.series = await chronosDB.getAllSeries();
                 const dashboard = document.querySelector('dashboard-view');
@@ -433,14 +419,6 @@
                 await this.loadSeries();
                 if (this.currentSeries?.id === id) this.view = 'list';
                 this.showToast('Deleted');
-            },
-
-            async saveSeries() {
-                if (!this.seriesForm.name) return;
-                await chronosDB.saveSeries(this.seriesForm);
-                await this.loadSeries();
-                this.modals.series = false;
-                this.showToast('Saved');
             },
 
             async openSeriesDetail(series) {
