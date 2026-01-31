@@ -38,30 +38,40 @@ const GroupCard = () => {
             const seriesList = vnode.attrs.seriesList || [];
             if (!group || seriesList.length === 0) return null;
 
-            return m(".rounded-xl.border.shadow-sm.flex.flex-col.overflow-hidden.transition-all.hover:shadow-md", {
+            return m("div", {
+                class: "rounded-xl border shadow-sm flex flex-col overflow-hidden transition-all hover:shadow-md",
                 style: { borderColor: `${group.color}40`, backgroundColor: `${group.color}12` }
             }, [
                 // Header
-                m(".px-3.pt-1.border-b.flex.justify-between.items-center", 
+                m("div", {
+                    class: "px-3 pt-1 border-b flex justify-between items-center"
+                }, 
                     m("span", { class: "text-[10px] font-bold uppercase tracking-widest truncate", style: { color: group.color } }, group.name)
                 ),
 
                 // Series List
-                m(".flex.flex-col.divide-y.divide-slate-100.dark:divide-slate-700", 
+                m("div", {
+                    class: "flex flex-col divide-y divide-slate-100 dark:divide-slate-700"
+                }, 
                     seriesList.map(series => {
                         const isRunning = chronosDB.isChrono(series) && chronosDB.isRunning(series);
                         
-                        return m(".series-row.px-3.py-1.dark:hover:bg-slate-700/50.cursor-pointer.flex.items-center.justify-between.transition-colors", {
+                        return m("div", {
+                            class: "series-row px-3 py-1 dark:hover:bg-slate-700/50 cursor-pointer flex items-center justify-between transition-colors",
                             onclick: () => vnode.dom.dispatchEvent(new CustomEvent('series-click', { detail: { series }, bubbles: true }))
                         }, [
-                            m(".flex.flex-col.min-w-0.flex-1", [
+                            m("div", {
+                                class: "flex flex-col min-w-0 flex-1"
+                            }, [
                                 m("span", { class: "font-bold text-sm text-slate-800 truncate dark:text-slate-100 mb-0.5" }, series.name),
-                                m(".flex.flex-col.min-h-[16px]", isRunning 
-                                    ? m(".flex.items-baseline.animate-pulse", [
+                                m("div", { class: "flex flex-col min-h-[16px]"}, isRunning 
+                                    ? m("div", { class: "flex items-baseline animate-pulse" }, [
                                         m("span", { class: "text-[11px] font-black text-red-600 dark:text-red-400" }, getRunningTime(series)),
                                         m("span", { class: "text-[9px] font-bold text-red-400 uppercase ml-1.5 dark:text-red-300" }, "Running")
                                       ])
-                                    : m(".flex.flex-col.gap-[1px]", 
+                                    : m("div", {
+                                        class: "flex flex-col gap-[1px]"
+                                    }, 
                                         series.summaries?.length > 0 
                                             ? series.summaries.map(s => renderSummary(s))
                                             : m("span", { class: "text-[9px] text-slate-300 italic dark:text-slate-600" }, "No data")
@@ -90,7 +100,9 @@ const renderSummary = (summaryText) => {
     const value = parts.length >= 2 ? parts.slice(1).join(': ') : summaryText;
     const label = parts.length >= 2 ? parts[0] : null;
 
-    return m(".flex.items-baseline", [
+    return m("div", {
+        class: "flex items-baseline"
+    }, [
         m("span", { class: "text-[11px] font-black text-indigo-600 truncate dark:text-indigo-400" }, value),
         label && m("span", { class: "text-[9px] font-bold text-slate-400 uppercase ml-1.5 dark:text-slate-500" }, label)
     ]);
@@ -98,13 +110,13 @@ const renderSummary = (summaryText) => {
 
 // Helper: Determine button icon
 const getButtonIcon = (series, isRunning) => {
-    if (isRunning) return m("i.fa-solid.fa-circle-stop.text-base");
+    if (isRunning) return m("i", { class: "fa-solid fa-circle-stop text-base" });
     const action = series.config?.quickAddAction || 'manual';
     switch(action) {
         case 'increment': return m("span", { class: "text-sm font-black" }, "+1");
-        case 'chronometer': return m("i.fa-solid.fa-play.text-base");
-        case 'currentTime': return m("i.fa-solid.fa-clock.text-base");
-        default: return m("i.fa-solid.fa-plus.text-base");
+        case 'chronometer': return m("i", { class: "fa-solid fa-play text-base" });
+        case 'currentTime': return m("i", { class: "fa-solid fa-clock text-base" });
+        default: return m("i", { class: "fa-solid fa-plus text-base" });
     }
 };
 
