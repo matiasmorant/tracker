@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="en" class="h-full" :class="{ 'dark': theme === 'dark' }">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
@@ -13,13 +13,12 @@
     </script>
     <script type="module" src="https://unpkg.com/alpinejs@3.x.x/dist/module.esm.js"></script>
     <script src="https://unpkg.com/papaparse@latest/papaparse.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://unpkg.com/tabulator-tables@5.6.1/dist/css/tabulator_modern.min.css" rel="stylesheet">
     <script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.6.1/dist/js/tabulator.min.js"></script>
     <script type="module" src="./multiselect.js"></script>
     <script type="module" src="./calendar.js"></script>
     <script type="module" src="./db.js"></script>
-    <script type="module" src="./seriecard.js"></script>
     <script type="module" src="./analytics.js"></script>
     <script type="module" src="./utils.js"></script>
     <script type="module" src="./chronos-chart.js"></script>
@@ -27,7 +26,6 @@
     <script type="module" src="./series-history.js"></script>
     <script type="module" src="./duration-picker-modal.js"></script>
     <script type="module" src="./seriesConfig.js"></script>
-    <script type="module" src="./groupcard.js"></script>
     <script type="module" src="./group-manager.js"></script>
     <script type="module" src="./series-modal.js"></script>
     <script type="module" src="./entry-modal.js"></script>
@@ -225,44 +223,11 @@
             toast: { show: false, message: '' },
             theme: localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
             init() {
-                this.initTheme();
                 this.loadData();
-                this.initHomeHeader();
+                this.$watch('theme', x=>{ localStorage.setItem('theme', x); });
             },
 
-            async loadData() {
-                await this.loadSeries();
-            },
-
-            toggleTheme() {
-                this.theme = this.theme === 'light' ? 'dark' : 'light';
-                
-                localStorage.setItem('theme', this.theme);
-                
-                if (this.theme === 'dark') {
-                    document.documentElement.classList.add('dark');
-                } else {
-                    document.documentElement.classList.remove('dark');
-                }
-            },
-
-            initTheme() {
-                const storedTheme = localStorage.getItem('theme');
-                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                const isDark = storedTheme === 'dark' || (!storedTheme && prefersDark);
-                
-                this.theme = isDark ? 'dark' : 'light';
-                
-                if (isDark) { 
-                    document.documentElement.classList.add('dark');
-                } else {      
-                    document.documentElement.classList.remove('dark'); 
-                }
-            },
-
-            initHomeHeader() {
-                // Header components are now handled by Alpine.js templates
-            },
+            async loadData() { await this.loadSeries(); },
 
             async exportData() {
                 try {
@@ -279,24 +244,6 @@
                 }
             },
 
-            async importData(event) {
-                const file = event.target.files[0];
-                if (!file) return;
-                const reader = new FileReader();
-                reader.onload = async (e) => {
-                    try {
-                        const importObj = JSON.parse(e.target.result);
-                        if (!confirm("Merge imported data?")) return;
-                        await chronosDB.importJSON(importObj, true);
-                        await this.loadData();
-                        this.showToast('Data merged');
-                    } catch (err) { 
-                        alert("Invalid JSON file"); 
-                    }
-                };
-                reader.readAsText(file);
-            },
-
             async exportCSV() {
                 try {
                     const csv = await chronosDB.exportCSV();
@@ -311,34 +258,18 @@
                 }
             },
 
-            async importCSV(event) {
-                const file = event.target.files[0];
-                if (!file) return;
-
-                const reader = new FileReader();
-                reader.onload = async (e) => {
-                    try {
-                        await chronosDB.importCSV(e.target.result);
-                        await this.loadData();
-                        this.showToast("CSV Imported Successfully");
-                    } catch (err) {
-                        alert("Failed to import CSV");
+            async handleImportFile({ file, type }) {
+                try {
+                    const content = await file.text();
+                    if (type === 'json') {
+                        await chronosDB.importJSON(JSON.parse(content), true);
+                    } else {
+                        await chronosDB.importCSV(content);
                     }
-                };
-                reader.readAsText(file);
-            },
-
-            handleImportFile(detail) {
-                const { file, type } = detail;
-                
-                if (type === 'json') {
-                    // Create a synthetic event for importData
-                    const syntheticEvent = { target: { files: [file] } };
-                    this.importData(syntheticEvent);
-                } else if (type === 'csv') {
-                    // Create a synthetic event for importCSV
-                    const syntheticEvent = { target: { files: [file] } };
-                    this.importCSV(syntheticEvent);
+                    await this.loadData();
+                    this.showToast(`${type.toUpperCase()} imported successfully`);
+                } catch (err) {
+                    alert(`Failed to import ${type.toUpperCase()}: ${err.message}`);
                 }
             },
 
@@ -346,11 +277,6 @@
                 this.series = await chronosDB.getAllSeries();
                 const dashboard = document.querySelector('dashboard-view');
                 if (dashboard) await dashboard.refreshData();
-                
-                // Update header if we're in list view
-                if (this.view === 'list') {
-                    // Header is now handled by Alpine.js templates
-                }
             },
 
             openNewSeriesModal() { 
@@ -372,11 +298,8 @@
                 if (index !== -1) {
                     this.series[index].name = series.name;
                 }
-                
-                // Save to database
+
                 await chronosDB.saveSeries(series);
-                
-                // Reload series data
                 await this.loadSeries();
                 
                 // If this is the current series, update it
@@ -394,11 +317,7 @@
                 }
             },
 
-            handleThemeChange(detail) {
-                // Theme is already updated by the component
-                // We just need to update our local state
-                this.theme = detail.theme;
-            },
+            handleThemeChange(detail) { this.theme = detail.theme; },
 
             async deleteSeries(id) {
                 if (!confirm('Delete series and all data?')) return;
@@ -456,38 +375,20 @@
             },
 
             handleCalendarDayClick(d) {
-                this.modals.entry = true;
-                this.$nextTick(() => {
-                    const modal = document.querySelector('entry-modal');
-                    const now = new Date();
-                    const targetDate = new Date(d.date);
-                    targetDate.setHours(now.getHours(), now.getMinutes());
-                    
-                    // Create a temporary entry object with the target date
-                    const tempEntry = { 
-                        timestamp: getFormattedISO(targetDate), 
-                        value: 0, 
-                        notes: '', 
-                        dhms: { d:0, h:0, m:0, s:0 } 
-                    };
-                    
-                    modal.openForEdit(tempEntry, this.currentSeries);
+                const targetDate = new Date(d.date);
+                const now = new Date();
+                targetDate.setHours(now.getHours(), now.getMinutes());
+                this.editEntry({ 
+                    timestamp: getFormattedISO(targetDate), 
+                    value: 0, 
+                    notes: '', 
+                    dhms: { d:0, h:0, m:0, s:0 } 
                 });
             },
 
             changeSubView(v) { this.detailSubView = v; },
             
             async openAddEntryModal(series) {
-                const action = series.config?.quickAddAction;
-                if (action && action !== 'manual') {
-                    await chronosDB.quickAction(series);
-                    await this.loadSeries();
-                    if (this.currentSeries && this.currentSeries.id === series.id) {
-                        await this.loadEntries(series.id);
-                    }
-                    return;
-                }
-
                 this.modals.entry = true;
                 this.$nextTick(() => {
                     const modal = document.querySelector('entry-modal');
