@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="en" class="h-full" :class="{ 'dark': theme === 'dark' }" :data-theme="theme">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
@@ -12,11 +12,9 @@
         })();
     </script>
     <link rel="icon" type="image/png" href="icon-192.png">
-    
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/themes/light.css" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/themes/dark.css" />
-    <script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/shoelace-autoloader.js"></script>
-
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/themes/light.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/themes/dark.css">
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/shoelace-autoloader.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
     tailwind.config = {
@@ -42,7 +40,6 @@
     <script type="module" src="./group-manager.js"></script>
     <script type="module" src="./series-modal.js"></script>
     <script type="module" src="./entry-modal.js"></script>
-    <script type="module" src="./modal.js"></script>
     <script type="module" src="./dashboard.js"></script>
     <script type="module" src="./theme-utils.js"></script>
     <script type="module" src="./list-header.js"></script>
@@ -218,53 +215,48 @@
                     m("header", { class: "bg-white border-b border-slate-200 sticky top-0 z-30 dark:bg-slate-800 dark:border-slate-700" }, [
                         m("div", { class: "max-w-7xl mx-auto px-4 h-16 md:h-10 flex items-center justify-between" }, [
                             State.view === 'list' ? m("list-header", {
-                                oncreate: (vnode) => {
-                                    vnode.dom.addEventListener('home-click', () => { State.view = 'list'; m.redraw(); });
-                                    vnode.dom.addEventListener('groups-click', Actions.openGroupManager);
-                                    vnode.dom.addEventListener('new-series-click', Actions.openNewSeriesModal);
-                                    vnode.dom.addEventListener('export-json', Actions.exportData);
-                                    vnode.dom.addEventListener('export-csv', Actions.exportCSV);
-                                    vnode.dom.addEventListener('import-file', async (e) => {
-                                        const { file, type } = e.detail;
-                                        const content = await file.text();
-                                        if (type === 'json') await chronosDB.importJSON(JSON.parse(content), true);
-                                        else await chronosDB.importCSV(content);
-                                        await Actions.loadSeries();
-                                        Actions.showToast(`${type.toUpperCase()} imported`);
-                                    });
-                                    vnode.dom.addEventListener('theme-change', (e) => Actions.updateTheme(e.detail.theme));
-                                }
+                                'onhome-click': () => { State.view = 'list'; m.redraw(); },
+                                'ongroups-click': Actions.openGroupManager,
+                                'onnew-series-click': Actions.openNewSeriesModal,
+                                'onexport-json': Actions.exportData,
+                                'onexport-csv': Actions.exportCSV,
+                                'onimport-file': async (e) => {
+                                    const { file, type } = e.detail;
+                                    const content = await file.text();
+                                    if (type === 'json') await chronosDB.importJSON(JSON.parse(content), true);
+                                    else await chronosDB.importCSV(content);
+                                    await Actions.loadSeries();
+                                    Actions.showToast(`${type.toUpperCase()} imported`);
+                                },
+                                'ontheme-change': e => Actions.updateTheme(e.detail.theme)
                             }) : null,
                             State.view === 'detail' ? m("detail-header", {
                                 id: "detail-header",
-                                oncreate: (vnode) => {
-                                    vnode.dom.addEventListener('back-click', () => { State.view = 'list'; m.redraw(); });
-                                    vnode.dom.addEventListener('series-name-update', async (e) => {
-                                        const { series: s } = e.detail;
-                                        await chronosDB.saveSeries(s);
-                                        await Actions.loadSeries();
-                                        if (State.currentSeries?.id === s.id) State.currentSeries.name = s.name;
-                                    });
-                                    vnode.dom.addEventListener('delete-series', async (e) => {
-                                        if (!confirm('Delete series and all data?')) return;
-                                        await chronosDB.deleteSeries(e.detail.seriesId);
-                                        await Actions.loadSeries();
-                                        State.view = 'list';
-                                        m.redraw();
-                                    });
-                                }
+                                'onback-click': () => { State.view = 'list'; m.redraw(); },
+                                'onseries-name-update': async (e) => {
+                                    const { series: s } = e.detail;
+                                    await chronosDB.saveSeries(s);
+                                    await Actions.loadSeries();
+                                    if (State.currentSeries?.id === s.id) State.currentSeries.name = s.name;
+                                },
+                                'ondelete-series': async (e) => {
+                                    if (!confirm('Delete series and all data?')) return;
+                                    await chronosDB.deleteSeries(e.detail.seriesId);
+                                    await Actions.loadSeries();
+                                    State.view = 'list';
+                                    m.redraw();
+                                },
+                                oncreate: (vnode) => { if (State.currentSeries) vnode.dom.setCurrentSeries(State.currentSeries); }
                             }) : null
                         ])
                     ]),
 
                     m("main", { class: "flex-1 flex flex-col px-4 pb-1" }, [
                         State.view === 'list' ? m("dashboard-view", {
-                            oncreate: (vnode) => {
-                                vnode.dom.addEventListener('series-click', (e) => Actions.openSeriesDetail(e.detail.series));
-                                vnode.dom.addEventListener('add-entry-click', (e) => Actions.openAddEntryModal(e.detail.series));
-                                vnode.dom.addEventListener('series-updated', Actions.loadSeries);
-                                vnode.dom.addEventListener('entry-created', () => Actions.loadSeries());
-                            }
+                            'onseries-click': (e) => Actions.openSeriesDetail(e.detail.series),
+                            'onadd-entry-click': (e) => Actions.openAddEntryModal(e.detail.series),
+                            'onseries-updated': Actions.loadSeries,
+                            'onentry-created': () => Actions.loadSeries()
                         }) : m("div", { class: "flex-1 flex flex-col space-y-2" }, [
                             m("div", { class: "flex-1 flex flex-col md:flex-row md:items-start md:gap-4" }, [
                                 m("div", { class: "flex md:flex-col items-center justify-between md:justify-start gap-4 py-2 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-700 md:py-0 md:pr-4" }, [
@@ -282,15 +274,13 @@
                                     ),
                                     m("div", { style: { display: State.detailSubView === 'calendar' ? 'block' : 'none' }, class: "space-y-6" }, 
                                         m("chronos-calendar", {
-                                            series: JSON.stringify(State.currentSeries),
-                                            entries: JSON.stringify(State.currentSeriesEntries),
-                                            oncreate: (vnode) => {
-                                                vnode.dom.addEventListener('day-click', (e) => {
-                                                    const targetDate = new Date(e.detail.date);
-                                                    const now = new Date();
-                                                    targetDate.setHours(now.getHours(), now.getMinutes());
-                                                    Actions.editEntry({ timestamp: getFormattedISO(targetDate), value: 0, notes: '', dhms: { d:0, h:0, m:0, s:0 } });
-                                                });
+                                            series: State.currentSeries,
+                                            entries: State.currentSeriesEntries,
+                                            'onday-click': (e) => {
+                                                const targetDate = new Date(e.detail.date);
+                                                const now = new Date();
+                                                targetDate.setHours(now.getHours(), now.getMinutes());
+                                                Actions.editEntry({ timestamp: getFormattedISO(targetDate), value: 0, notes: '', dhms: { d:0, h:0, m:0, s:0 } });
                                             }
                                         })
                                     ),
@@ -298,11 +288,9 @@
                                         style: { display: State.detailSubView === 'history' ? 'block' : 'none' },
                                         series: JSON.stringify(State.currentSeries),
                                         entries: JSON.stringify(State.currentSeriesEntries),
-                                        oncreate: (vnode) => {
-                                            vnode.dom.addEventListener('add-entry-click', (e) => Actions.openAddEntryModal(e.detail.series));
-                                            vnode.dom.addEventListener('edit-entry-click', (e) => Actions.editEntry(e.detail.entry));
-                                            vnode.dom.addEventListener('delete-entry-click', (e) => Actions.deleteEntry(e.detail.id));
-                                        }
+                                        'onadd-entry-click': (e) => Actions.openAddEntryModal(e.detail.series),
+                                        'onedit-entry-click': (e) => Actions.editEntry(e.detail.entry),
+                                        'ondelete-entry-click': (e) => Actions.deleteEntry(e.detail.id)
                                     }),
                                     m("series-configuration", {
                                         style: { display: State.detailSubView === 'config' ? 'block' : 'none' },
@@ -316,35 +304,31 @@
                     m("sl-dialog", { 
                         label: "Manage Groups", 
                         open: State.modals.group, 
-                        oncreate: (vnode) => vnode.dom.addEventListener('sl-after-hide', () => { State.modals.group = false; m.redraw(); })
+                        'onsl-after-hide': () => { State.modals.group = false; m.redraw(); }
                     }, m("group-manager", { 
-                        oncreate: (vnode) => vnode.dom.addEventListener('groups-updated', Actions.loadSeries) 
+                        'ongroups-updated': Actions.loadSeries 
                     })),
 
                     m("sl-dialog", { 
                         label: State.modals.series ? "Series Settings" : "", 
                         open: State.modals.series, 
-                        oncreate: (vnode) => vnode.dom.addEventListener('sl-after-hide', () => { State.modals.series = false; m.redraw(); })
+                        'onsl-after-hide': () => { State.modals.series = false; m.redraw(); }
                     }, m("series-modal", { 
-                        oncreate: (vnode) => {
-                            vnode.dom.addEventListener('series-saved', () => { State.modals.series = false; Actions.loadSeries(); });
-                            vnode.dom.addEventListener('modal-closed', () => { State.modals.series = false; m.redraw(); });
-                        }
+                        'onseries-saved': () => { State.modals.series = false; Actions.loadSeries(); },
+                        'onmodal-closed': () => { State.modals.series = false; m.redraw(); }
                     })),
 
                     m("sl-dialog", { 
                         label: State.modals.entry ? "Entry Details" : "", 
                         open: State.modals.entry, 
-                        oncreate: (vnode) => vnode.dom.addEventListener('sl-after-hide', () => { State.modals.entry = false; m.redraw(); })
+                        'onsl-after-hide': () => { State.modals.entry = false; m.redraw(); }
                     }, m("entry-modal", { 
-                        oncreate: (vnode) => {
-                            vnode.dom.addEventListener('entry-saved', (e) => {
-                                State.modals.entry = false;
-                                Actions.loadSeries();
-                                if (State.currentSeries?.id === e.detail.series.id) Actions.loadEntries(State.currentSeries.id);
-                            });
-                            vnode.dom.addEventListener('modal-closed', () => { State.modals.entry = false; m.redraw(); });
-                        }
+                        'onentry-saved': (e) => {
+                            State.modals.entry = false;
+                            Actions.loadSeries();
+                            if (State.currentSeries?.id === e.detail.series.id) Actions.loadEntries(State.currentSeries.id);
+                        },
+                        'onmodal-closed': () => { State.modals.entry = false; m.redraw(); }
                     })),
 
                     State.toast.show ? m("div", { class: "fixed bottom-5 right-5 z-[100]" }, [
