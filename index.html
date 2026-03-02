@@ -1,21 +1,34 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full" :class="{ 'dark': theme === 'dark' }">
+<html lang="en" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <title>Chronos - Time Series Manager</title>
+    <script>
+        (function() {
+            const theme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            document.documentElement.classList.add(theme === 'dark' ? 'sl-theme-dark' : 'sl-theme-light');
+            if (theme === 'dark') document.documentElement.classList.add('dark');
+        })();
+    </script>
     <link rel="icon" type="image/png" href="icon-192.png">
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/themes/light.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/themes/dark.css" />
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/shoelace-autoloader.js"></script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
     tailwind.config = {
         darkMode: 'class',
     }
     </script>
-    <script type="module" src="https://unpkg.com/alpinejs@3.x.x/dist/module.esm.js"></script>
+    <script src="https://unpkg.com/mithril/mithril.js"></script>
     <script src="https://unpkg.com/papaparse@latest/papaparse.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://unpkg.com/tabulator-tables@5.6.1/dist/css/tabulator_modern.min.css" rel="stylesheet">
     <script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.6.1/dist/js/tabulator.min.js"></script>
+    
     <script type="module" src="./multiselect.js"></script>
     <script type="module" src="./calendar.js"></script>
     <script type="module" src="./db.js"></script>
@@ -31,219 +44,147 @@
     <script type="module" src="./entry-modal.js"></script>
     <script type="module" src="./modal.js"></script>
     <script type="module" src="./dashboard.js"></script>
-    <!-- Header components -->
     <script type="module" src="./theme-utils.js"></script>
     <script type="module" src="./list-header.js"></script>
     <script type="module" src="./detail-header.js"></script>
+
     <style>
+        .sl-theme-dark { color-scheme: dark; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-        /* Better touch targets for mobile inputs */
         @media (max-width: 640px) {
-            input, select, button {
-                min-height: 44px; /* Apple/Google recommended touch size */
-            }
+            input, select, button { min-height: 44px; }
         }
-
-        [x-cloak] { display: none !important; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { 
-            background: #cbd5e1; 
-            border-radius: 10px; 
-        }
-
-        /* Dark mode scrollbar */
-        .dark .custom-scrollbar::-webkit-scrollbar-thumb { 
-            background: #475569; 
-        }
-
-        /* Dark mode transitions */
-        * {
-            transition: background-color 0.3s ease, border-color 0.3s ease;
-            -webkit-user-select: none; /* Safari */
-            -ms-user-select: none;      /* IE 10 and older */
-            user-select: none;         /* Standard syntax */
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; }
+        * { transition: background-color 0.3s ease, border-color 0.3s ease; user-select: none; }
+        
+        sl-dialog::part(panel) {
+            @apply bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl;
         }
     </style>
-    <!-- PWA -->
+
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4f46e5">
     <link rel="apple-touch-icon" href="icon-192.png">
-
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./service-worker.js')
-            .then(reg => console.log('Service Worker registered', reg))
-            .catch(err => console.error('Service Worker registration failed', err));
-        });
-      }
-      // ADD THIS BLOCK TO PREVENT the mini-infobar from appearing on mobile
-      window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); });
-    </script>
-    <!-- PWA -->
 </head>
-<body class="h-full flex flex-col bg-slate-50 text-slate-900 font-sans dark:bg-slate-900 dark:text-slate-100" x-data="app">
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 dark:bg-slate-800 dark:border-slate-700">
-        <div class="max-w-7xl mx-auto px-4 h-16 md:h-10 flex items-center justify-between">
-            <template x-if="view === 'list'">
-                <list-header 
-                    @home-click="view = 'list'"
-                    @groups-click="modals.group = true; $nextTick(() => { const modal = document.querySelector('group-manager'); if (modal) modal.resetForm(); })"
-                    @new-series-click="openNewSeriesModal()"
-                    @export-json="exportData()"
-                    @export-csv="exportCSV()"
-                    @import-file="handleImportFile($event.detail)"
-                    @theme-change="handleThemeChange($event.detail)">
-                </list-header>
-            </template>
-            
-            <template x-if="view === 'detail'">
-                <detail-header 
-                    id="detail-header"
-                    @back-click="view = 'list'"
-                    @series-name-update="handleSeriesNameUpdate($event.detail)"
-                    @delete-series="handleDeleteSeries($event.detail)">
-                </detail-header>
-            </template>
-        </div>
-    </header>
-
-    <main class="flex-1 flex flex-col px-4 pb-1">
-        <template x-if="view === 'list'">
-            <dashboard-view
-                @series-click="openSeriesDetail($event.detail.series)"
-                @add-entry-click="openAddEntryModal($event.detail.series)"
-                @series-updated="loadSeries()"
-                @entry-created="loadSeries(); if(currentSeries && currentSeries.id === $event.detail.series.id) loadEntries(currentSeries.id)">
-            </dashboard-view>
-        </template>
-
-        <template x-if="view === 'detail'">
-            <div class="flex-1 flex flex-col space-y-2">
-                <div class="flex-1 flex flex-col md:flex-row md:items-start md:gap-4">
-                    <!-- Tabs container - will be on top in portrait, on right in landscape -->
-                    <div class="flex md:flex-col items-center justify-between md:justify-start gap-4 py-2 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-700 md:py-0 md:pr-4">                    
-                        <div class="flex md:flex-col bg-slate-100 p-1 rounded-xl border border-slate-200 dark:bg-slate-800 dark:border-slate-700">
-                            <template x-for="tab in [
-                                {id: 'chart', icon: 'fa-chart-line'},
-                                {id: 'calendar', icon: 'fa-calendar-days'},
-                                {id: 'history', icon: 'fa-table-list'},
-                                {id: 'config', icon: 'fa-gear'}
-                            ]">
-                                <button @click="changeSubView(tab.id)" 
-                                        :class="detailSubView === tab.id ? 'bg-white text-indigo-600 shadow-sm dark:bg-slate-700 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400'" 
-                                        class="px-3 py-1.5 rounded-lg text-sm transition-all flex justify-center items-center md:w-12 md:h-12">
-                                    <i class="fa-solid" :class="tab.icon"></i>
-                                </button>
-                            </template>
-                        </div>
-                    </div>
-
-                    <!-- Content area -->
-                    <div class="flex-1 flex flex-col min-w-0 h-full">
-                        <div x-show="detailSubView === 'chart'" class="flex-1 flex flex-col space-y-6">
-                            <series-chart
-                                class="flex-1 flex flex-col"
-                                x-show="currentSeries"
-                                :series-id="currentSeries?.id"
-                                x-cloak>
-                            </series-chart>
-                        </div>
-
-                        <div x-show="detailSubView === 'calendar'" class="space-y-6" x-cloak>
-                            <chronos-calendar
-                                x-show="detailSubView === 'calendar'"
-                                :series="JSON.stringify(currentSeries)"
-                                :entries="JSON.stringify(currentSeriesEntries)"
-                                @day-click="handleCalendarDayClick($event.detail)">
-                            </chronos-calendar>
-                        </div>
-
-                        <series-history 
-                            x-show="detailSubView === 'history'"
-                            :series="JSON.stringify(currentSeries)"
-                            :entries="JSON.stringify(currentSeriesEntries)"
-                            @add-entry-click="openAddEntryModal($event.detail.series)"
-                            @edit-entry-click="editEntry($event.detail.entry)"
-                            @delete-entry-click="deleteEntry($event.detail.id)"
-                            x-cloak>
-                        </series-history>
-
-                        <series-configuration 
-                            x-show="detailSubView === 'config'"
-                            :series-id="currentSeries?.id"
-                            x-cloak>
-                        </series-configuration>
-                    </div>
-                </div>
-            </div>
-        </template>
-    </main>
-
-    <modal-wrapper x-show="modals.group" @modal-closed="modals.group = false" x-cloak>
-      <group-manager @groups-updated="loadData()"></group-manager>
-    </modal-wrapper>
-
-    <modal-wrapper x-show="modals.series" @modal-closed="modals.series = false" x-cloak>
-      <series-modal
-        @series-saved="modals.series = false; loadSeries();"
-        @modal-closed="modals.series = false">
-      </series-modal>
-    </modal-wrapper>
-
-    <modal-wrapper x-show="modals.entry" @modal-closed="modals.entry = false" x-cloak>
-      <entry-modal
-        @entry-saved="modals.entry = false; loadSeries(); if(currentSeries && currentSeries.id === $event.detail.series.id) loadEntries(currentSeries.id);"
-        @modal-closed="modals.entry = false">
-      </entry-modal>
-    </modal-wrapper>
-
-    <div class="fixed bottom-5 right-5 z-[100]" x-show="toast.show" x-transition x-cloak>
-        <div class="bg-slate-800 text-white px-6 py-3 rounded-xl shadow-lg flex items-center space-x-3 dark:bg-slate-700">
-            <span x-text="toast.message"></span>
-            <button @click="toast.show = false" class="text-slate-400">&times;</button>
-        </div>
-    </div>
-    <duration-picker-modal id="durationPickerModal"></duration-picker-modal>
+<body class="h-full bg-slate-50 text-slate-900 font-sans dark:bg-slate-900 dark:text-slate-100">
+    <div id="app" class="h-full"></div>
 
     <script type="module">
-        import Alpine from 'https://unpkg.com/alpinejs@3.x.x/dist/module.esm.js'
-        import {formatDuration, getFormattedISO} from './utils.js';
-        import {calculateSeriesSummary} from './analytics.js';
+        import { formatDuration, getFormattedISO } from './utils.js';
+        import { calculateSeriesSummary } from './analytics.js';
         import chronosDB from './db.js';
-        
-        Alpine.data('app', () => ({
-            formatDuration, getFormattedISO,
-            view: 'list', detailSubView: 'chart',
-            series: [], currentSeries: null, currentSeriesEntries: [],
+
+        const State = {
+            view: 'list',
+            detailSubView: 'chart',
+            series: [],
+            currentSeries: null,
+            currentSeriesEntries: [],
+            theme: localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
             modals: { series: false, entry: false, group: false },
             toast: { show: false, message: '' },
-            theme: localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
-            init() {
-                this.loadData();
-                this.$watch('theme', x=>{ localStorage.setItem('theme', x); });
+            tabs: [
+                {id: 'chart', icon: 'fa-chart-line'},
+                {id: 'calendar', icon: 'fa-calendar-days'},
+                {id: 'history', icon: 'fa-table-list'},
+                {id: 'config', icon: 'fa-gear'}
+            ]
+        };
+
+        const Actions = {
+            showToast(m) {
+                State.toast.message = m;
+                State.toast.show = true;
+                m.redraw();
+                setTimeout(() => {
+                    State.toast.show = false;
+                    m.redraw();
+                }, 3000);
             },
-
-            async loadData() { await this.loadSeries(); },
-
+            async loadSeries() {
+                State.series = await chronosDB.getAllSeries();
+                const dashboard = document.querySelector('dashboard-view');
+                if (dashboard && dashboard.refreshData) await dashboard.refreshData();
+                m.redraw();
+            },
+            async loadEntries(id) {
+                const entries = await chronosDB.getEntriesForSeries(id);
+                State.currentSeriesEntries = entries.sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
+                Actions.recalculateSummaryDisplay();
+                m.redraw();
+            },
+            recalculateSummaryDisplay() {
+                if (!State.currentSeries || !State.currentSeriesEntries.length || !State.currentSeries.config) return;
+                const config = State.currentSeries.config;
+                State.currentSeries.summaryDisplay = (config.summaries && Array.isArray(config.summaries)) 
+                    ? config.summaries.map(s => calculateSeriesSummary(State.currentSeries, State.currentSeriesEntries, formatDuration, s)).filter(s => s && s.trim() !== '')
+                    : calculateSeriesSummary(State.currentSeries, State.currentSeriesEntries, formatDuration);
+            },
+            openNewSeriesModal() {
+                State.modals.series = true;
+                m.redraw();
+                setTimeout(() => {
+                    const el = document.querySelector('series-modal');
+                    if (el) { el.loadGroups(); el.openForNew(); }
+                }, 0);
+            },
+            async openSeriesDetail(s) {
+                State.currentSeries = s;
+                State.view = 'detail';
+                State.detailSubView = 'chart';
+                await Actions.loadEntries(s.id);
+                setTimeout(() => {
+                    const header = document.querySelector('detail-header');
+                    if (header) header.setCurrentSeries(s);
+                }, 0);
+                m.redraw();
+            },
+            openAddEntryModal(s) {
+                State.modals.entry = true;
+                m.redraw();
+                setTimeout(() => {
+                    const el = document.querySelector('entry-modal');
+                    if (el) el.openForNew(s);
+                }, 0);
+            },
+            editEntry(e) {
+                State.modals.entry = true;
+                m.redraw();
+                setTimeout(() => {
+                    const el = document.querySelector('entry-modal');
+                    if (el) el.openForEdit(e, State.currentSeries);
+                }, 0);
+            },
+            async deleteEntry(id) {
+                if (confirm('Delete entry?')) {
+                    await chronosDB.deleteEntry(id);
+                    await Actions.loadEntries(State.currentSeries.id);
+                }
+            },
+            openGroupManager() {
+                State.modals.group = true;
+                m.redraw();
+                setTimeout(() => {
+                    const el = document.querySelector('group-manager');
+                    if (el) el.resetForm();
+                }, 0);
+            },
             async exportData() {
                 try {
-                    const exportObj = await chronosDB.exportJSON();
-                    const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' });
+                    const obj = await chronosDB.exportJSON();
+                    const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
                     a.download = `chronos_export_${new Date().toISOString().split('T')[0]}.json`;
                     a.click();
-                    this.showToast('JSON Exported');
-                } catch (err) {
-                    this.showToast('Export failed');
-                }
+                    Actions.showToast('JSON Exported');
+                } catch (err) { Actions.showToast('Export failed'); }
             },
-
             async exportCSV() {
                 try {
                     const csv = await chronosDB.exportCSV();
@@ -252,169 +193,173 @@
                     link.href = URL.createObjectURL(blob);
                     link.setAttribute("download", `chronos_export_${new Date().toISOString().split('T')[0]}.csv`);
                     link.click();
-                    this.showToast('CSV Exported');
-                } catch (err) {
-                    this.showToast('CSV Export failed');
-                }
+                    Actions.showToast('CSV Exported');
+                } catch (err) { Actions.showToast('CSV Export failed'); }
             },
-
-            async handleImportFile({ file, type }) {
-                try {
-                    const content = await file.text();
-                    if (type === 'json') {
-                        await chronosDB.importJSON(JSON.parse(content), true);
-                    } else {
-                        await chronosDB.importCSV(content);
-                    }
-                    await this.loadData();
-                    this.showToast(`${type.toUpperCase()} imported successfully`);
-                } catch (err) {
-                    alert(`Failed to import ${type.toUpperCase()}: ${err.message}`);
-                }
-            },
-
-            async loadSeries() {
-                this.series = await chronosDB.getAllSeries();
-                const dashboard = document.querySelector('dashboard-view');
-                if (dashboard) await dashboard.refreshData();
-            },
-
-            openNewSeriesModal() { 
-                this.modals.series = true; 
-                this.$nextTick(() => {
-                    const modal = document.querySelector('series-modal');
-                    if (modal) {
-                        modal.loadGroups(); 
-                        modal.openForNew();
-                    }
-                });
-            },
-            
-            async handleSeriesNameUpdate(detail) {
-                const { series, oldName } = detail;
-                
-                // Update local state
-                const index = this.series.findIndex(s => s.id === series.id);
-                if (index !== -1) {
-                    this.series[index].name = series.name;
-                }
-
-                await chronosDB.saveSeries(series);
-                await this.loadSeries();
-                
-                // If this is the current series, update it
-                if (this.currentSeries && this.currentSeries.id === series.id) {
-                    this.currentSeries.name = series.name;
-                }
-            },
-
-            async handleDeleteSeries(detail) {
-                await this.deleteSeries(detail.seriesId);
-                
-                // If we're in detail view for this series, go back to list
-                if (this.currentSeries && this.currentSeries.id === detail.seriesId) {
-                    this.view = 'list';
-                }
-            },
-
-            handleThemeChange(detail) { this.theme = detail.theme; },
-
-            async deleteSeries(id) {
-                if (!confirm('Delete series and all data?')) return;
-                await chronosDB.deleteSeries(id);
-                await this.loadSeries();
-                if (this.currentSeries?.id === id) {
-                    this.view = 'list';
-                    this.currentSeries = null;
-                }
-                this.showToast('Deleted');
-            },
-
-            async openSeriesDetail(series) {
-                this.currentSeries = series;            
-                this.view = 'detail';
-                this.detailSubView = 'chart';
-                await this.loadEntries(series.id);
-                
-                // Update detail header
-                this.$nextTick(() => {
-                    const detailHeader = document.querySelector('detail-header');
-                    if (detailHeader && this.currentSeries) {
-                        detailHeader.setCurrentSeries(this.currentSeries);
-                    }
-                });
-            },
-
-            async loadEntries(id) {
-                this.currentSeriesEntries = await chronosDB.getEntriesForSeries(id);
-                this.currentSeriesEntries.sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
-                this.recalculateSummaryDisplay();
-            },
-
-            recalculateSummaryDisplay() {
-                if (!this.currentSeries || !this.currentSeriesEntries.length || !this.currentSeries.config) return;
-                
-                // Calculate multiple summaries if summaries array exists
-                if (this.currentSeries.config.summaries && Array.isArray(this.currentSeries.config.summaries)) {
-                    this.currentSeries.summaryDisplay = this.currentSeries.config.summaries.map(summaryConfig => {
-                        return calculateSeriesSummary(
-                            this.currentSeries,
-                            this.currentSeriesEntries,
-                            formatDuration.bind(this),
-                            summaryConfig
-                        );
-                    }).filter(summary => summary && summary.trim() !== '');
+            updateTheme(newTheme) {
+                State.theme = newTheme;
+                localStorage.setItem('theme', newTheme);
+                const doc = document.documentElement;
+                if (newTheme === 'dark') {
+                    doc.classList.add('dark', 'sl-theme-dark');
+                    doc.classList.remove('sl-theme-light');
                 } else {
-                    // Fallback to single summary for backward compatibility
-                    this.currentSeries.summaryDisplay = calculateSeriesSummary(
-                        this.currentSeries,
-                        this.currentSeriesEntries,
-                        formatDuration.bind(this)
-                    );
+                    doc.classList.remove('dark', 'sl-theme-dark');
+                    doc.classList.add('sl-theme-light');
                 }
-            },
+                m.redraw();
+            }
+        };
 
-            handleCalendarDayClick(d) {
-                const targetDate = new Date(d.date);
-                const now = new Date();
-                targetDate.setHours(now.getHours(), now.getMinutes());
-                this.editEntry({ 
-                    timestamp: getFormattedISO(targetDate), 
-                    value: 0, 
-                    notes: '', 
-                    dhms: { d:0, h:0, m:0, s:0 } 
-                });
-            },
+        const ChronosApp = {
+            oninit: () => Actions.loadSeries(),
+            view: () => {
+                return m("div", { class: `h-full flex flex-col ${State.theme === 'dark' ? 'dark' : ''}` }, [
+                    m("header", { class: "bg-white border-b border-slate-200 sticky top-0 z-30 dark:bg-slate-800 dark:border-slate-700" }, [
+                        m("div", { class: "max-w-7xl mx-auto px-4 h-16 md:h-10 flex items-center justify-between" }, [
+                            State.view === 'list' ? m("list-header", {
+                                oncreate: (vnode) => {
+                                    vnode.dom.addEventListener('home-click', () => { State.view = 'list'; m.redraw(); });
+                                    vnode.dom.addEventListener('groups-click', Actions.openGroupManager);
+                                    vnode.dom.addEventListener('new-series-click', Actions.openNewSeriesModal);
+                                    vnode.dom.addEventListener('export-json', Actions.exportData);
+                                    vnode.dom.addEventListener('export-csv', Actions.exportCSV);
+                                    vnode.dom.addEventListener('import-file', async (e) => {
+                                        const { file, type } = e.detail;
+                                        const content = await file.text();
+                                        if (type === 'json') await chronosDB.importJSON(JSON.parse(content), true);
+                                        else await chronosDB.importCSV(content);
+                                        await Actions.loadSeries();
+                                        Actions.showToast(`${type.toUpperCase()} imported`);
+                                    });
+                                    vnode.dom.addEventListener('theme-change', (e) => Actions.updateTheme(e.detail.theme));
+                                }
+                            }) : null,
+                            State.view === 'detail' ? m("detail-header", {
+                                id: "detail-header",
+                                oncreate: (vnode) => {
+                                    vnode.dom.addEventListener('back-click', () => { State.view = 'list'; m.redraw(); });
+                                    vnode.dom.addEventListener('series-name-update', async (e) => {
+                                        const { series: s } = e.detail;
+                                        await chronosDB.saveSeries(s);
+                                        await Actions.loadSeries();
+                                        if (State.currentSeries?.id === s.id) State.currentSeries.name = s.name;
+                                    });
+                                    vnode.dom.addEventListener('delete-series', async (e) => {
+                                        if (!confirm('Delete series and all data?')) return;
+                                        await chronosDB.deleteSeries(e.detail.seriesId);
+                                        await Actions.loadSeries();
+                                        State.view = 'list';
+                                        m.redraw();
+                                    });
+                                }
+                            }) : null
+                        ])
+                    ]),
 
-            changeSubView(v) { this.detailSubView = v; },
-            
-            async openAddEntryModal(series) {
-                this.modals.entry = true;
-                this.$nextTick(() => {
-                    const modal = document.querySelector('entry-modal');
-                    if (modal) modal.openForNew(series);
-                });
-            },
-            
-            editEntry(e) { 
-                this.modals.entry = true;
-                this.$nextTick(() => {
-                    const modal = document.querySelector('entry-modal');
-                    if (modal) modal.openForEdit(e, this.currentSeries);
-                });
-            },
+                    m("main", { class: "flex-1 flex flex-col px-4 pb-1" }, [
+                        State.view === 'list' ? m("dashboard-view", {
+                            oncreate: (vnode) => {
+                                vnode.dom.addEventListener('series-click', (e) => Actions.openSeriesDetail(e.detail.series));
+                                vnode.dom.addEventListener('add-entry-click', (e) => Actions.openAddEntryModal(e.detail.series));
+                                vnode.dom.addEventListener('series-updated', Actions.loadSeries);
+                                vnode.dom.addEventListener('entry-created', () => Actions.loadSeries());
+                            }
+                        }) : m("div", { class: "flex-1 flex flex-col space-y-2" }, [
+                            m("div", { class: "flex-1 flex flex-col md:flex-row md:items-start md:gap-4" }, [
+                                m("div", { class: "flex md:flex-col items-center justify-between md:justify-start gap-4 py-2 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-700 md:py-0 md:pr-4" }, [
+                                    m("div", { class: "flex md:flex-col bg-slate-100 p-1 rounded-xl border border-slate-200 dark:bg-slate-800 dark:border-slate-700" }, 
+                                        State.tabs.map(tab => m("button", {
+                                            key: tab.id,
+                                            onclick: () => State.detailSubView = tab.id,
+                                            class: `px-3 py-1.5 rounded-lg text-sm transition-all flex justify-center items-center md:w-12 md:h-12 ${State.detailSubView === tab.id ? 'bg-white text-indigo-600 shadow-sm dark:bg-slate-700 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400'}`
+                                        }, m("i", { class: `fa-solid ${tab.icon}` })))
+                                    )
+                                ]),
+                                m("div", { class: "flex-1 flex flex-col min-w-0 h-full" }, [
+                                    m("div", { style: { display: State.detailSubView === 'chart' ? 'flex' : 'none' }, class: "flex-1 flex flex-col space-y-6" }, 
+                                        State.currentSeries ? m("series-chart", { "series-id": State.currentSeries.id, class: "flex-1 flex flex-col" }) : null
+                                    ),
+                                    m("div", { style: { display: State.detailSubView === 'calendar' ? 'block' : 'none' }, class: "space-y-6" }, 
+                                        m("chronos-calendar", {
+                                            series: JSON.stringify(State.currentSeries),
+                                            entries: JSON.stringify(State.currentSeriesEntries),
+                                            oncreate: (vnode) => {
+                                                vnode.dom.addEventListener('day-click', (e) => {
+                                                    const targetDate = new Date(e.detail.date);
+                                                    const now = new Date();
+                                                    targetDate.setHours(now.getHours(), now.getMinutes());
+                                                    Actions.editEntry({ timestamp: getFormattedISO(targetDate), value: 0, notes: '', dhms: { d:0, h:0, m:0, s:0 } });
+                                                });
+                                            }
+                                        })
+                                    ),
+                                    m("series-history", {
+                                        style: { display: State.detailSubView === 'history' ? 'block' : 'none' },
+                                        series: JSON.stringify(State.currentSeries),
+                                        entries: JSON.stringify(State.currentSeriesEntries),
+                                        oncreate: (vnode) => {
+                                            vnode.dom.addEventListener('add-entry-click', (e) => Actions.openAddEntryModal(e.detail.series));
+                                            vnode.dom.addEventListener('edit-entry-click', (e) => Actions.editEntry(e.detail.entry));
+                                            vnode.dom.addEventListener('delete-entry-click', (e) => Actions.deleteEntry(e.detail.id));
+                                        }
+                                    }),
+                                    m("series-configuration", {
+                                        style: { display: State.detailSubView === 'config' ? 'block' : 'none' },
+                                        "series-id": State.currentSeries?.id
+                                    })
+                                ])
+                            ])
+                        ])
+                    ]),
 
-            async deleteEntry(id) { 
-                if (confirm('Delete entry?')) { 
-                    await chronosDB.deleteEntry(id);
-                    await this.loadEntries(this.currentSeries.id);
-                } 
-            },
+                    m("sl-dialog", { 
+                        label: "Manage Groups", 
+                        open: State.modals.group, 
+                        oncreate: (vnode) => vnode.dom.addEventListener('sl-after-hide', () => { State.modals.group = false; m.redraw(); })
+                    }, m("group-manager", { 
+                        oncreate: (vnode) => vnode.dom.addEventListener('groups-updated', Actions.loadSeries) 
+                    })),
 
-            showToast(m) { this.toast.message = m; this.toast.show = true; setTimeout(() => this.toast.show = false, 3000); }
-        }));
-        
-        Alpine.start();
+                    m("sl-dialog", { 
+                        label: State.modals.series ? "Series Settings" : "", 
+                        open: State.modals.series, 
+                        oncreate: (vnode) => vnode.dom.addEventListener('sl-after-hide', () => { State.modals.series = false; m.redraw(); })
+                    }, m("series-modal", { 
+                        oncreate: (vnode) => {
+                            vnode.dom.addEventListener('series-saved', () => { State.modals.series = false; Actions.loadSeries(); });
+                            vnode.dom.addEventListener('modal-closed', () => { State.modals.series = false; m.redraw(); });
+                        }
+                    })),
+
+                    m("sl-dialog", { 
+                        label: State.modals.entry ? "Entry Details" : "", 
+                        open: State.modals.entry, 
+                        oncreate: (vnode) => vnode.dom.addEventListener('sl-after-hide', () => { State.modals.entry = false; m.redraw(); })
+                    }, m("entry-modal", { 
+                        oncreate: (vnode) => {
+                            vnode.dom.addEventListener('entry-saved', (e) => {
+                                State.modals.entry = false;
+                                Actions.loadSeries();
+                                if (State.currentSeries?.id === e.detail.series.id) Actions.loadEntries(State.currentSeries.id);
+                            });
+                            vnode.dom.addEventListener('modal-closed', () => { State.modals.entry = false; m.redraw(); });
+                        }
+                    })),
+
+                    State.toast.show ? m("div", { class: "fixed bottom-5 right-5 z-[100]" }, [
+                        m("div", { class: "bg-slate-800 text-white px-6 py-3 rounded-xl shadow-lg flex items-center space-x-3 dark:bg-slate-700" }, [
+                            m("span", State.toast.message),
+                            m("button", { onclick: () => State.toast.show = false, class: "text-slate-400" }, "×")
+                        ])
+                    ]) : null,
+
+                    m("duration-picker-modal", { id: "durationPickerModal" })
+                ]);
+            }
+        };
+
+        m.mount(document.getElementById('app'), ChronosApp);
     </script>
 </body>
 </html>
