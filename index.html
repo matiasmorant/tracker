@@ -1,10 +1,13 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full" :class="{ 'dark': theme === 'dark' }">
+<html lang="en" class="h-full" :class="{ 'dark': theme === 'dark' }" :data-theme="theme">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <title>Chronos - Time Series Manager</title>
     <link rel="icon" type="image/png" href="icon-192.png">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/themes/light.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/themes/dark.css">
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/shoelace-autoloader.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
     tailwind.config = {
@@ -29,7 +32,6 @@
     <script type="module" src="./group-manager.js"></script>
     <script type="module" src="./series-modal.js"></script>
     <script type="module" src="./entry-modal.js"></script>
-    <script type="module" src="./modal.js"></script>
     <script type="module" src="./dashboard.js"></script>
     <!-- Header components -->
     <script type="module" src="./theme-utils.js"></script>
@@ -183,23 +185,23 @@
         </template>
     </main>
 
-    <modal-wrapper x-show="modals.group" @modal-closed="modals.group = false" x-cloak>
+    <sl-dialog label="Groups" id="group-dialog" class="modal-dialog" @sl-after-hide="modals.group = false">
       <group-manager @groups-updated="loadData()"></group-manager>
-    </modal-wrapper>
+    </sl-dialog>
 
-    <modal-wrapper x-show="modals.series" @modal-closed="modals.series = false" x-cloak>
+    <sl-dialog label="Series" id="series-dialog" class="modal-dialog" @sl-after-hide="modals.series = false">
       <series-modal
         @series-saved="modals.series = false; loadSeries();"
         @modal-closed="modals.series = false">
       </series-modal>
-    </modal-wrapper>
+    </sl-dialog>
 
-    <modal-wrapper x-show="modals.entry" @modal-closed="modals.entry = false" x-cloak>
+    <sl-dialog label="Entry" id="entry-dialog" class="modal-dialog" @sl-after-hide="modals.entry = false">
       <entry-modal
         @entry-saved="modals.entry = false; loadSeries(); if(currentSeries && currentSeries.id === $event.detail.series.id) loadEntries(currentSeries.id);"
         @modal-closed="modals.entry = false">
       </entry-modal>
-    </modal-wrapper>
+    </sl-dialog>
 
     <div class="fixed bottom-5 right-5 z-[100]" x-show="toast.show" x-transition x-cloak>
         <div class="bg-slate-800 text-white px-6 py-3 rounded-xl shadow-lg flex items-center space-x-3 dark:bg-slate-700">
@@ -224,7 +226,35 @@
             theme: localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
             init() {
                 this.loadData();
-                this.$watch('theme', x=>{ localStorage.setItem('theme', x); });
+                this.$watch('theme', x=>{ 
+                    localStorage.setItem('theme', x);
+                    document.documentElement.setAttribute('data-theme', x);
+                    if (x === 'dark') {
+                        document.documentElement.classList.add('sl-theme-dark');
+                    } else {
+                        document.documentElement.classList.remove('sl-theme-dark');
+                    }
+                });
+                
+                // Initialize Shoelace theme
+                if (this.theme === 'dark') {
+                    document.documentElement.classList.add('sl-theme-dark');
+                }
+                
+                // Sync Alpine modals state with Shoelace dialogs
+                this.$watch('modals.group', value => this.handleModalSync('group-dialog', value));
+                this.$watch('modals.series', value => this.handleModalSync('series-dialog', value));
+                this.$watch('modals.entry', value => this.handleModalSync('entry-dialog', value));
+            },
+
+            async handleModalSync(dialogId, open) {
+                const dialog = document.getElementById(dialogId);
+                if (!dialog) return;
+                if (open && !dialog.open) {
+                    dialog.show();
+                } else if (!open && dialog.open) {
+                    dialog.hide();
+                }
             },
 
             async loadData() { await this.loadSeries(); },
