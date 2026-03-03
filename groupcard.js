@@ -1,6 +1,5 @@
 import m from 'https://esm.sh/mithril';
-import { formatDuration, getRunningTime } from './utils.js';
-import { calculateSeriesSummary } from './analytics.js';
+import { getRunningTime } from './utils.js';
 import chronosDB from './db.js';
 
 const GroupCard = () => {
