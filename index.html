@@ -7,15 +7,20 @@
     <script>
         (function() {
             const theme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-            document.documentElement.classList.add(theme === 'dark' ? 'sl-theme-dark' : 'sl-theme-light');
+            document.documentElement.classList.add(theme === 'dark' ? 'wa-dark' : 'wa-light');
             if (theme === 'dark') document.documentElement.classList.add('dark');
         })();
     </script>
     <link rel="icon" type="image/png" href="icon-192.png">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/themes/light.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/themes/dark.css">
-    <script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/shoelace-autoloader.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.3.1/dist/styles/webawesome.css" /> -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.3.1/dist-cdn/styles/themes/default.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.3.1/dist-cdn/styles/utilities.css" />
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.3.1/dist-cdn/webawesome.loader.js"></script>
+
+    <script src="https://cdn.tailwindcss.com"></script> <!-- this is v3 -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script> -->
+
     <script>
     tailwind.config = {
         darkMode: 'class',
@@ -35,18 +40,10 @@
     <script type="module" src="./chronos-chart.js"></script>
     <script type="module" src="./series-chart.js"></script>
     <script type="module" src="./series-history.js"></script>
-    <script type="module" src="./duration-picker-modal.js"></script>
-    <script type="module" src="./seriesConfig.js"></script>
-    <script type="module" src="./group-manager.js"></script>
-    <script type="module" src="./series-modal.js"></script>
-    <script type="module" src="./entry-modal.js"></script>
     <script type="module" src="./dashboard.js"></script>
     <script type="module" src="./theme-utils.js"></script>
-    <script type="module" src="./list-header.js"></script>
-    <script type="module" src="./detail-header.js"></script>
 
     <style>
-        .sl-theme-dark { color-scheme: dark; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         @media (max-width: 640px) {
@@ -57,153 +54,130 @@
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; }
         * { transition: background-color 0.3s ease, border-color 0.3s ease; user-select: none; }        
+        wa-tab::part(base){ padding: 1em 1em; }
+        wa-tab-panel::part(base){ padding: 0; }
+
+        .expandable ,
+        .expandable::part(base) ,
+        .expandable::part(body) ,
+        .expandable > wa-tab-panel ,
+        .expandable > wa-tab-panel::part(base) ,
+        .expandable series-chart > div { height: 100%; }
+        .expandable > wa-tab { --padding: 1em 1em;}
+
+        wa-number-input::part(start) { display: None;}
+        wa-number-input::part(end) { display: None;}
+        wa-number-input::part(input) { padding: 0 0;}
+        wa-number-input::part(stepper) { max-width: 2rem;}
+        .series-name-input::part(base) {
+            border-style:none none solid none; border-radius:0;
+            font-weight: 600;
+            height: 2em;
+            /*&:focus-within            */
+        }
     </style>
 
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4f46e5">
     <link rel="apple-touch-icon" href="icon-192.png">
 </head>
-<body class="h-full bg-slate-50 text-slate-900 font-sans dark:bg-slate-900 dark:text-slate-100">
+<body class="h-full font-sans">
     <div id="app" class="h-full"></div>
 
     <script type="module">
         import { State, Actions } from './mithril-state-actions.js';
+        import ListHeader from './list-header.js';
+        import DetailHeader from './detail-header.js';
+        import GroupManager from './group-manager.js';
+        import SeriesModal from './series-modal.js';
+        import EntryModal from './entry-modal.js';
+        import DurationPickerModal from './duration-picker-modal.js';
+        import SeriesConfiguration from './seriesConfig.js';
         import { getFormattedISO } from './utils.js';
         import chronosDB from './db.js';
 
         const ChronosApp = {
-            oninit: () => Actions.loadSeries(),
+            oninit: () => {Actions.loadSeries();  window.matchMedia('(min-width: 768px)').addEventListener('change', m.redraw);},
             view: () => {
-                return m("div", { class: `h-full flex flex-col ${State.theme === 'dark' ? 'dark' : ''}` }, [
-                    m("header", { class: "bg-white border-b border-slate-200 sticky top-0 z-30 dark:bg-slate-800 dark:border-slate-700" }, [
-                        m("div", { class: "max-w-7xl mx-auto px-4 h-16 md:h-10 flex items-center justify-between" }, [
-                            State.view === 'list' ? m("list-header", {
-                                'onhome-click': () => { State.view = 'list'; m.redraw(); },
-                                'ongroups-click': Actions.openGroupManager,
-                                'onnew-series-click': Actions.openNewSeriesModal,
-                                'onexport-json': Actions.exportData,
-                                'onexport-csv': Actions.exportCSV,
-                                'onimport-file': async (e) => {
-                                    try{
-                                        const { file, type } = e.detail;
-                                        const content = await file.text();
-                                        if (type === 'json') await chronosDB.importJSON(JSON.parse(content), true);
-                                        else await chronosDB.importCSV(content);
-                                        await Actions.loadSeries();
-                                        Actions.showToast(`${type.toUpperCase()} imported`);
-                                    } catch (err) { Actions.showToast(err.toString()); }
-                                },
-                                'ontheme-change': e => Actions.updateTheme(e.detail.theme)
-                            }) : null,
-                            State.view === 'detail' ? m("detail-header", {
-                                id: "detail-header",
-                                'onback-click': () => { State.view = 'list'; m.redraw(); },
-                                'onseries-name-update': async (e) => {
-                                    const { series: s } = e.detail;
-                                    await chronosDB.saveSeries(s);
-                                    await Actions.loadSeries();
-                                    if (State.currentSeries?.id === s.id) State.currentSeries.name = s.name;
-                                },
-                                'ondelete-series': async (e) => {
-                                    if (!confirm('Delete series and all data?')) return;
-                                    await chronosDB.deleteSeries(e.detail.seriesId);
-                                    await Actions.loadSeries();
-                                    State.view = 'list';
-                                    m.redraw();
-                                },
-                                oncreate: (vnode) => { if (State.currentSeries) vnode.dom.setCurrentSeries(State.currentSeries); }
-                            }) : null
-                        ])
+                return m(".h-full.flex.flex-col", { class: (State.theme === 'dark' ? 'dark' : '') }, [
+                    m("header.sticky.top-0.z-30.content-center.px-4.h-16.md:h-10",{style: 'background: var(--wa-color-surface-raised);box-shadow: var(--wa-shadow-s);'}, [
+                        State.view === 'list' ? m(ListHeader) : m(DetailHeader)
                     ]),
 
-                    m("main", { class: "flex-1 flex flex-col px-4 pb-1" }, [
-                        State.view === 'list' ? m("dashboard-view", {
-                            'onseries-click': (e) => Actions.openSeriesDetail(e.detail.series),
-                            'onadd-entry-click': (e) => Actions.openAddEntryModal(e.detail.series),
-                            'onseries-updated': Actions.loadSeries,
-                            'onentry-created': () => Actions.loadSeries()
-                        }) : m("div", { class: "flex-1 flex flex-col space-y-2" }, [
-                            m("div", { class: "flex-1 flex flex-col md:flex-row md:items-start md:gap-4" }, [
-                                m("div", { class: "flex md:flex-col items-center justify-between md:justify-start gap-4 py-2 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-700 md:py-0 md:pr-4" }, [
-                                    m("div", { class: "flex md:flex-col bg-slate-100 p-1 rounded-xl border border-slate-200 dark:bg-slate-800 dark:border-slate-700" }, 
-                                        State.tabs.map(tab => m("button", {
-                                            key: tab.id,
-                                            onclick: () => State.detailSubView = tab.id,
-                                            class: `px-3 py-1.5 rounded-lg text-sm transition-all flex justify-center items-center md:w-12 md:h-12 ${State.detailSubView === tab.id ? 'bg-white text-indigo-600 shadow-sm dark:bg-slate-700 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400'}`
-                                        }, m("i", { class: `fa-solid ${tab.icon}` })))
-                                    )
-                                ]),
-                                m("div", { class: "flex-1 flex flex-col min-w-0 h-full" }, [
-                                    m("div", { style: { display: State.detailSubView === 'chart' ? 'flex' : 'none' }, class: "flex-1 flex flex-col space-y-6" }, 
-                                        State.currentSeries ? m("series-chart", { "series-id": State.currentSeries.id, class: "flex-1 flex flex-col" }) : null
-                                    ),
-                                    m("div", { style: { display: State.detailSubView === 'calendar' ? 'block' : 'none' }, class: "space-y-6" }, 
-                                        m("chronos-calendar", {
-                                            series: State.currentSeries,
-                                            entries: State.currentSeriesEntries,
-                                            'onday-click': (e) => {
-                                                const targetDate = new Date(e.detail.date);
-                                                const now = new Date();
-                                                targetDate.setHours(now.getHours(), now.getMinutes());
-                                                Actions.editEntry({ timestamp: getFormattedISO(targetDate), value: 0, notes: '', dhms: { d:0, h:0, m:0, s:0 } });
-                                            }
-                                        })
-                                    ),
-                                    m("series-history", {
-                                        style: { display: State.detailSubView === 'history' ? 'block' : 'none' },
-                                        series: JSON.stringify(State.currentSeries),
-                                        entries: JSON.stringify(State.currentSeriesEntries),
-                                        'onadd-entry-click': (e) => Actions.openAddEntryModal(e.detail.series),
-                                        'onedit-entry-click': (e) => Actions.editEntry(e.detail.entry),
-                                        'ondelete-entry-click': (e) => Actions.deleteEntry(e.detail.id)
-                                    }),
-                                    m("series-configuration", {
-                                        style: { display: State.detailSubView === 'config' ? 'block' : 'none' },
-                                        "series-id": State.currentSeries?.id
-                                    })
-                                ])
-                            ])
-                        ])
+                    
+                    State.view === 'list'
+                    ? m("dashboard-view.overflow-y-auto", {
+                        'onseries-click': (e) => Actions.openSeriesDetail(e.detail.series),
+                        'onadd-entry-click': (e) => EntryModal.openForNew(e.detail.series),
+                        'onseries-updated': Actions.loadSeries,
+                        'onentry-created': () => Actions.loadSeries()
+                    })
+                    : m("wa-tab-group.expandable", {
+                        placement: window.matchMedia('(min-width: 768px)').matches ? 'start' : 'top',
+                    },
+                    [                                    
+                    ...[{panel: 'chart', name: 'chart-line'},
+                        {panel: 'calendar', name: 'calendar-days'},
+                        {panel: 'history', name: 'table-list'},
+                        {panel: 'config', name: 'gear'}].map(({panel,name}) =>
+                            m("wa-tab[slot=nav]", {panel}, m("wa-icon",{name}))
+                        ),
+
+                        m("wa-tab-panel[name=chart]",
+                            State.currentSeries ? m("series-chart", { "series-id": State.currentSeries.id}) : null
+                        ),
+                        m("wa-tab-panel[name=calendar]",
+                            m("chronos-calendar", {
+                                series: State.currentSeries,
+                                entries: State.currentSeriesEntries,
+                                'onday-click': (e) => {
+                                    const targetDate = new Date(e.detail.date);
+                                    const now = new Date();
+                                    targetDate.setHours(now.getHours(), now.getMinutes());
+                                    EntryModal.openForEdit({ timestamp: getFormattedISO(targetDate), value: 0, notes: '', dhms: { d:0, h:0, m:0, s:0 } }, State.currentSeries);
+                                }
+                            })
+                        ),
+                        m("wa-tab-panel[name=history]", 
+                            m("series-history", {
+                                series: JSON.stringify(State.currentSeries),
+                                entries: JSON.stringify(State.currentSeriesEntries),
+                                'onadd-entry-click': (e) => EntryModal.openForNew(e.detail.series),
+                                'onedit-entry-click': (e) => EntryModal.openForEdit(e.detail.entry, State.currentSeries),
+                                'ondelete-entry-click': (e) => Actions.deleteEntry(e.detail.id)
+                            })
+                        ),
+                        m("wa-tab-panel[name=config]", 
+                            m(SeriesConfiguration, {
+                                "series-id": State.currentSeries?.id
+                            })
+                        )
                     ]),
 
-                    m("sl-dialog", { 
-                        label: "Manage Groups", 
-                        open: State.modals.group, 
-                        'onsl-after-hide': () => { State.modals.group = false; m.redraw(); }
-                    }, m("group-manager", { 
-                        'ongroups-updated': Actions.loadSeries 
-                    })),
+                    m(GroupManager, { onGroupsUpdated: Actions.loadSeries }),
 
-                    m("sl-dialog", { 
-                        label: "Series Settings",
-                        open: State.modals.series, 
-                        'onsl-after-hide': () => { State.modals.series = false; m.redraw(); }
-                    }, m("series-modal", { 
-                        'onseries-saved': () => { State.modals.series = false; Actions.loadSeries(); },
-                        'onmodal-closed': () => { State.modals.series = false; m.redraw(); }
-                    })),
+                    m(SeriesModal, {
+                        series: State.editingSeries ?? null,  // null = create new
+                        onSave: Actions.loadSeries,
+                    }),
 
-                    m("sl-dialog", { 
-                        label: "Entry Details", 
-                        open: State.modals.entry, 
-                        'onsl-after-hide': () => { State.modals.entry = false; m.redraw(); }
-                    }, m("entry-modal", { 
-                        'onentry-saved': (e) => {
-                            State.modals.entry = false;
-                            Actions.loadSeries();
-                            if (State.currentSeries?.id === e.detail.series.id) Actions.loadEntries(State.currentSeries.id);
-                        },
-                        'onmodal-closed': () => { State.modals.entry = false; m.redraw(); }
-                    })),
+                    m(EntryModal, {
+                      'onentry-saved': (e) => {
+                        Actions.loadSeries();
+                        if (State.currentSeries?.id === e.detail.series.id)
+                          Actions.loadEntries(State.currentSeries.id);
+                      },
+                    }),
+
+                    m(DurationPickerModal),
 
                     State.toast.show ? m("div", { class: "fixed bottom-5 right-5 z-[100]" }, [
                         m("div", { class: "bg-slate-800 text-white px-6 py-3 rounded-xl shadow-lg flex items-center space-x-3 dark:bg-slate-700" }, [
                             m("span", State.toast.message),
                             m("button", { onclick: () => State.toast.show = false, class: "text-slate-400" }, "×")
                         ])
-                    ]) : null,
+                    ]) : null
 
-                    m("duration-picker-modal#durationPickerModal")
                 ]);
             }
         };

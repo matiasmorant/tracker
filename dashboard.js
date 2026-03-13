@@ -104,7 +104,7 @@ const Dashboard = () => {
 
             return m(".space-y-6", [
                 // Filter Header
-                m(".py-1.border-b.border-slate-200.flex.flex-wrap.items-center.gap-y-3.dark:border-slate-700", 
+                m(".px-4.py-1.border-b.border-slate-200.flex.flex-wrap.items-center.gap-y-3.dark:border-slate-700", 
                     { class: !state.showFilters ? 'gap-x-8' : '' },
                     [
                         m(".flex.items-center", [
@@ -129,7 +129,7 @@ const Dashboard = () => {
                 ),
 
                 // Content Grid
-                m("div", {class:"columns-1 min-[400px]:columns-2 md:columns-3 lg:columns-4 gap-3"},
+                m("div", {class:"px-4 columns-1 min-[400px]:columns-2 md:columns-3 lg:columns-4 gap-3"},
                     state.groups.length === 0
                     ? m(".text-center.py-8.text-slate-500.dark:text-slate-400", "No groups found. Create some groups to get started!")
                     : filteredGroups.length > 0
