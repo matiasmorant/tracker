@@ -1,337 +1,297 @@
 import chronosDB from './db.js';
 import { formatDuration } from './utils.js';
-import { calculateStats, filterByRange, calculateSeriesSummary } from './analytics.js';
+import { calculateSeriesSummary } from './analytics.js';
 
-class SeriesConfiguration extends HTMLElement {
-    constructor() {
-        super();
-        this.seriesId = null;
-        this.series = null;
-        this.groups = [];
-        this.entries = [];
+const PeriodSelector = {
+  view({ attrs: { settings, onSettingChange } }) {
+    return m(".flex.flex-row.gap-3.items-start.sm:items-center", [
+
+      m("wa-select[size=small].max-w-48", {
+        value: settings.range,
+        onchange: (e) => onSettingChange("range", e.target.value),
+      }, [
+        m("wa-option[value=all]",     "All Time"),
+        m("wa-option[value=day]",     "Day"),
+        m("wa-option[value=week]",    "Week"),
+        m("wa-option[value=month]",   "Month"),
+        m("wa-option[value=quarter]", "Quarter"),
+        m("wa-option[value=year]",    "Year"),
+        m("wa-option[value=custom]",  "Custom"),
+      ]),
+
+      settings.range === "custom"
+        ? m("[placeholder=Days].flex.items-center.space-x-2", [
+            m("wa-input[type=number][size=small].w-20", {
+              value: settings.customDays,
+              oninput: (e) => onSettingChange("customDays", e.target.value),
+            }),
+            m("span.text-xs.font-bold.text-slate-400.uppercase.tracking-tight", "Days"),
+          ])
+        : null,
+
+    ]);
+  }
+};
+
+const PERIODS = [
+    { value: 'all',     label: 'All Data' },
+    { value: 'today',   label: 'Today' },
+    { value: 'week',    label: 'Current Week' },
+    { value: 'month',   label: 'Current Month' },
+    { value: 'quarter', label: 'Current Quarter' },
+    { value: 'year',    label: 'Current Year' },
+    { value: 'custom',  label: 'Custom Days' },
+];
+
+const OPERATIONS = [
+    { value: 'mean',    label: 'Mean' },
+    { value: 'dayMean', label: 'Daily Avg' },
+    { value: 'sum',     label: 'Sum' },
+    { value: 'count',   label: 'Count' },
+    { value: 'min',     label: 'Min' },
+    { value: 'q1',      label: 'Q1' },
+    { value: 'median',  label: 'Median' },
+    { value: 'q3',      label: 'Q3' },
+    { value: 'max',     label: 'Max' },
+    { value: 'first',   label: 'First' },
+    { value: 'last',    label: 'Last' },
+];
+
+function getSummaryPreviews(series, entries) {
+    if (!series || !entries.length) return [];
+
+    const summaries = series.config?.summaries;
+
+    if (Array.isArray(summaries) && summaries.length > 0) {
+        return summaries.map(cfg =>
+            calculateSeriesSummary(series, entries, formatDuration, cfg) || 'No Data'
+        );
     }
 
-    static get observedAttributes() {
-        return ['series-id'];
-    }
-
-    async attributeChangedCallback(name, oldValue, newValue) {
-        if (name === 'series-id' && newValue && newValue !== oldValue) {
-            this.seriesId = newValue;
-            await this.loadData();
-            this.render();
-        }
-    }
-
-    async loadData() {
-        if (!this.seriesId) return;
-        
-        try {
-            this.series = await chronosDB.getSeries(parseInt(this.seriesId));
-            this.groups = await chronosDB.getAllGroups();
-            this.entries = await chronosDB.getEntriesForSeries(parseInt(this.seriesId));
-            this.entries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-        } catch (error) {
-            console.error('Failed to load series data:', error);
-        }
-    }
-
-    async updateSummaries() {
-        const summariesContainer = this.querySelector('.summaries-container');
-        if (!summariesContainer) return;
-
-        const summaries = [];
-        const summaryElements = summariesContainer.querySelectorAll('.summary-item');
-        
-        summaryElements.forEach(item => {
-            const period = item.querySelector('.summary-period').value;
-            const operation = item.querySelector('.summary-operation').value;
-            const summary = { period, operation };
-            
-            if (period === 'custom') {
-                const customDays = item.querySelector('.custom-days-input');
-                summary.customDays = customDays ? parseInt(customDays.value) || 30 : 30;
-            }
-            
-            summaries.push(summary);
-        });
-
-        this.series.config.summaries = summaries;
-        await this.saveSeries();
-        await this.updatePreview();
-    }
-
-    async updatePreview() {
-        const previewContainer = this.querySelector('.summary-preview');
-        if (!previewContainer || !this.series || !this.entries.length) return;
-
-        const summaries = this.series.config?.summaries || [];
-        
-        if (summaries.length > 0 && Array.isArray(summaries)) {
-            const previewHTML = summaries.map(summaryConfig => {
-                const summary = (!this.series || !this.entries.length)?
-                    'No Data' :
-                    calculateSeriesSummary(
-                        this.series, this.entries, formatDuration, summaryConfig
-                    );
-                return `<div class="flex items-baseline">
-                    <span class="text-sm font-black text-indigo-600 truncate dark:text-indigo-400">${summary}</span>
-                </div>`;
-            }).join('');
-            
-            previewContainer.innerHTML = previewHTML;
-        } else {
-            // Legacy format - use the series config
-            if (this.series.config) {
-                const legacySummary = calculateSeriesSummary(
-                    this.series, 
-                    this.entries, 
-                    formatDuration, 
-                    { 
-                        period: 'all', 
-                        operation: this.series.config.stat || 'mean' 
-                    }
-                );
-                previewContainer.innerHTML = `<span class="text-sm font-black text-indigo-600 truncate dark:text-indigo-400">${legacySummary || 'No Data'}</span>`;
-            } else {
-                const singleSummary = calculateSeriesSummary(
-                    this.series, 
-                    this.entries, 
-                    formatDuration, 
-                    { period: 'all', operation: 'mean' }
-                );
-                previewContainer.innerHTML = `<span class="text-sm font-black text-indigo-600 truncate dark:text-indigo-400">${singleSummary || 'No Data'}</span>`;
-            }
-        }
-    }
-
-    async saveSeries() {
-        if (!this.series) return;
-        await chronosDB.saveSeries(this.series);
-        // Dispatch event to notify parent of changes
-        this.dispatchEvent(new CustomEvent('series-updated', {
-            detail: { seriesId: this.seriesId },
-            bubbles: true
-        }));
-    }
-
-    render() {
-        if (!this.series) {
-            this.innerHTML = '<div class="p-6 text-slate-500">Loading...</div>';
-            return;
-        }
-
-        const summaries = this.series.config?.summaries || [];
-        
-        this.innerHTML = `
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 dark:bg-slate-800 dark:border-slate-700">
-                <div class="max-w-4xl space-y-8">
-                    <h3 class="text-lg font-bold text-slate-800 dark:text-slate-100">Configuration</h3>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div>
-                            <label class="block text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider dark:text-slate-500">Group</label>
-                            <select class="group-select w-full px-3 py-2 border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 bg-slate-50 text-xs font-bold text-slate-700 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
-                                <option value="">No Group</option>
-                                ${this.groups.map(g => `
-                                    <option value="${g.name}" ${g.name === this.series.group ? 'selected' : ''}>
-                                        ${g.name}
-                                    </option>
-                                `).join('')}
-                            </select>
-                        </div>
-
-                        <div class="space-y-6">
-                            <div class="flex items-center space-x-2 pb-2 border-b border-slate-100 dark:border-slate-700">
-                                <i class="fa-solid fa-calculator text-indigo-500 text-xs"></i>
-                                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest dark:text-slate-500">Dashboard Summary</h4>
-                            </div>
-
-                            <div>
-                                <label class="block text-[10px] font-bold text-slate-400 mb-3 uppercase tracking-wider dark:text-slate-500">Summary Configuration</label>
-                                <div class="space-y-3 summaries-container">
-                                    ${summaries.map((summary, index) => `
-                                        <div class="summary-item flex gap-2 items-center">
-                                            <select class="summary-period text-xs border border-slate-200 rounded-md px-2 py-1.5 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
-                                                <option value="all" ${summary.period === 'all' ? 'selected' : ''}>All Data</option>
-                                                <option value="today" ${summary.period === 'today' ? 'selected' : ''}>Today</option>
-                                                <option value="week" ${summary.period === 'week' ? 'selected' : ''}>Current Week</option>
-                                                <option value="month" ${summary.period === 'month' ? 'selected' : ''}>Current Month</option>
-                                                <option value="quarter" ${summary.period === 'quarter' ? 'selected' : ''}>Current Quarter</option>
-                                                <option value="year" ${summary.period === 'year' ? 'selected' : ''}>Current Year</option>
-                                                <option value="custom" ${summary.period === 'custom' ? 'selected' : ''}>Custom Days</option>
-                                            </select>
-                                            
-                                            <select class="summary-operation text-xs border border-slate-200 rounded-md px-2 py-1.5 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
-                                                <option value="mean" ${summary.operation === 'mean' ? 'selected' : ''}>Mean</option>
-                                                <option value="dayMean" ${summary.operation === 'dayMean' ? 'selected' : ''}>Daily Avg</option>
-                                                <option value="sum" ${summary.operation === 'sum' ? 'selected' : ''}>Sum</option>
-                                                <option value="count" ${summary.operation === 'count' ? 'selected' : ''}>Count</option>
-                                                <option value="min" ${summary.operation === 'min' ? 'selected' : ''}>Min</option>
-                                                <option value="q1" ${summary.operation === 'q1' ? 'selected' : ''}>Q1</option>
-                                                <option value="median" ${summary.operation === 'median' ? 'selected' : ''}>Median</option>
-                                                <option value="q3" ${summary.operation === 'q3' ? 'selected' : ''}>Q3</option>
-                                                <option value="max" ${summary.operation === 'max' ? 'selected' : ''}>Max</option>
-                                                <option value="first" ${summary.operation === 'first' ? 'selected' : ''}>First</option>
-                                                <option value="last" ${summary.operation === 'last' ? 'selected' : ''}>Last</option>
-                                            </select>
-                                            
-                                            ${summary.period === 'custom' ? `
-                                                <div class="flex items-center space-x-1">
-                                                    <input type="number" 
-                                                           value="${summary.customDays || 30}"
-                                                           min="1"
-                                                           class="custom-days-input w-16 text-xs border border-slate-200 rounded-md px-2 py-1.5 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
-                                                    <span class="text-[10px] text-slate-400 dark:text-slate-500">days</span>
-                                                </div>
-                                            ` : ''}
-                                            
-                                            <button class="delete-summary p-1 text-slate-400 hover:text-red-600 dark:text-slate-500 dark:hover:text-red-400">
-                                                <i class="fa-solid fa-trash text-xs"></i>
-                                            </button>
-                                        </div>
-                                    `).join('')}
-                                </div>
-                                
-                                <button class="add-summary text-xs text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center space-x-1">
-                                    <i class="fa-solid fa-plus"></i>
-                                    <span>Add Summary</span>
-                                </button>
-                            </div>
-
-                            <div class="bg-indigo-50 border border-indigo-100 rounded-lg p-3 flex flex-col dark:bg-indigo-900/30 dark:border-indigo-800">
-                                <span class="text-[8px] font-black text-indigo-400 uppercase tracking-tighter dark:text-indigo-300 mb-1">Preview</span>
-                                <div class="summary-preview space-y-1">
-                                    <!-- Preview will be populated dynamically -->
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="space-y-6">
-                            <div class="flex items-center space-x-2 pb-2 border-b border-slate-100 dark:border-slate-700">
-                                <i class="fa-solid fa-bolt text-indigo-500 text-xs"></i>
-                                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest dark:text-slate-500">Button Behavior</h4>
-                            </div>
-
-                            <div>
-                                <label class="block text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider dark:text-slate-500">Quick Add (+) Action</label>
-                                <select class="quick-add-action w-full px-3 py-2 border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 bg-slate-50 text-xs font-bold text-slate-700 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
-                                    <option value="manual" ${this.series.config?.quickAddAction === 'manual' ? 'selected' : ''}>Manual Entry Modal</option>
-                                    ${this.series.type === 'number' ? `
-                                        <option value="increment" ${this.series.config?.quickAddAction === 'increment' ? 'selected' : ''}>One-Click (+1)</option>
-                                    ` : ''}
-                                    ${this.series.type === 'time' ? `
-                                        <optgroup label="Time Shortcuts">
-                                            <option value="currentTime" ${this.series.config?.quickAddAction === 'currentTime' ? 'selected' : ''}>Stamp Current Time</option>
-                                            <option value="chronometer" ${this.series.config?.quickAddAction === 'chronometer' ? 'selected' : ''}>Start/Stop Chronometer</option>
-                                        </optgroup>
-                                    ` : ''}
-                                </select>
-                            </div>
-
-                            <div class="bg-slate-50 border border-slate-100 p-3 rounded-xl dark:bg-slate-700 dark:border-slate-600">
-                                <p class="text-[10px] font-bold text-slate-400 uppercase mb-1 dark:text-slate-500">How it works</p>
-                                <p class="text-[11px] text-slate-500 leading-relaxed italic dark:text-slate-400">
-                                    Sets the action triggered by the <span class="font-bold text-indigo-600 dark:text-indigo-400">plus (+)</span> icon on your dashboard for this series.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        this.setupEventListeners();
-        this.updatePreview();
-    }
-
-    setupEventListeners() {
-        // Group change
-        const groupSelect = this.querySelector('.group-select');
-        if (groupSelect) {
-            groupSelect.addEventListener('change', async (e) => {
-                this.series.group = e.target.value;
-                await this.saveSeries();
-            });
-        }
-
-        // Quick add action change
-        const quickAddSelect = this.querySelector('.quick-add-action');
-        if (quickAddSelect) {
-            quickAddSelect.addEventListener('change', async (e) => {
-                if (!this.series.config) this.series.config = {};
-                this.series.config.quickAddAction = e.target.value;
-                await this.saveSeries();
-            });
-        }
-
-        // Summary configuration
-        const summariesContainer = this.querySelector('.summaries-container');
-        if (summariesContainer) {
-            // Handle period/operation changes
-            summariesContainer.addEventListener('change', (e) => {
-                if (e.target.classList.contains('summary-period') || 
-                    e.target.classList.contains('summary-operation') ||
-                    e.target.classList.contains('custom-days-input')) {
-                    this.updateSummaries();
-                }
-            });
-
-            // Handle delete
-            summariesContainer.addEventListener('click', (e) => {
-                if (e.target.closest('.delete-summary')) {
-                    const item = e.target.closest('.summary-item');
-                    if (item && summariesContainer.querySelectorAll('.summary-item').length > 1) {
-                        item.remove();
-                        this.updateSummaries();
-                    }
-                }
-            });
-        }
-
-        // Add new summary
-        const addSummaryBtn = this.querySelector('.add-summary');
-        if (addSummaryBtn) {
-            addSummaryBtn.addEventListener('click', () => {
-                const summariesContainer = this.querySelector('.summaries-container');
-                if (summariesContainer) {
-                    const newItem = document.createElement('div');
-                    newItem.className = 'summary-item flex gap-2 items-center';
-                    newItem.innerHTML = `
-                        <select class="summary-period text-xs border border-slate-200 rounded-md px-2 py-1.5 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
-                            <option value="all">All Data</option>
-                            <option value="today">Today</option>
-                            <option value="week">Current Week</option>
-                            <option value="month">Current Month</option>
-                            <option value="quarter">Current Quarter</option>
-                            <option value="year">Current Year</option>
-                            <option value="custom">Custom Days</option>
-                        </select>
-                        
-                        <select class="summary-operation text-xs border border-slate-200 rounded-md px-2 py-1.5 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
-                            <option value="mean">Mean</option>
-                            <option value="dayMean">Daily Avg</option>
-                            <option value="sum">Sum</option>
-                            <option value="count">Count</option>
-                            <option value="min">Min</option>
-                            <option value="q1">Q1</option>
-                            <option value="median">Median</option>
-                            <option value="q3">Q3</option>
-                            <option value="max">Max</option>
-                            <option value="first">First</option>
-                            <option value="last">Last</option>
-                        </select>
-                        
-                        <button class="delete-summary p-1 text-slate-400 hover:text-red-600 dark:text-slate-500 dark:hover:text-red-400">
-                            <i class="fa-solid fa-trash text-xs"></i>
-                        </button>
-                    `;
-                    summariesContainer.appendChild(newItem);
-                    this.updateSummaries();
-                }
-            });
-        }
-    }
+    // Legacy fallback
+    const legacyCfg = {
+        period: 'all',
+        operation: series.config?.stat || 'mean',
+    };
+    return [calculateSeriesSummary(series, entries, formatDuration, legacyCfg) || 'No Data'];
 }
 
-customElements.define('series-configuration', SeriesConfiguration);
+function SeriesConfiguration() {
+    let seriesId;
+    let series = null;
+    let groups = [];
+    let entries = [];
+    let loading = true;
+    let _dom;
+
+    async function _load() {
+        if (!seriesId) return;
+        loading = true;
+        m.redraw();
+        try {
+            const id = parseInt(seriesId);
+            [series, groups, entries] = await Promise.all([
+                chronosDB.getSeries(id),
+                chronosDB.getAllGroups(),
+                chronosDB.getEntriesForSeries(id),
+            ]);
+            entries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        } catch (err) {
+            console.error('Failed to load series data:', err);
+        } finally {
+            loading = false;
+            m.redraw();
+        }
+    }
+
+    async function _save() {
+        if (!series) return;
+        await chronosDB.saveSeries(series);
+        if (_dom) {
+            _dom.dispatchEvent(new CustomEvent('series-updated', {
+                detail: { seriesId },
+                bubbles: true,
+            }));
+        }
+        m.redraw();
+    }
+
+    function _ensureConfig() {
+        if (!series.config) series.config = {};
+    }
+
+    function _ensureSummaries() {
+        _ensureConfig();
+        if (!Array.isArray(series.config.summaries) || !series.config.summaries.length) {
+            series.config.summaries = [{ period: 'all', operation: 'mean' }];
+        }
+    }
+
+    function _updateSummary(index, key, value) {
+        _ensureSummaries();
+        series.config.summaries[index][key] = value;
+        _save();
+    }
+
+    function _addSummary() {
+        _ensureSummaries();
+        series.config.summaries.push({ period: 'all', operation: 'mean' });
+        _save();
+    }
+
+    function _removeSummary(index) {
+        _ensureSummaries();
+        if (series.config.summaries.length <= 1) return;
+        series.config.summaries.splice(index, 1);
+        _save();
+    }
+
+    function _viewSummaryRow(summary, index, total) {
+        const canDelete = total > 1;
+
+        const periodSettings = {
+            range: summary.period,
+            customDays: summary.customDays ?? 30,
+        };
+
+        return m('.flex.gap-2.items-center', { key: index }, [
+
+            m(PeriodSelector, {
+                settings: periodSettings,
+                onSettingChange: (key, value) => {
+                    const updateKey = key === 'range' ? 'period' : key;
+                    _updateSummary(index, updateKey, value);
+                },
+            }),
+
+            m('wa-select[size=small]', {
+                value: summary.operation,
+                onchange: e => _updateSummary(index, 'operation', e.target.value),
+            }, OPERATIONS.map(op =>
+                m(`wa-option[value=${op.value}]`, op.label)
+            )),
+
+            m('wa-button[appearance=plain][size=small]', {
+                variant: canDelete ? 'danger' : 'neutral',
+                disabled: !canDelete,
+                onclick: () => _removeSummary(index),
+            }, m('wa-icon[slot=start][name=trash]')),
+        ]);
+    }
+
+    return {
+        oninit(vnode) {
+            seriesId = vnode.attrs['series-id'];
+            _load();
+        },
+
+        onupdate(vnode) {
+            if (vnode.attrs['series-id'] !== seriesId) {
+                seriesId = vnode.attrs['series-id'];
+                _load();
+            }
+        },
+
+        view(vnode) {
+
+            const cfg = series?.config ?? {};
+
+            const summaries = cfg?.summaries?.length
+                ? cfg.summaries
+                : [{ period: 'all', operation: 'mean' }];
+            const previews  = getSummaryPreviews(series, entries);
+
+            return m('div', {
+                oncreate: v => { _dom = v.dom; },
+            }, [
+                loading
+                    ? m('.p-6.text-slate-500', [
+                        m('wa-spinner'),
+                        m('span.ml-2', 'Loading…'),
+                      ])
+                    : !series
+                    ? m('.p-6.text-slate-500', 'No series selected.')
+                    : m('wa-card[appearance=outlined]', [
+                        m('h3.text-lg.font-bold[slot=header]', 'Configuration'),
+                        m('.grid.gap-8', { style: 'grid-template-columns: repeat(auto-fit, minmax(260px, 1fr))' }, [
+
+                            m('wa-select[label=Group]', {
+                                value: series.group ?? '',
+                                onchange: e => {
+                                    series.group = e.target.value;
+                                    _save();
+                                },
+                            }, [
+                                m('wa-option[value=]', 'No Group'),
+                                groups.map(g =>
+                                    m('wa-option', { value: g.name }, g.name)
+                                ),
+                            ]),
+
+                            m('.wa-stack', [
+
+                                m('.wa-cluster.border-b.border-slate-100', [
+                                    m('wa-icon[name=calculator]', { style: 'color: var(--wa-color-brand-fill-loud); font-size: 0.75rem' }),
+                                    m('h4.text-xs.font-black.text-slate-400.uppercase.tracking-widest', 'Dashboard Summary'),
+                                ]),
+
+                                m('label.block.text-xs.font-bold.text-slate-400.uppercase.tracking-wide', 'Summary Configuration'),
+                                m('.space-y-3',
+                                    summaries.map((s, i) => _viewSummaryRow(s, i, summaries.length))
+                                ),
+                                m('wa-button[appearance=plain][variant=brand][size=small]', {
+                                    onclick: () => _addSummary(),
+                                }, [
+                                    m('wa-icon[slot=start][name=plus]'),
+                                    'Add Summary',
+                                ]),
+
+                                m('wa-callout[variant=brand][appearance=filled]', [
+                                    m('span[slot=icon]', m('wa-icon[name=eye]')),
+                                    previews.length
+                                        ? previews.map(p => m('.text-sm.font-black.truncate', p))
+                                        : m('.text-sm.italic', 'No Data'),
+                                ]),
+                            ]),
+
+                            m('.wa-stack', [
+
+                                m('.wa-cluster.border-b.border-slate-100', [
+                                    m('wa-icon[name=bolt]', { style: 'color: var(--wa-color-brand-fill-loud); font-size: 0.75rem' }),
+                                    m('h4.text-xs.font-black.text-slate-400.uppercase.tracking-widest', 'Button Behavior'),
+                                ]),
+
+                                m('label.block.text-xs.font-bold.text-slate-400.mb-2.uppercase.tracking-wide', 'Quick Add (+) Action'),
+                                m('wa-select[label=Quick Add Action]', {
+                                    value: cfg.quickAddAction ?? 'manual',
+                                    onchange: e => {
+                                        _ensureConfig();
+                                        series.config.quickAddAction = e.target.value;
+                                        _save();
+                                    },
+                                }, [
+                                    m('wa-option[value=manual]', 'Manual Entry Modal'),
+                                    series.type === 'number' && m('wa-option[value=increment]', 'One-Click (+1)'),
+                                    series.type === 'time' && [
+                                        m('wa-option[value=currentTime]', 'Stamp Current Time'),
+                                        m('wa-option[value=chronometer]', 'Start/Stop Chronometer'),
+                                    ],
+                                ]),
+
+                                m('wa-callout[variant=neutral][appearance=filled]', [
+                                    m('p.text-xs.font-bold.text-slate-500.uppercase.mb-1', 'How it works'),
+                                    m('p.text-xs.text-slate-500.italic.leading-relaxed', [
+                                        'Sets the action triggered by the ',
+                                        m('strong.text-indigo-600', 'plus (+)'),
+                                        ' icon on your dashboard for this series.',
+                                    ]),
+                                ]),
+                            ]),
+                        ]),
+                    ]),
+            ]);
+        },
+    };
+}
+
+export default SeriesConfiguration;

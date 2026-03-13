@@ -109,10 +109,6 @@ export class SeriesChart extends HTMLElement {
     const toggleBtn = this.querySelector('[data-action="toggle-collapsed"] span');
 
     if (panel) panel.classList.toggle('hidden');
-    if (chartContainer) {
-      chartContainer.classList.toggle('h-96', !this.chartConfigCollapsed);
-      chartContainer.classList.toggle('h-[calc(100vh-240px)]', this.chartConfigCollapsed);
-    }
     if (toggleBtn) toggleBtn.textContent = this.chartConfigCollapsed ? 'Statistics' : 'Hide';
   }
 
@@ -142,14 +138,11 @@ export class SeriesChart extends HTMLElement {
     }
 
     this.innerHTML = `
-      <div class="flex-1 flex flex-col space-y-6">
-        <div class="flex-1 flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 dark:bg-slate-800 dark:border-slate-700 overflow-hidden">
-          <div class="flex-1 ${this.chartConfigCollapsed ? 'h-[calc(100vh-240px)]' : 'h-96'} transition-all duration-300 ease-in-out p-2">
-            <chronos-chart
-              id="seriesChart"
-              style="width: 100%; height: 100%;">
-            </chronos-chart>
-          </div>
+      <div class="wa-stack dark:bg-slate-800 overflow-hidden">
+          <chronos-chart
+            id="seriesChart"
+            style="width: 100%; height: 100%;">
+          </chronos-chart>
 
           <div class="px-4 py-0 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
             <button 
@@ -166,7 +159,6 @@ export class SeriesChart extends HTMLElement {
             series-id="${this.seriesId}"
             class="${this.chartConfigCollapsed ? 'hidden' : ''}">
           </series-chart-config>
-        </div>
       </div>
     `;
 

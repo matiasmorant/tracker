@@ -4,19 +4,11 @@ import chronosDB from './db.js';
 
 export const State = {
     view: 'list',
-    detailSubView: 'chart',
     series: [],
     currentSeries: null,
     currentSeriesEntries: [],
     theme: localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
-    modals: { series: false, entry: false, group: false },
     toast: { show: false, message: '' },
-    tabs: [
-        {id: 'chart', icon: 'fa-chart-line'},
-        {id: 'calendar', icon: 'fa-calendar-days'},
-        {id: 'history', icon: 'fa-table-list'},
-        {id: 'config', icon: 'fa-gear'}
-    ]
 };
 
 export const Actions = {
@@ -48,18 +40,9 @@ export const Actions = {
             ? config.summaries.map(s => calculateSeriesSummary(State.currentSeries, State.currentSeriesEntries, formatDuration, s)).filter(s => s && s.trim() !== '')
             : calculateSeriesSummary(State.currentSeries, State.currentSeriesEntries, formatDuration);
     },
-    openNewSeriesModal() {
-        State.modals.series = true;
-        m.redraw();
-        setTimeout(() => {
-            const el = document.querySelector('series-modal');
-            if (el) { el.loadGroups(); el.openForNew(); }
-        }, 0);
-    },
     async openSeriesDetail(s) {
         State.currentSeries = s;
         State.view = 'detail';
-        State.detailSubView = 'chart';
         await Actions.loadEntries(s.id);
         setTimeout(() => {
             const header = document.querySelector('detail-header');
@@ -67,35 +50,11 @@ export const Actions = {
         }, 0);
         m.redraw();
     },
-    openAddEntryModal(s) {
-        State.modals.entry = true;
-        m.redraw();
-        setTimeout(() => {
-            const el = document.querySelector('entry-modal');
-            if (el) el.openForNew(s);
-        }, 0);
-    },
-    editEntry(e) {
-        State.modals.entry = true;
-        m.redraw();
-        setTimeout(() => {
-            const el = document.querySelector('entry-modal');
-            if (el) el.openForEdit(e, State.currentSeries);
-        }, 0);
-    },
     async deleteEntry(id) {
         if (confirm('Delete entry?')) {
             await chronosDB.deleteEntry(id);
             await Actions.loadEntries(State.currentSeries.id);
         }
-    },
-    openGroupManager() {
-        State.modals.group = true;
-        m.redraw();
-        setTimeout(() => {
-            const el = document.querySelector('group-manager');
-            if (el) el.resetForm();
-        }, 0);
     },
     async exportData() {
         try {
@@ -125,11 +84,11 @@ export const Actions = {
         localStorage.setItem('theme', newTheme);
         const doc = document.documentElement;
         if (newTheme === 'dark') {
-            doc.classList.add('dark', 'sl-theme-dark');
-            doc.classList.remove('sl-theme-light');
+            doc.classList.add('dark', 'wa-dark');
+            doc.classList.remove('wa-light');
         } else {
-            doc.classList.remove('dark', 'sl-theme-dark');
-            doc.classList.add('sl-theme-light');
+            doc.classList.remove('dark', 'wa-dark');
+            doc.classList.add('wa-light');
         }
         m.redraw();
     }

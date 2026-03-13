@@ -1,4 +1,3 @@
-// theme-utils.js
 export class ThemeManager {
     constructor() {
         this.theme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
@@ -38,25 +37,6 @@ export class ThemeManager {
         return this.theme;
     }
 
-    updateThemeIcons(element) {
-        if (!element) return;
-        
-        const themeIconLight = element.querySelector('#theme-icon-light');
-        const themeIconDark = element.querySelector('#theme-icon-dark');
-        const themeText = element.querySelector('#theme-text');
-        
-        if (themeIconLight && themeIconDark && themeText) {
-            if (this.theme === 'light') {
-                themeIconLight.classList.remove('hidden');
-                themeIconDark.classList.add('hidden');
-                themeText.textContent = 'Dark Mode';
-            } else {
-                themeIconLight.classList.add('hidden');
-                themeIconDark.classList.remove('hidden');
-                themeText.textContent = 'Light Mode';
-            }
-        }
-    }
 }
 
 // Create a singleton instance

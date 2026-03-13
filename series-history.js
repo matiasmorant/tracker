@@ -1,4 +1,5 @@
 import { formatDuration } from './utils.js';
+import DurationPickerModal from './duration-picker-modal.js';
 
 class SeriesHistory extends HTMLElement {
     constructor() {
@@ -128,15 +129,9 @@ class SeriesHistory extends HTMLElement {
     }
 
     async openDurationPicker(cell) {
-        const modal = document.getElementById('durationPickerModal');
-        if (!modal) {
-            console.error('Duration picker modal not found');
-            return;
-        }
-        
         try {
             const currentValue = cell.getValue();
-            const newValue = await modal.open(currentValue);
+            const newValue = await DurationPickerModal.open(currentValue);
             
             // Update the cell value
             cell.setValue(newValue);
