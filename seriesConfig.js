@@ -21,11 +21,11 @@ const PeriodSelector = {
 
       settings.range === "custom"
         ? m("[placeholder=Days].flex.items-center.space-x-2", [
-            m("wa-input[type=number][size=small].w-20", {
+            m("wa-input[type=number][size=small].w-14.part-base:px-1", {
               value: settings.customDays,
               oninput: (e) => onSettingChange("customDays", e.target.value),
             }),
-            m("span.text-xs.font-bold.text-slate-400.uppercase.tracking-tight", "Days"),
+            m("span.text-xs.font-bold.text-quiet.uppercase.tracking-tight", "Days"),
           ])
         : null,
 
