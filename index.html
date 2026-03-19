@@ -18,14 +18,41 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.3.1/dist-cdn/styles/utilities.css" />
     <script type="module" src="https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.3.1/dist-cdn/webawesome.loader.js"></script>
 
-    <script src="https://cdn.tailwindcss.com"></script> <!-- this is v3 -->
+    <script type="module">
+      import presetWind from 'https://esm.sh/@unocss/preset-wind'
+      import transformerVariantGroup from 'https://esm.sh/@unocss/transformer-variant-group'
+
+      window.__unocss = {
+        presets: [presetWind()],
+          transformers: [ transformerVariantGroup(),],
+        variants: [
+          {
+            name: 'part',
+            match(matcher) {
+              const m = matcher.match(/^part-(\w+):/)
+              if (!m) return
+              return {
+                matcher: matcher.slice(m[0].length),
+                selector: (s) => `${s}::part(${m[1]})`,
+              }
+            }
+          }
+        ],
+      }
+
+      // Load runtime AFTER config is set
+      const script = document.createElement('script')
+      script.src = 'https://cdn.jsdelivr.net/npm/@unocss/runtime'
+      document.head.appendChild(script)
+    </script>
+    <!-- <script src="https://cdn.tailwindcss.com"></script> --> <!-- this is v3 -->
     <!-- <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script> -->
 
-    <script>
+<!--     <script>
     tailwind.config = {
         darkMode: 'class',
     }
-    </script>
+    </script> -->
     <script src="https://unpkg.com/mithril/mithril.js"></script>
     <script src="https://unpkg.com/papaparse@latest/papaparse.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -75,13 +102,22 @@
             height: 2em;
             /*&:focus-within            */
         }
+
+        .text-normal  { color: var(--wa-color-text-normal); }
+        .text-quiet   { color: var(--wa-color-text-quiet); }
+        .text-link    { color: var(--wa-color-text-link); }
+        .text-brand    { color: var(--wa-color-brand-on-quiet); }
+        .surface-raised   { background-color: var(--wa-color-surface-raised); }
+        .surface-default  { background-color: var(--wa-color-surface-default); }
+        .surface-lowered  { background-color: var(--wa-color-surface-lowered); }
+
     </style>
 
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4f46e5">
     <link rel="apple-touch-icon" href="icon-192.png">
 </head>
-<body class="h-full font-sans">
+<body class="h-full m-0 font-sans">
     <div id="app" class="h-full"></div>
 
     <script type="module">

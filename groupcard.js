@@ -83,8 +83,10 @@ const GroupCard = () => {
                             )
                         ]),
                         // Action Button
-                        m("button.p-2.rounded-lg.transition-colors", {
-                            class: (isRunning ? 'bg-red-50 text-red-600 animate-pulse dark:bg-red-900/20' : 'text-indigo-600'),
+                        m("wa-button[appearance=plain].transition-colors", {
+                        // isRunning ?'[variant=danger].animate-pulse':'[variant=brand]'
+                            class: (isRunning ? 'animate-pulse' : ''),
+                            variant: (isRunning ? 'danger' : 'brand'),
                             onclick: (e) => {
                                 e.stopPropagation();
                                 handleQuickAdd(series, vnode);
