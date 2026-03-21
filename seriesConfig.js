@@ -1,61 +1,7 @@
 import chronosDB from './db.js';
 import { formatDuration } from './utils.js';
 import { calculateSeriesSummary } from './analytics.js';
-
-const PeriodSelector = {
-  view({ attrs: { settings, onSettingChange } }) {
-    return m(".flex.flex-row.gap-3.items-start.sm:items-center", [
-
-      m("wa-select[size=small].max-w-48", {
-        value: settings.range,
-        onchange: (e) => onSettingChange("range", e.target.value),
-      }, [
-        m("wa-option[value=all]",     "All Time"),
-        m("wa-option[value=day]",     "Day"),
-        m("wa-option[value=week]",    "Week"),
-        m("wa-option[value=month]",   "Month"),
-        m("wa-option[value=quarter]", "Quarter"),
-        m("wa-option[value=year]",    "Year"),
-        m("wa-option[value=custom]",  "Custom"),
-      ]),
-
-      settings.range === "custom"
-        ? m("[placeholder=Days].flex.items-center.space-x-2", [
-            m("wa-input[type=number][size=small].w-14.part-base:px-1", {
-              value: settings.customDays,
-              oninput: (e) => onSettingChange("customDays", e.target.value),
-            }),
-            m("span.text-xs.font-bold.text-quiet.uppercase.tracking-tight", "Days"),
-          ])
-        : null,
-
-    ]);
-  }
-};
-
-const PERIODS = [
-    { value: 'all',     label: 'All Data' },
-    { value: 'today',   label: 'Today' },
-    { value: 'week',    label: 'Current Week' },
-    { value: 'month',   label: 'Current Month' },
-    { value: 'quarter', label: 'Current Quarter' },
-    { value: 'year',    label: 'Current Year' },
-    { value: 'custom',  label: 'Custom Days' },
-];
-
-const OPERATIONS = [
-    { value: 'mean',    label: 'Mean' },
-    { value: 'dayMean', label: 'Daily Avg' },
-    { value: 'sum',     label: 'Sum' },
-    { value: 'count',   label: 'Count' },
-    { value: 'min',     label: 'Min' },
-    { value: 'q1',      label: 'Q1' },
-    { value: 'median',  label: 'Median' },
-    { value: 'q3',      label: 'Q3' },
-    { value: 'max',     label: 'Max' },
-    { value: 'first',   label: 'First' },
-    { value: 'last',    label: 'Last' },
-];
+import {PeriodSelector, StatSelect} from './period-selector.js'
 
 function getSummaryPreviews(series, entries) {
     if (!series || !entries.length) return [];
@@ -147,14 +93,17 @@ function SeriesConfiguration() {
     }
 
     function _viewSummaryRow(summary, index, total) {
-        const canDelete = total > 1;
-
         const periodSettings = {
             range: summary.period,
             customDays: summary.customDays ?? 30,
         };
 
-        return m('.flex.gap-2.items-center', { key: index }, [
+        return [
+
+            m(StatSelect, {
+                value: summary.operation,
+                onchange: e => _updateSummary(index, 'operation', e.target.value),
+            }),
 
             m(PeriodSelector, {
                 settings: periodSettings,
@@ -164,19 +113,10 @@ function SeriesConfiguration() {
                 },
             }),
 
-            m('wa-select[size=small]', {
-                value: summary.operation,
-                onchange: e => _updateSummary(index, 'operation', e.target.value),
-            }, OPERATIONS.map(op =>
-                m(`wa-option[value=${op.value}]`, op.label)
-            )),
-
-            m('wa-button[appearance=plain][size=small]', {
-                variant: canDelete ? 'danger' : 'neutral',
-                disabled: !canDelete,
+            m('wa-button[appearance=plain][size=small][variant=danger]', {
                 onclick: () => _removeSummary(index),
-            }, m('wa-icon[slot=start][name=trash]')),
-        ]);
+            }, m('wa-icon[name=trash][label=delete]')),
+        ];
     }
 
     return {
@@ -213,7 +153,8 @@ function SeriesConfiguration() {
                     ? m('.p-6.text-slate-500', 'No series selected.')
                     : m('wa-card[appearance=outlined]', [
                         m('h3.text-lg.font-bold[slot=header]', 'Configuration'),
-                        m('.grid.gap-8', { style: 'grid-template-columns: repeat(auto-fit, minmax(260px, 1fr))' }, [
+
+                        m('.masonry-md-lg.gap-3.*:mb-3', [
 
                             m('wa-select[label=Group]', {
                                 value: series.group ?? '',
@@ -228,23 +169,21 @@ function SeriesConfiguration() {
                                 ),
                             ]),
 
-                            m('.wa-stack', [
-
-                                m('.wa-cluster.border-b.border-slate-100', [
-                                    m('wa-icon[name=calculator]', { style: 'color: var(--wa-color-brand-fill-loud); font-size: 0.75rem' }),
+                            m('wa-card', [
+                                m('.wa-cluster[slot=header]', 
+                                    m('wa-icon[name=calculator].text-brand'),
                                     m('h4.text-xs.font-black.text-slate-400.uppercase.tracking-widest', 'Dashboard Summary'),
-                                ]),
+                                ),
 
                                 m('label.block.text-xs.font-bold.text-slate-400.uppercase.tracking-wide', 'Summary Configuration'),
-                                m('.space-y-3',
-                                    summaries.map((s, i) => _viewSummaryRow(s, i, summaries.length))
+                                m('.grid.grid-cols-3-auto.gap-2.py-2',
+                                    summaries.flatMap((s, i) => _viewSummaryRow(s, i, summaries.length))
                                 ),
-                                m('wa-button[appearance=plain][variant=brand][size=small]', {
-                                    onclick: () => _addSummary(),
-                                }, [
+                                m('wa-button[appearance=plain][variant=brand][size=small]', 
+                                    { onclick: () => _addSummary(), }, 
                                     m('wa-icon[slot=start][name=plus]'),
                                     'Add Summary',
-                                ]),
+                                ),
 
                                 m('wa-callout[variant=brand][appearance=filled]', [
                                     m('span[slot=icon]', m('wa-icon[name=eye]')),
@@ -254,12 +193,12 @@ function SeriesConfiguration() {
                                 ]),
                             ]),
 
-                            m('.wa-stack', [
+                            m('wa-card', [
 
-                                m('.wa-cluster.border-b.border-slate-100', [
-                                    m('wa-icon[name=bolt]', { style: 'color: var(--wa-color-brand-fill-loud); font-size: 0.75rem' }),
+                                m('.wa-cluster[slot=header]', 
+                                    m('wa-icon[name=bolt].text-brand'),
                                     m('h4.text-xs.font-black.text-slate-400.uppercase.tracking-widest', 'Button Behavior'),
-                                ]),
+                                ),
 
                                 m('label.block.text-xs.font-bold.text-slate-400.mb-2.uppercase.tracking-wide', 'Quick Add (+) Action'),
                                 m('wa-select[label=Quick Add Action]', {
@@ -278,14 +217,14 @@ function SeriesConfiguration() {
                                     ],
                                 ]),
 
-                                m('wa-callout[variant=neutral][appearance=filled]', [
+                                m('wa-callout[variant=neutral][appearance=filled]', 
                                     m('p.text-xs.font-bold.text-slate-500.uppercase.mb-1', 'How it works'),
-                                    m('p.text-xs.text-slate-500.italic.leading-relaxed', [
+                                    m('p.text-xs.text-slate-500.italic.leading-relaxed', 
                                         'Sets the action triggered by the ',
                                         m('strong.text-indigo-600', 'plus (+)'),
                                         ' icon on your dashboard for this series.',
-                                    ]),
-                                ]),
+                                    ),
+                                ),
                             ]),
                         ]),
                     ]),

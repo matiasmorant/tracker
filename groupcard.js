@@ -55,7 +55,7 @@ const GroupCard = () => {
             return m(".wa-stack.wa-gap-3xs.px-3.py-1.rounded-xl.border.shadow-sm.overflow-hidden.transition-all.hover:shadow-md", {
                 style: { borderColor: `${group.color}40`, backgroundColor: `${group.color}12` }
             }, [
-                m("h3", { class: "border-b text-[10px] font-bold uppercase tracking-widest truncate", style: { color: group.color } }, group.name),
+                m("h3", { class: "border-b text-2xs font-bold uppercase tracking-widest truncate", style: { color: group.color } }, group.name),
 
                 seriesList.map(series => {
                     const isRunning = chronosDB.isChrono(series) && chronosDB.isRunning(series);

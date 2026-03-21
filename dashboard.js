@@ -102,14 +102,14 @@ const Dashboard = () => {
                 color: g.color
             }));
 
-            return m(".space-y-6", [
+            return m(".space-y-2", [
                 // Filter Header
                 m(".px-4.py-1.border-b.border-slate-200.flex.flex-wrap.items-center.gap-y-3.dark:border-slate-700", 
                     { class: !state.showFilters ? 'gap-x-8' : '' },
                     [
                         m(".flex.items-center", [
                             m("span#filter-toggle", {
-                                class: "text-[10px] font-bold text-slate-400 tracking-widest dark:text-slate-500 cursor-pointer hover:text-indigo-600 transition-colors select-none",
+                                class: "text-2xs font-bold text-slate-400 tracking-widest dark:text-slate-500 cursor-pointer hover:text-indigo-600 transition-colors select-none",
                                 onclick: () => state.showFilters = !state.showFilters
                             }, "FILTER"),
                             
@@ -129,21 +129,19 @@ const Dashboard = () => {
                 ),
 
                 // Content Grid
-                m("div", {class:"px-4 columns-1 min-[400px]:columns-2 md:columns-3 lg:columns-4 gap-3"},
+                m(".masonry-xs-md-lg.gap-3.*:mb-3.px-4",
                     state.groups.length === 0
                     ? m(".text-center.py-8.text-slate-500.dark:text-slate-400", "No groups found. Create some groups to get started!")
                     : filteredGroups.length > 0
                         ? filteredGroups.map(group => {
                             const seriesList = state.groupSeriesData.get(group.name) || [];
-                            return m(".break-inside-avoid.mb-3", [
-                                m(GroupCard, {
+                            return m(GroupCard, {
                                     group: JSON.stringify(group),
                                     seriesList: seriesList,
                                     onseriesclick: (e) => m.route.set(`/series/${e.detail.series.id}`),
                                     onaddentryclick: (e) => console.log("Add entry", e.detail.series),
                                     onseriesupdated: () => state.loadData() 
-                                })
-                            ]);
+                                });
                         })
                         : m(".column-span-full.text-center.py-8.text-slate-500.dark:text-slate-400", 
                             state.series.length === 0 ? "No series found." : "No series match filters."

@@ -24,10 +24,19 @@
 
       window.__unocss = {
         presets: [presetWind()],
-          transformers: [ transformerVariantGroup(),],
+          theme: {
+            breakpoints: {
+              xs: '400px',
+              sm: '640px',
+              md: '768px',
+              lg: '1024px',
+              xl: '1280px',
+              '2xl': '1536px',
+            }
+          },
+        transformers: [ transformerVariantGroup(),],
         variants: [
-          {
-            name: 'part',
+          { name: 'part',
             match(matcher) {
               const m = matcher.match(/^part-(\w+):/)
               if (!m) return
@@ -36,7 +45,19 @@
                 selector: (s) => `${s}::part(${m[1]})`,
               }
             }
-          }
+          },
+        ],
+        shortcuts: [
+          ['text-2xs', 'text-[0.625rem]'],
+          [/^grid-cols-(\d+)-auto$/, ([, n]) => `grid-cols-[${Array(+n).fill('auto').join('_')}]`],
+          [/^masonry(?:-(\w+))+$/, ([full]) => {
+            const [, ...bps] = full.split('-')
+            return [
+                'columns-1',
+                ...bps.map((bp, i) => `${bp}:columns-${i+2}`),
+                '*:break-inside-avoid'
+            ].join(' ')
+          }],
         ],
       }
 
