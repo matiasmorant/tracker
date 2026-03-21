@@ -145,7 +145,7 @@ export class SeriesChartConfig extends HTMLElement {
       <div id="configPanel" class="border-t border-slate-100 dark:border-slate-700">
         <div class="p-4">
           <div>
-            <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest dark:text-slate-500">Statistics</h3>
+            <h3 class="text-2xs font-bold text-slate-400 uppercase tracking-widest dark:text-slate-500">Statistics</h3>
 
             ${metrics.length > 0 ? `
               <div class="flex flex-row gap-2 mt-2">
@@ -156,7 +156,7 @@ export class SeriesChartConfig extends HTMLElement {
                   multi>
                 </multi-select>
                 <div class="flex flex-col gap-1.5">
-                  <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter dark:text-slate-500">Period Grouping</span>
+                  <span class="text-2xs font-bold text-slate-400 uppercase tracking-tighter dark:text-slate-500">Period Grouping</span>
                   <select data-setting="period" class="text-xs border border-slate-200 rounded-md px-2 py-1.5 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
                     <option value="none" ${settings.period === 'none' ? 'selected' : ''}>Raw Data</option>
                     <option value="day" ${settings.period === 'day' ? 'selected' : ''}>Day</option>
@@ -172,7 +172,7 @@ export class SeriesChartConfig extends HTMLElement {
 
           <div class="flex flex-wrap items-center gap-4 my-3">
             <div class="flex flex-col gap-1.5">
-              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter dark:text-slate-500">Running Average/Stat</span>
+              <span class="text-2xs font-bold text-slate-400 uppercase tracking-tighter dark:text-slate-500">Running Average/Stat</span>
               <div class="flex items-center space-x-2">
                 <select data-setting="runningMetric" class="text-xs border border-slate-200 rounded-md px-2 py-1.5 bg-slate-50 outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
                   <option value="" ${!settings.runningMetric ? 'selected' : ''}>None</option>
@@ -186,7 +186,7 @@ export class SeriesChartConfig extends HTMLElement {
           </div>
 
           <div class="flex flex-row gap-2 mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
-            <h3 class="content-center text-[10px] font-bold text-slate-400 uppercase tracking-widest dark:text-slate-500">Time Range</h3>
+            <h3 class="content-center text-2xs font-bold text-slate-400 uppercase tracking-widest dark:text-slate-500">Time Range</h3>
             
             <div class="flex flex-row gap-3 items-start sm:items-center">
               <div class="relative max-w-xs">
@@ -203,7 +203,7 @@ export class SeriesChartConfig extends HTMLElement {
                   <option value="custom" ${settings.range === 'custom' ? 'selected' : ''}>Custom</option>
                 </select>
                 <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-slate-400">
-                  <i class="fa-solid fa-chevron-down text-[10px]"></i>
+                  <i class="fa-solid fa-chevron-down text-2xs"></i>
                 </div>
               </div>
       
@@ -216,14 +216,14 @@ export class SeriesChartConfig extends HTMLElement {
                     placeholder="Days"
                     class="w-16 px-2 py-2 text-xs font-bold border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500 outline-none dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100"
                   >
-                  <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Days</span>
+                  <span class="text-2xs font-bold text-slate-400 uppercase tracking-tight">Days</span>
                 </div>
               ` : ''}
             </div>
           </div>
 
           <div class="p-4 border-t border-slate-100 dark:border-slate-700">
-            <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest dark:text-slate-500 mb-2">Compare with other series</h3>
+            <h3 class="text-2xs font-bold text-slate-400 uppercase tracking-widest dark:text-slate-500 mb-2">Compare with other series</h3>
             <div class="flex flex-row gap-2">
               <multi-select 
                 class="flex-1"
