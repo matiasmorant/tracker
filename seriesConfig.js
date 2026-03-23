@@ -152,7 +152,7 @@ function SeriesConfiguration() {
                     : !series
                     ? m('.p-6.text-slate-500', 'No series selected.')
                     : m('wa-card[appearance=outlined]', [
-                        m('h3.text-lg.font-bold[slot=header]', 'Configuration'),
+                        m('h2.text-lg.font-bold[slot=header]', 'Configuration'),
 
                         m('.masonry-md-lg.gap-3.*:mb-3', [
 
@@ -172,10 +172,9 @@ function SeriesConfiguration() {
                             m('wa-card', [
                                 m('.wa-cluster[slot=header]', 
                                     m('wa-icon[name=calculator].text-brand'),
-                                    m('h4.text-xs.font-black.text-slate-400.uppercase.tracking-widest', 'Dashboard Summary'),
+                                    m(h3, 'Dashboard Summary'),
                                 ),
 
-                                m('label.block.text-xs.font-bold.text-slate-400.uppercase.tracking-wide', 'Summary Configuration'),
                                 m('.grid.grid-cols-3-auto.gap-2.py-2',
                                     summaries.flatMap((s, i) => _viewSummaryRow(s, i, summaries.length))
                                 ),
@@ -197,11 +196,10 @@ function SeriesConfiguration() {
 
                                 m('.wa-cluster[slot=header]', 
                                     m('wa-icon[name=bolt].text-brand'),
-                                    m('h4.text-xs.font-black.text-slate-400.uppercase.tracking-widest', 'Button Behavior'),
+                                    m(h3, 'Quick Add (+) Action'),
                                 ),
 
-                                m('label.block.text-xs.font-bold.text-slate-400.mb-2.uppercase.tracking-wide', 'Quick Add (+) Action'),
-                                m('wa-select[label=Quick Add Action]', {
+                                m('wa-select', {
                                     value: cfg.quickAddAction ?? 'manual',
                                     onchange: e => {
                                         _ensureConfig();

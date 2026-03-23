@@ -20,7 +20,9 @@
 
     <script type="module">
       import presetWind from 'https://esm.sh/@unocss/preset-wind'
-      import transformerVariantGroup from 'https://esm.sh/@unocss/transformer-variant-group'
+      // transformers only work with build step
+      // import transformerVariantGroup from 'https://esm.sh/@unocss/transformer-variant-group'
+      // import transformerDirectives from 'https://esm.sh/@unocss/transformer-directives'
 
       window.__unocss = {
         presets: [presetWind()],
@@ -34,7 +36,10 @@
               '2xl': '1536px',
             }
           },
-        transformers: [ transformerVariantGroup(),],
+        // transformers: [
+        //     transformerVariantGroup(),
+        //     transformerDirectives(),
+        // ],
         variants: [
           { name: 'part',
             match(matcher) {
@@ -80,6 +85,8 @@
     <link href="https://unpkg.com/tabulator-tables@5.6.1/dist/css/tabulator_modern.min.css" rel="stylesheet">
     <script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.6.1/dist/js/tabulator.min.js"></script>
     
+    <script src="./mithril-super.js"></script>
+    <script src="./native-elements.js"></script>
     <script type="module" src="./multiselect.js"></script>
     <script type="module" src="./calendar.js"></script>
     <script type="module" src="./db.js"></script>
