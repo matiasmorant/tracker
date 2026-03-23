@@ -1,0 +1,347 @@
+<html lang="en" class="h-full wa-light" :class="{ 'dark': theme === 'dark' }" :data-theme="theme"><style data-unocss-runtime-layer="preflights">/* layer: preflights */
+*,::before,::after{--un-rotate:0;--un-rotate-x:0;--un-rotate-y:0;--un-rotate-z:0;--un-scale-x:1;--un-scale-y:1;--un-scale-z:1;--un-skew-x:0;--un-skew-y:0;--un-translate-x:0;--un-translate-y:0;--un-translate-z:0;--un-pan-x: ;--un-pan-y: ;--un-pinch-zoom: ;--un-scroll-snap-strictness:proximity;--un-ordinal: ;--un-slashed-zero: ;--un-numeric-figure: ;--un-numeric-spacing: ;--un-numeric-fraction: ;--un-border-spacing-x:0;--un-border-spacing-y:0;--un-ring-offset-shadow:0 0 rgb(0 0 0 / 0);--un-ring-shadow:0 0 rgb(0 0 0 / 0);--un-shadow-inset: ;--un-shadow:0 0 rgb(0 0 0 / 0);--un-ring-inset: ;--un-ring-offset-width:0px;--un-ring-offset-color:#fff;--un-ring-width:0px;--un-ring-color:rgb(147 197 253 / 0.5);--un-blur: ;--un-brightness: ;--un-contrast: ;--un-drop-shadow: ;--un-grayscale: ;--un-hue-rotate: ;--un-invert: ;--un-saturate: ;--un-sepia: ;--un-backdrop-blur: ;--un-backdrop-brightness: ;--un-backdrop-contrast: ;--un-backdrop-grayscale: ;--un-backdrop-hue-rotate: ;--un-backdrop-invert: ;--un-backdrop-opacity: ;--un-backdrop-saturate: ;--un-backdrop-sepia: ;}::backdrop{--un-rotate:0;--un-rotate-x:0;--un-rotate-y:0;--un-rotate-z:0;--un-scale-x:1;--un-scale-y:1;--un-scale-z:1;--un-skew-x:0;--un-skew-y:0;--un-translate-x:0;--un-translate-y:0;--un-translate-z:0;--un-pan-x: ;--un-pan-y: ;--un-pinch-zoom: ;--un-scroll-snap-strictness:proximity;--un-ordinal: ;--un-slashed-zero: ;--un-numeric-figure: ;--un-numeric-spacing: ;--un-numeric-fraction: ;--un-border-spacing-x:0;--un-border-spacing-y:0;--un-ring-offset-shadow:0 0 rgb(0 0 0 / 0);--un-ring-shadow:0 0 rgb(0 0 0 / 0);--un-shadow-inset: ;--un-shadow:0 0 rgb(0 0 0 / 0);--un-ring-inset: ;--un-ring-offset-width:0px;--un-ring-offset-color:#fff;--un-ring-width:0px;--un-ring-color:rgb(147 197 253 / 0.5);--un-blur: ;--un-brightness: ;--un-contrast: ;--un-drop-shadow: ;--un-grayscale: ;--un-hue-rotate: ;--un-invert: ;--un-saturate: ;--un-sepia: ;--un-backdrop-blur: ;--un-backdrop-brightness: ;--un-backdrop-contrast: ;--un-backdrop-grayscale: ;--un-backdrop-hue-rotate: ;--un-backdrop-invert: ;--un-backdrop-opacity: ;--un-backdrop-saturate: ;--un-backdrop-sepia: ;}</style><style data-unocss-runtime-layer="shortcuts">/* layer: shortcuts */
+.masonry-xs-md-lg{columns:1;}
+.masonry-xs-md-lg > *{break-inside:avoid;}
+.text-2xs{font-size:0.625rem;}
+@media (min-width: 400px){
+.masonry-xs-md-lg{columns:2;}
+}
+@media (min-width: 768px){
+.masonry-xs-md-lg{columns:3;}
+}
+@media (min-width: 1024px){
+.masonry-xs-md-lg{columns:4;}
+}</style><style data-unocss-runtime-layer="default">/* layer: default */
+.fixed{position:fixed;}
+.sticky{position:sticky;}
+.bottom-5{bottom:1.25rem;}
+.right-5{right:1.25rem;}
+.top-0{top:0;}
+.z-\[100\]{z-index:100;}
+.z-30{z-index:30;}
+.m-0{margin:0;}
+.\*\:mb-3 > *{margin-bottom:0.75rem;}
+.ml-1\.5{margin-left:0.375rem;}
+.ml-2{margin-left:0.5rem;}
+.hidden{display:none;}
+.size-12{width:3rem;height:3rem;}
+.h-16{height:4rem;}
+.h-full{height:100%;}
+.max-w-44{max-width:11rem;}
+.min-w-0{min-width:0;}
+.flex{display:flex;}
+.flex-col{flex-direction:column;}
+.flex-wrap{flex-wrap:wrap;}
+@keyframes fade-in{from{opacity:0}to{opacity:1}}
+.animate-fade-in{animation:fade-in 1s linear 1;}
+.cursor-pointer{cursor:pointer;}
+.select-none{-webkit-user-select:none;user-select:none;}
+.content-center{align-content:center;}
+.items-center{align-items:center;}
+.items-baseline{align-items:baseline;}
+.gap-3{gap:0.75rem;}
+.gap-y-3{row-gap:0.75rem;}
+.space-x-3>:not([hidden])~:not([hidden]){--un-space-x-reverse:0;margin-left:calc(0.75rem * calc(1 - var(--un-space-x-reverse)));margin-right:calc(0.75rem * var(--un-space-x-reverse));}
+.space-y-2>:not([hidden])~:not([hidden]){--un-space-y-reverse:0;margin-top:calc(0.5rem * calc(1 - var(--un-space-y-reverse)));margin-bottom:calc(0.5rem * var(--un-space-y-reverse));}
+.overflow-hidden{overflow:hidden;}
+.overflow-y-auto{overflow-y:auto;}
+.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.border{border-width:1px;}
+.border-b{border-bottom-width:1px;}
+.border-slate-200{--un-border-opacity:1;border-color:rgb(226 232 240 / var(--un-border-opacity));}
+.dark .dark\:border-slate-700{--un-border-opacity:1;border-color:rgb(51 65 85 / var(--un-border-opacity));}
+.rounded-lg{border-radius:0.5rem;}
+.rounded-xl{border-radius:0.75rem;}
+.bg-slate-800{--un-bg-opacity:1;background-color:rgb(30 41 59 / var(--un-bg-opacity));}
+.dark .dark\:bg-slate-700{--un-bg-opacity:1;background-color:rgb(51 65 85 / var(--un-bg-opacity));}
+.dark .dark\:hover\:bg-slate-700\/50:hover{background-color:rgb(51 65 85 / 0.5);}
+.px-3{padding-left:0.75rem;padding-right:0.75rem;}
+.px-4{padding-left:1rem;padding-right:1rem;}
+.px-6{padding-left:1.5rem;padding-right:1.5rem;}
+.py-1{padding-top:0.25rem;padding-bottom:0.25rem;}
+.py-3{padding-top:0.75rem;padding-bottom:0.75rem;}
+.py-8{padding-top:2rem;padding-bottom:2rem;}
+.text-center{text-align:center;}
+.text-\[11px\]{font-size:11px;}
+.text-\[9px\]{font-size:9px;}
+.text-2xl{font-size:1.5rem;line-height:2rem;}
+.text-sm{font-size:0.875rem;line-height:1.25rem;}
+.text-xl{font-size:1.25rem;line-height:1.75rem;}
+.text-xs{font-size:0.75rem;line-height:1rem;}
+.dark .dark\:text-indigo-400{--un-text-opacity:1;color:rgb(129 140 248 / var(--un-text-opacity));}
+.dark .dark\:text-slate-100{--un-text-opacity:1;color:rgb(241 245 249 / var(--un-text-opacity));}
+.dark .dark\:text-slate-400,
+.text-slate-400{--un-text-opacity:1;color:rgb(148 163 184 / var(--un-text-opacity));}
+.dark .dark\:text-slate-500,
+.text-slate-500{--un-text-opacity:1;color:rgb(100 116 139 / var(--un-text-opacity));}
+.dark .dark\:text-slate-600{--un-text-opacity:1;color:rgb(71 85 105 / var(--un-text-opacity));}
+.text-indigo-600{--un-text-opacity:1;color:rgb(79 70 229 / var(--un-text-opacity));}
+.text-slate-300{--un-text-opacity:1;color:rgb(203 213 225 / var(--un-text-opacity));}
+.text-slate-800{--un-text-opacity:1;color:rgb(30 41 59 / var(--un-text-opacity));}
+.text-white{--un-text-opacity:1;color:rgb(255 255 255 / var(--un-text-opacity));}
+.hover\:text-indigo-600:hover{--un-text-opacity:1;color:rgb(79 70 229 / var(--un-text-opacity));}
+.font-black{font-weight:900;}
+.font-bold{font-weight:700;}
+.tracking-tight{letter-spacing:-0.025em;}
+.tracking-widest{letter-spacing:0.1em;}
+.font-sans{font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji";}
+.uppercase{text-transform:uppercase;}
+.italic{font-style:italic;}
+.shadow-lg{--un-shadow:var(--un-shadow-inset) 0 10px 15px -3px var(--un-shadow-color, rgb(0 0 0 / 0.1)),var(--un-shadow-inset) 0 4px 6px -4px var(--un-shadow-color, rgb(0 0 0 / 0.1));box-shadow:var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow);}
+.shadow-sm{--un-shadow:var(--un-shadow-inset) 0 1px 2px 0 var(--un-shadow-color, rgb(0 0 0 / 0.05));box-shadow:var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow);}
+.hover\:shadow-md:hover{--un-shadow:var(--un-shadow-inset) 0 4px 6px -1px var(--un-shadow-color, rgb(0 0 0 / 0.1)),var(--un-shadow-inset) 0 2px 4px -2px var(--un-shadow-color, rgb(0 0 0 / 0.1));box-shadow:var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow);}
+.transition-all{transition-property:all;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms;}
+.transition-colors{transition-property:color,background-color,border-color,text-decoration-color,fill,stroke;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms;}
+@media (min-width: 768px){
+.md\:h-10{height:2.5rem;}
+}</style><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Chronos - Time Series Manager</title>
+    <script>
+        (function() {
+            const theme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            document.documentElement.classList.add(theme === 'dark' ? 'wa-dark' : 'wa-light');
+            if (theme === 'dark') document.documentElement.classList.add('dark');
+        })();
+    </script>
+    <link rel="icon" type="image/png" href="icon-192.png">
+
+    <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.3.1/dist/styles/webawesome.css" /> -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.3.1/dist-cdn/styles/themes/default.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.3.1/dist-cdn/styles/utilities.css">
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.3.1/dist-cdn/webawesome.loader.js"></script>
+
+    <script type="module">
+      import presetWind from 'https://esm.sh/@unocss/preset-wind'
+      // transformers only work with build step
+      // import transformerVariantGroup from 'https://esm.sh/@unocss/transformer-variant-group'
+      // import transformerDirectives from 'https://esm.sh/@unocss/transformer-directives'
+
+      window.__unocss = {
+        presets: [presetWind()],
+          theme: {
+            breakpoints: {
+              xs: '400px',
+              sm: '640px',
+              md: '768px',
+              lg: '1024px',
+              xl: '1280px',
+              '2xl': '1536px',
+            }
+          },
+        // transformers: [
+        //     transformerVariantGroup(),
+        //     transformerDirectives(),
+        // ],
+        variants: [
+          { name: 'part',
+            match(matcher) {
+              const m = matcher.match(/^part-(\w+):/)
+              if (!m) return
+              return {
+                matcher: matcher.slice(m[0].length),
+                selector: (s) => `${s}::part(${m[1]})`,
+              }
+            }
+          },
+        ],
+        shortcuts: [
+          ['text-2xs', 'text-[0.625rem]'],
+          [/^grid-cols-(\d+)-auto$/, ([, n]) => `grid-cols-[${Array(+n).fill('auto').join('_')}]`],
+          [/^masonry(?:-(\w+))+$/, ([full]) => {
+            const [, ...bps] = full.split('-')
+            return [
+                'columns-1',
+                ...bps.map((bp, i) => `${bp}:columns-${i+2}`),
+                '*:break-inside-avoid'
+            ].join(' ')
+          }],
+        ],
+      }
+
+      // Load runtime AFTER config is set
+      const script = document.createElement('script')
+      script.src = 'https://cdn.jsdelivr.net/npm/@unocss/runtime'
+      document.head.appendChild(script)
+    </script>
+    <!-- <script src="https://cdn.tailwindcss.com"></script> --> <!-- this is v3 -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script> -->
+
+<!--     <script>
+    tailwind.config = {
+        darkMode: 'class',
+    }
+    </script> -->
+    <script src="https://unpkg.com/mithril/mithril.js"></script>
+    <script src="https://unpkg.com/papaparse@latest/papaparse.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://unpkg.com/tabulator-tables@5.6.1/dist/css/tabulator_modern.min.css" rel="stylesheet">
+    <script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.6.1/dist/js/tabulator.min.js"></script>
+    
+    <script src="./native-elements.js"></script>
+    <script type="module" src="./multiselect.js"></script>
+    <script type="module" src="./calendar.js"></script>
+    <script type="module" src="./db.js"></script>
+    <script type="module" src="./analytics.js"></script>
+    <script type="module" src="./utils.js"></script>
+    <script type="module" src="./chronos-chart.js"></script>
+    <script type="module" src="./series-chart.js"></script>
+    <script type="module" src="./series-history.js"></script>
+    <script type="module" src="./dashboard.js"></script>
+    <script type="module" src="./theme-utils.js"></script>
+
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        @media (max-width: 640px) {
+            input, select, button { min-height: 44px; }
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; }
+        * { transition: background-color 0.3s ease, border-color 0.3s ease; user-select: none; }        
+        wa-tab::part(base){ padding: 1em 1em; }
+        wa-tab-panel::part(base){ padding: 0; }
+
+        .expandable ,
+        .expandable::part(base) ,
+        .expandable::part(body) ,
+        .expandable > wa-tab-panel ,
+        .expandable > wa-tab-panel::part(base) ,
+        .expandable series-chart > div { height: 100%; }
+        .expandable > wa-tab { --padding: 1em 1em;}
+
+        wa-number-input::part(start) { display: None;}
+        wa-number-input::part(end) { display: None;}
+        wa-number-input::part(input) { padding: 0 0;}
+        wa-number-input::part(stepper) { max-width: 2rem;}
+/*        wa-select { --wa-form-control-padding-inline: 0; }*/
+
+        .series-name-input::part(base) {
+            border-style:none none solid none; border-radius:0;
+            font-weight: 600;
+            height: 2em;
+            /*&:focus-within            */
+        }
+
+        .text-normal  { color: var(--wa-color-text-normal); }
+        .text-quiet   { color: var(--wa-color-text-quiet); }
+        .text-link    { color: var(--wa-color-text-link); }
+        .text-brand    { color: var(--wa-color-brand-on-quiet); }
+        .surface-raised   { background-color: var(--wa-color-surface-raised); }
+        .surface-default  { background-color: var(--wa-color-surface-default); }
+        .surface-lowered  { background-color: var(--wa-color-surface-lowered); }
+
+    </style>
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4f46e5">
+    <link rel="apple-touch-icon" href="icon-192.png">
+<script src="https://cdn.jsdelivr.net/npm/@unocss/runtime"></script></head>
+<body class="h-full m-0 font-sans">
+    <div id="app" class="h-full"><div class="h-full flex flex-col "><header class="sticky top-0 z-30 content-center px-4 h-16 md:h-10" style="background: var(--wa-color-surface-raised); box-shadow: var(--wa-shadow-s);"><div class="wa-split"><div class="wa-cluster"><wa-icon name="arrow-trend-up" class="size-12 rounded-lg text-white text-2xl" aria-hidden="true" library="default" rotate="0" style="background-color: var(--wa-color-brand-fill-loud); --rotate-angle: 0deg;"></wa-icon><h1 class="text-xl font-bold tracking-tight">Chronos</h1></div><div class="wa-cluster"><wa-button appearance="filled" data-dialog="open group-dialog" variant="neutral" size="medium">Groups</wa-button><wa-button variant="brand" data-dialog="open series-dialog" appearance="accent" size="medium">+ New Series</wa-button><wa-dropdown size="medium" placement="bottom-start"><wa-button appearance="plain" slot="trigger" variant="neutral" size="medium"><wa-icon name="ellipsis-vertical" aria-hidden="true" library="default" rotate="0" style="--rotate-angle: 0deg;"></wa-icon></wa-button><wa-dropdown-item disabled="" variant="default" size="medium" type="normal" tabindex="0" aria-checked="false" aria-disabled="true" role="menuitem" style="pointer-events: none;"><span class="text-xs font-bold uppercase tracking-widest">Transfer</span></wa-dropdown-item><wa-dropdown-item variant="default" size="medium" type="normal" tabindex="0" aria-checked="false" aria-disabled="false" role="menuitem"><wa-icon name="download" slot="icon" aria-hidden="true" library="default" rotate="0" style="--rotate-angle: 0deg;"></wa-icon>Export JSON</wa-dropdown-item><wa-dropdown-item variant="default" size="medium" type="normal" tabindex="-1" aria-checked="false" aria-disabled="false" role="menuitem"><wa-icon name="upload" slot="icon" aria-hidden="true" library="default" rotate="0" style="--rotate-angle: 0deg;"></wa-icon><label class="cursor-pointer">Import JSON<input type="file" accept=".json" class="hidden"></label></wa-dropdown-item><wa-divider role="separator" aria-orientation="horizontal" orientation="horizontal"></wa-divider><wa-dropdown-item variant="default" size="medium" type="normal" tabindex="-1" aria-checked="false" aria-disabled="false" role="menuitem"><wa-icon slot="icon" name="file-csv" aria-hidden="true" library="default" rotate="0" style="--rotate-angle: 0deg;"></wa-icon>Export CSV</wa-dropdown-item><wa-dropdown-item variant="default" size="medium" type="normal" tabindex="-1" aria-checked="false" aria-disabled="false" role="menuitem"><wa-icon slot="icon" name="file-arrow-up" aria-hidden="true" library="default" rotate="0" style="--rotate-angle: 0deg;"></wa-icon><label class="cursor-pointer">Import CSV<input type="file" accept=".csv" class="hidden"></label></wa-dropdown-item><wa-divider role="separator" aria-orientation="horizontal" orientation="horizontal"></wa-divider><wa-dropdown-item variant="default" size="medium" type="normal" tabindex="-1" aria-checked="false" aria-disabled="false" role="menuitem"><wa-icon slot="icon" name="moon" aria-hidden="true" library="default" rotate="0" style="--rotate-angle: 0deg;"></wa-icon>Dark Theme</wa-dropdown-item></wa-dropdown></div></div></header><dashboard-view class="overflow-y-auto"><div class="space-y-2"><div class="px-4 py-1 border-b border-slate-200 flex flex-wrap items-center gap-y-3 dark:border-slate-700 "><div class="flex items-center"><span id="filter-toggle" class="text-2xs font-bold text-slate-400 tracking-widest dark:text-slate-500 cursor-pointer hover:text-indigo-600 transition-colors select-none">FILTER</span><div class="filters-container animate-fade-in"><multi-select class="max-w-44 ml-2" items="[{&quot;id&quot;:&quot;Finances&quot;,&quot;label&quot;:&quot;Finances&quot;,&quot;color&quot;:&quot;#6366f1&quot;},{&quot;id&quot;:&quot;group1&quot;,&quot;label&quot;:&quot;group1&quot;,&quot;color&quot;:&quot;#6366f1&quot;},{&quot;id&quot;:&quot;group11&quot;,&quot;label&quot;:&quot;group11&quot;,&quot;color&quot;:&quot;#6366f1&quot;},{&quot;id&quot;:&quot;Habits&quot;,&quot;label&quot;:&quot;Habits&quot;,&quot;color&quot;:&quot;#6366f1&quot;},{&quot;id&quot;:&quot;Health&quot;,&quot;label&quot;:&quot;Health&quot;,&quot;color&quot;:&quot;#6366f1&quot;},{&quot;id&quot;:&quot;money&quot;,&quot;label&quot;:&quot;money&quot;,&quot;color&quot;:&quot;#6366f1&quot;},{&quot;id&quot;:&quot;sports&quot;,&quot;label&quot;:&quot;sports&quot;,&quot;color&quot;:&quot;#f43f5e&quot;},{&quot;id&quot;:&quot;srt&quot;,&quot;label&quot;:&quot;srt&quot;,&quot;color&quot;:&quot;#14b8a6&quot;},{&quot;id&quot;:&quot;Well-being&quot;,&quot;label&quot;:&quot;Well-being&quot;,&quot;color&quot;:&quot;#6366f1&quot;},{&quot;id&quot;:&quot;Work&quot;,&quot;label&quot;:&quot;Work&quot;,&quot;color&quot;:&quot;#6366f1&quot;}]" selected-ids="[]" multi=""></multi-select></div></div></div><div class="masonry-xs-md-lg gap-3 *:mb-3 px-4"><div class="wa-stack wa-gap-3xs px-3 py-1 rounded-xl border shadow-sm overflow-hidden transition-all hover:shadow-md" style="border-color: rgba(99, 102, 241, 0.25); background-color: rgba(99, 102, 241, 0.07);"><h3 class="border-b text-2xs font-bold uppercase tracking-widest truncate" style="color: rgb(99, 102, 241);">group11</h3><div class="wa-split wa-gap-0 dark:hover:bg-slate-700/50 cursor-pointer transition-colors"><div class="wa-stack wa-gap-3xs min-w-0"><span class="font-bold text-sm text-slate-800 truncate dark:text-slate-100">serie2</span><div class="wa-cluster wa-gap-0 items-baseline"><span class="text-[11px] font-black text-indigo-600 truncate dark:text-indigo-400">7</span><span class="text-[9px] font-bold uppercase ml-1.5 text-slate-400 dark:text-slate-500">Last</span></div></div><wa-button class="transition-colors " variant="brand" appearance="plain" size="medium"><span class="text-sm font-black">+1</span></wa-button></div><div class="wa-split wa-gap-0 dark:hover:bg-slate-700/50 cursor-pointer transition-colors"><div class="wa-stack wa-gap-3xs min-w-0"><span class="font-bold text-sm text-slate-800 truncate dark:text-slate-100">tim</span><div class="wa-cluster wa-gap-0 items-baseline"><span class="text-[11px] font-black text-indigo-600 truncate dark:text-indigo-400">23s</span><span class="text-[9px] font-bold uppercase ml-1.5 text-slate-400 dark:text-slate-500">Last</span></div></div><wa-button class="transition-colors " variant="brand" appearance="plain" size="medium"><wa-icon aria-hidden="true" library="default" rotate="0" name="play" style="--rotate-angle: 0deg;"></wa-icon></wa-button></div><div class="wa-split wa-gap-0 dark:hover:bg-slate-700/50 cursor-pointer transition-colors"><div class="wa-stack wa-gap-3xs min-w-0"><span class="font-bold text-sm text-slate-800 truncate dark:text-slate-100">G1</span><span class="text-[9px] text-slate-300 italic dark:text-slate-600">No data</span></div><wa-button class="transition-colors " variant="brand" appearance="plain" size="medium"><wa-icon aria-hidden="true" library="default" rotate="0" name="plus" style="--rotate-angle: 0deg;"></wa-icon></wa-button></div><div class="wa-split wa-gap-0 dark:hover:bg-slate-700/50 cursor-pointer transition-colors"><div class="wa-stack wa-gap-3xs min-w-0"><span class="font-bold text-sm text-slate-800 truncate dark:text-slate-100">timeSer</span><div class="wa-cluster wa-gap-0 items-baseline"><span class="text-[11px] font-black text-indigo-600 truncate dark:text-indigo-400">18h 53m 25s</span><span class="text-[9px] font-bold uppercase ml-1.5 text-slate-400 dark:text-slate-500">Last</span></div></div><wa-button class="transition-colors " variant="brand" appearance="plain" size="medium"><wa-icon aria-hidden="true" library="default" rotate="0" name="clock" style="--rotate-angle: 0deg;"></wa-icon></wa-button></div></div><div class="wa-stack wa-gap-3xs px-3 py-1 rounded-xl border shadow-sm overflow-hidden transition-all hover:shadow-md" style="border-color: rgba(99, 102, 241, 0.25); background-color: rgba(99, 102, 241, 0.07);"><h3 class="border-b text-2xs font-bold uppercase tracking-widest truncate" style="color: rgb(99, 102, 241);">Habits</h3><div class="wa-split wa-gap-0 dark:hover:bg-slate-700/50 cursor-pointer transition-colors"><div class="wa-stack wa-gap-3xs min-w-0"><span class="font-bold text-sm text-slate-800 truncate dark:text-slate-100">Approach</span><div class="wa-cluster wa-gap-0 items-baseline"><span class="text-[11px] font-black text-indigo-600 truncate dark:text-indigo-400">2.66</span><span class="text-[9px] font-bold uppercase ml-1.5 text-slate-400 dark:text-slate-500">Avg</span></div></div><wa-button class="transition-colors " variant="brand" appearance="plain" size="medium"><wa-icon aria-hidden="true" library="default" rotate="0" name="plus" style="--rotate-angle: 0deg;"></wa-icon></wa-button></div><div class="wa-split wa-gap-0 dark:hover:bg-slate-700/50 cursor-pointer transition-colors"><div class="wa-stack wa-gap-3xs min-w-0"><span class="font-bold text-sm text-slate-800 truncate dark:text-slate-100">Talk</span><div class="wa-cluster wa-gap-0 items-baseline"><span class="text-[11px] font-black text-indigo-600 truncate dark:text-indigo-400">2</span><span class="text-[9px] font-bold uppercase ml-1.5 text-slate-400 dark:text-slate-500">Mean</span></div></div><wa-button class="transition-colors " variant="brand" appearance="plain" size="medium"><wa-icon aria-hidden="true" library="default" rotate="0" name="plus" style="--rotate-angle: 0deg;"></wa-icon></wa-button></div><div class="wa-split wa-gap-0 dark:hover:bg-slate-700/50 cursor-pointer transition-colors"><div class="wa-stack wa-gap-3xs min-w-0"><span class="font-bold text-sm text-slate-800 truncate dark:text-slate-100">Find</span><div class="wa-cluster wa-gap-0 items-baseline"><span class="text-[11px] font-black text-indigo-600 truncate dark:text-indigo-400">5.1</span><span class="text-[9px] font-bold uppercase ml-1.5 text-slate-400 dark:text-slate-500">Mean</span></div></div><wa-button class="transition-colors " variant="brand" appearance="plain" size="medium"><wa-icon aria-hidden="true" library="default" rotate="0" name="plus" style="--rotate-angle: 0deg;"></wa-icon></wa-button></div></div><div class="wa-stack wa-gap-3xs px-3 py-1 rounded-xl border shadow-sm overflow-hidden transition-all hover:shadow-md" style="border-color: rgba(99, 102, 241, 0.25); background-color: rgba(99, 102, 241, 0.07);"><h3 class="border-b text-2xs font-bold uppercase tracking-widest truncate" style="color: rgb(99, 102, 241);">money</h3><div class="wa-split wa-gap-0 dark:hover:bg-slate-700/50 cursor-pointer transition-colors"><div class="wa-stack wa-gap-3xs min-w-0"><span class="font-bold text-sm text-slate-800 truncate dark:text-slate-100">Pesos</span><div class="wa-cluster wa-gap-0 items-baseline"><span class="text-[11px] font-black text-indigo-600 truncate dark:text-indigo-400">127.12</span><span class="text-[9px] font-bold uppercase ml-1.5 text-slate-400 dark:text-slate-500">Avg</span></div></div><wa-button class="transition-colors " variant="brand" appearance="plain" size="medium"><wa-icon aria-hidden="true" library="default" rotate="0" name="plus" style="--rotate-angle: 0deg;"></wa-icon></wa-button></div><div class="wa-split wa-gap-0 dark:hover:bg-slate-700/50 cursor-pointer transition-colors"><div class="wa-stack wa-gap-3xs min-w-0"><span class="font-bold text-sm text-slate-800 truncate dark:text-slate-100">DolarEq</span><span class="text-[9px] text-slate-300 italic dark:text-slate-600">No data</span></div><wa-button class="transition-colors " variant="brand" appearance="plain" size="medium"><wa-icon aria-hidden="true" library="default" rotate="0" name="plus" style="--rotate-angle: 0deg;"></wa-icon></wa-button></div><div class="wa-split wa-gap-0 dark:hover:bg-slate-700/50 cursor-pointer transition-colors"><div class="wa-stack wa-gap-3xs min-w-0"><span class="font-bold text-sm text-slate-800 truncate dark:text-slate-100">DolarSum</span><div class="wa-cluster wa-gap-0 items-baseline"><span class="text-[11px] font-black text-indigo-600 truncate dark:text-indigo-400">23.91</span><span class="text-[9px] font-bold uppercase ml-1.5 text-slate-400 dark:text-slate-500">Mean</span></div></div><wa-button class="transition-colors " variant="brand" appearance="plain" size="medium"><wa-icon aria-hidden="true" library="default" rotate="0" name="plus" style="--rotate-angle: 0deg;"></wa-icon></wa-button></div><div class="wa-split wa-gap-0 dark:hover:bg-slate-700/50 cursor-pointer transition-colors"><div class="wa-stack wa-gap-3xs min-w-0"><span class="font-bold text-sm text-slate-800 truncate dark:text-slate-100">Dolares</span><div class="wa-cluster wa-gap-0 items-baseline"><span class="text-[11px] font-black text-indigo-600 truncate dark:text-indigo-400">21.16</span><span class="text-[9px] font-bold uppercase ml-1.5 text-slate-400 dark:text-slate-500">Mean</span></div></div><wa-button class="transition-colors " variant="brand" appearance="plain" size="medium"><wa-icon aria-hidden="true" library="default" rotate="0" name="plus" style="--rotate-angle: 0deg;"></wa-icon></wa-button></div></div><div class="wa-stack wa-gap-3xs px-3 py-1 rounded-xl border shadow-sm overflow-hidden transition-all hover:shadow-md" style="border-color: rgba(244, 63, 94, 0.25); background-color: rgba(244, 63, 94, 0.07);"><h3 class="border-b text-2xs font-bold uppercase tracking-widest truncate" style="color: rgb(244, 63, 94);">sports</h3><div class="wa-split wa-gap-0 dark:hover:bg-slate-700/50 cursor-pointer transition-colors"><div class="wa-stack wa-gap-3xs min-w-0"><span class="font-bold text-sm text-slate-800 truncate dark:text-slate-100">sportserie</span><span class="text-[9px] text-slate-300 italic dark:text-slate-600">No data</span></div><wa-button class="transition-colors " variant="brand" appearance="plain" size="medium"><wa-icon aria-hidden="true" library="default" rotate="0" name="plus" style="--rotate-angle: 0deg;"></wa-icon></wa-button></div></div><div class="wa-stack wa-gap-3xs px-3 py-1 rounded-xl border shadow-sm overflow-hidden transition-all hover:shadow-md" style="border-color: rgba(99, 102, 241, 0.25); background-color: rgba(99, 102, 241, 0.07);"><h3 class="border-b text-2xs font-bold uppercase tracking-widest truncate" style="color: rgb(99, 102, 241);">Well-being</h3><div class="wa-split wa-gap-0 dark:hover:bg-slate-700/50 cursor-pointer transition-colors"><div class="wa-stack wa-gap-3xs min-w-0"><span class="font-bold text-sm text-slate-800 truncate dark:text-slate-100">WakeUp</span><div class="wa-cluster wa-gap-0 items-baseline"><span class="text-[11px] font-black text-indigo-600 truncate dark:text-indigo-400">10.25</span><span class="text-[9px] font-bold uppercase ml-1.5 text-slate-400 dark:text-slate-500">Mean</span></div></div><wa-button class="transition-colors " variant="brand" appearance="plain" size="medium"><wa-icon aria-hidden="true" library="default" rotate="0" name="plus" style="--rotate-angle: 0deg;"></wa-icon></wa-button></div><div class="wa-split wa-gap-0 dark:hover:bg-slate-700/50 cursor-pointer transition-colors"><div class="wa-stack wa-gap-3xs min-w-0"><span class="font-bold text-sm text-slate-800 truncate dark:text-slate-100">GoToBed</span><div class="wa-cluster wa-gap-0 items-baseline"><span class="text-[11px] font-black text-indigo-600 truncate dark:text-indigo-400">1.7</span><span class="text-[9px] font-bold uppercase ml-1.5 text-slate-400 dark:text-slate-500">Mean</span></div></div><wa-button class="transition-colors " variant="brand" appearance="plain" size="medium"><wa-icon aria-hidden="true" library="default" rotate="0" name="plus" style="--rotate-angle: 0deg;"></wa-icon></wa-button></div><div class="wa-split wa-gap-0 dark:hover:bg-slate-700/50 cursor-pointer transition-colors"><div class="wa-stack wa-gap-3xs min-w-0"><span class="font-bold text-sm text-slate-800 truncate dark:text-slate-100">Phone</span><div class="wa-cluster wa-gap-0 items-baseline"><span class="text-[11px] font-black text-indigo-600 truncate dark:text-indigo-400">4.62</span><span class="text-[9px] font-bold uppercase ml-1.5 text-slate-400 dark:text-slate-500">Mean</span></div></div><wa-button class="transition-colors " variant="brand" appearance="plain" size="medium"><wa-icon aria-hidden="true" library="default" rotate="0" name="plus" style="--rotate-angle: 0deg;"></wa-icon></wa-button></div></div></div></div></dashboard-view><wa-dialog id="group-dialog" label="Manage Groups" light-dismiss=""><div class="wa-justify-content-end"><wa-button appearance="plain" variant="brand" size="small"><wa-icon slot="start" name="plus" aria-hidden="true" library="default" rotate="0" style="--rotate-angle: 0deg;"></wa-icon>Add New</wa-button></div><wa-scroller orientation="horizontal" style="max-height: 16rem; --start-shadow-opacity: 0; --end-shadow-opacity: 0;"><div class="wa-split"><div class="wa-cluster"><wa-icon style="color: rgb(99, 102, 241); --rotate-angle: 0deg;" aria-hidden="true" library="default" rotate="0" name="circle"></wa-icon><span>Finances</span></div><wa-button variant="danger" appearance="plain" size="small"><wa-icon slot="start" aria-hidden="true" library="default" rotate="0" name="trash" style="--rotate-angle: 0deg;"></wa-icon></wa-button></div><div class="wa-split"><div class="wa-cluster"><wa-icon style="color: rgb(99, 102, 241); --rotate-angle: 0deg;" aria-hidden="true" library="default" rotate="0" name="circle"></wa-icon><span>group1</span></div><wa-button variant="danger" appearance="plain" size="small"><wa-icon slot="start" aria-hidden="true" library="default" rotate="0" name="trash" style="--rotate-angle: 0deg;"></wa-icon></wa-button></div><div class="wa-split"><div class="wa-cluster"><wa-icon style="color: rgb(99, 102, 241); --rotate-angle: 0deg;" aria-hidden="true" library="default" rotate="0" name="circle"></wa-icon><span>group11</span></div><wa-button variant="danger" appearance="plain" size="small"><wa-icon slot="start" aria-hidden="true" library="default" rotate="0" name="trash" style="--rotate-angle: 0deg;"></wa-icon></wa-button></div><div class="wa-split"><div class="wa-cluster"><wa-icon style="color: rgb(99, 102, 241); --rotate-angle: 0deg;" aria-hidden="true" library="default" rotate="0" name="circle"></wa-icon><span>Habits</span></div><wa-button variant="danger" appearance="plain" size="small"><wa-icon slot="start" aria-hidden="true" library="default" rotate="0" name="trash" style="--rotate-angle: 0deg;"></wa-icon></wa-button></div><div class="wa-split"><div class="wa-cluster"><wa-icon style="color: rgb(99, 102, 241); --rotate-angle: 0deg;" aria-hidden="true" library="default" rotate="0" name="circle"></wa-icon><span>Health</span></div><wa-button variant="danger" appearance="plain" size="small"><wa-icon slot="start" aria-hidden="true" library="default" rotate="0" name="trash" style="--rotate-angle: 0deg;"></wa-icon></wa-button></div><div class="wa-split"><div class="wa-cluster"><wa-icon style="color: rgb(99, 102, 241); --rotate-angle: 0deg;" aria-hidden="true" library="default" rotate="0" name="circle"></wa-icon><span>money</span></div><wa-button variant="danger" appearance="plain" size="small"><wa-icon slot="start" aria-hidden="true" library="default" rotate="0" name="trash" style="--rotate-angle: 0deg;"></wa-icon></wa-button></div><div class="wa-split"><div class="wa-cluster"><wa-icon style="color: rgb(244, 63, 94); --rotate-angle: 0deg;" aria-hidden="true" library="default" rotate="0" name="circle"></wa-icon><span>sports</span></div><wa-button variant="danger" appearance="plain" size="small"><wa-icon slot="start" aria-hidden="true" library="default" rotate="0" name="trash" style="--rotate-angle: 0deg;"></wa-icon></wa-button></div><div class="wa-split"><div class="wa-cluster"><wa-icon style="color: rgb(20, 184, 166); --rotate-angle: 0deg;" aria-hidden="true" library="default" rotate="0" name="circle"></wa-icon><span>srt</span></div><wa-button variant="danger" appearance="plain" size="small"><wa-icon slot="start" aria-hidden="true" library="default" rotate="0" name="trash" style="--rotate-angle: 0deg;"></wa-icon></wa-button></div><div class="wa-split"><div class="wa-cluster"><wa-icon style="color: rgb(99, 102, 241); --rotate-angle: 0deg;" aria-hidden="true" library="default" rotate="0" name="circle"></wa-icon><span>Well-being</span></div><wa-button variant="danger" appearance="plain" size="small"><wa-icon slot="start" aria-hidden="true" library="default" rotate="0" name="trash" style="--rotate-angle: 0deg;"></wa-icon></wa-button></div><div class="wa-split"><div class="wa-cluster"><wa-icon style="color: rgb(99, 102, 241); --rotate-angle: 0deg;" aria-hidden="true" library="default" rotate="0" name="circle"></wa-icon><span>Work</span></div><wa-button variant="danger" appearance="plain" size="small"><wa-icon slot="start" aria-hidden="true" library="default" rotate="0" name="trash" style="--rotate-angle: 0deg;"></wa-icon></wa-button></div></wa-scroller></wa-dialog><wa-dialog id="series-dialog" label="Create New Series" light-dismiss=""><div class="wa-stack"><wa-input label="Name" placeholder="Series name" value="" autofocus="" type="text" size="medium" appearance="outlined"></wa-input><wa-select label="Type" value="number" name="" size="medium" appearance="outlined" placement="bottom"><wa-option value="number" role="option" aria-selected="true" aria-disabled="false">Number</wa-option><wa-option value="time" role="option" aria-selected="false" aria-disabled="false">Time</wa-option></wa-select><wa-select label="Group" value="" name="" size="medium" appearance="outlined" placement="bottom"><wa-option value="" role="option" aria-selected="true" aria-disabled="false"></wa-option><wa-option role="option" aria-selected="false" value="Finances" aria-disabled="false">Finances</wa-option><wa-option role="option" aria-selected="false" value="group1" aria-disabled="false">group1</wa-option><wa-option role="option" aria-selected="false" value="group11" aria-disabled="false">group11</wa-option><wa-option role="option" aria-selected="false" value="Habits" aria-disabled="false">Habits</wa-option><wa-option role="option" aria-selected="false" value="Health" aria-disabled="false">Health</wa-option><wa-option role="option" aria-selected="false" value="money" aria-disabled="false">money</wa-option><wa-option role="option" aria-selected="false" value="sports" aria-disabled="false">sports</wa-option><wa-option role="option" aria-selected="false" value="srt" aria-disabled="false">srt</wa-option><wa-option role="option" aria-selected="false" value="Well-being" aria-disabled="false">Well-being</wa-option><wa-option role="option" aria-selected="false" value="Work" aria-disabled="false">Work</wa-option></wa-select></div><div class="wa-cluster wa-justify-content-end" slot="footer"><wa-button data-dialog="close" appearance="outlined" variant="neutral" size="medium">Cancel</wa-button><wa-button data-dialog="close" variant="brand" disabled="" appearance="accent" size="medium">Save Series</wa-button></div></wa-dialog><wa-dialog id="entry-modal" label="Add New Entry" light-dismiss=""><div class="wa-stack"><wa-input label="Date &amp; Time" placeholder="yyyy-MM-dd HH:mm:ss" value="" autofocus="" type="text" size="medium" appearance="outlined"></wa-input><wa-number-input label="Value" value="" step="1" size="medium" appearance="outlined"></wa-number-input><wa-input label="Notes (Optional)" value="" type="text" size="medium" appearance="outlined"></wa-input></div><div slot="footer" class="wa-cluster wa-justify-content-end"><wa-button appearance="outlined" data-dialog="close" variant="neutral" size="medium">Cancel</wa-button><wa-button variant="brand" data-dialog="close" appearance="accent" size="medium">Save Entry</wa-button></div></wa-dialog><wa-dialog id="durationPickerModal" label="Edit Duration" light-dismiss=""><div class="wa-cluster"><wa-number-input label="Days" value="0" step="1" size="medium" appearance="outlined" style="max-width: 6rem;"></wa-number-input><wa-number-input label="Hours" value="0" min="0" max="23" step="1" size="medium" appearance="outlined" style="max-width: 6rem;"></wa-number-input><wa-number-input label="Mins" value="0" min="0" max="59" step="1" size="medium" appearance="outlined" style="max-width: 6rem;"></wa-number-input><wa-number-input label="Secs" value="0" min="0" max="59" step="1" size="medium" appearance="outlined" style="max-width: 6rem;"></wa-number-input></div><div class="wa-cluster wa-justify-content-end" slot="footer"><wa-button appearance="outlined" variant="neutral" size="medium">Cancel</wa-button><wa-button variant="brand" appearance="accent" size="medium">OK</wa-button></div></wa-dialog></div></div>
+
+    <script type="module">
+        import { State, Actions } from './mithril-state-actions.js';
+        import ListHeader from './list-header.js';
+        import DetailHeader from './detail-header.js';
+        import GroupManager from './group-manager.js';
+        import SeriesModal from './series-modal.js';
+        import EntryModal from './entry-modal.js';
+        import DurationPickerModal from './duration-picker-modal.js';
+        import SeriesConfiguration from './seriesConfig.js';
+        import { getFormattedISO } from './utils.js';
+        import chronosDB from './db.js';
+
+        const ChronosApp = {
+            oninit: () => {Actions.loadSeries();  window.matchMedia('(min-width: 768px)').addEventListener('change', m.redraw);},
+            view: () => {
+                return m(".h-full.flex.flex-col", { class: (State.theme === 'dark' ? 'dark' : '') }, [
+                    m("header.sticky.top-0.z-30.content-center.px-4.h-16.md:h-10",{style: 'background: var(--wa-color-surface-raised);box-shadow: var(--wa-shadow-s);'}, [
+                        State.view === 'list' ? m(ListHeader) : m(DetailHeader)
+                    ]),
+
+                    
+                    State.view === 'list'
+                    ? m("dashboard-view.overflow-y-auto", {
+                        'onseries-click': (e) => Actions.openSeriesDetail(e.detail.series),
+                        'onadd-entry-click': (e) => EntryModal.openForNew(e.detail.series),
+                        'onseries-updated': Actions.loadSeries,
+                        'onentry-created': () => Actions.loadSeries()
+                    })
+                    : m("wa-tab-group.expandable", {
+                        placement: window.matchMedia('(min-width: 768px)').matches ? 'start' : 'top',
+                    },
+                    [                                    
+                    ...[{panel: 'chart', name: 'chart-line'},
+                        {panel: 'calendar', name: 'calendar-days'},
+                        {panel: 'history', name: 'table-list'},
+                        {panel: 'config', name: 'gear'}].map(({panel,name}) =>
+                            m("wa-tab[slot=nav]", {panel}, m("wa-icon",{name}))
+                        ),
+
+                        m("wa-tab-panel[name=chart]",
+                            State.currentSeries ? m("series-chart", { "series-id": State.currentSeries.id}) : null
+                        ),
+                        m("wa-tab-panel[name=calendar]",
+                            m("chronos-calendar", {
+                                series: State.currentSeries,
+                                entries: State.currentSeriesEntries,
+                                'onday-click': (e) => {
+                                    const targetDate = new Date(e.detail.date);
+                                    const now = new Date();
+                                    targetDate.setHours(now.getHours(), now.getMinutes());
+                                    EntryModal.openForEdit({ timestamp: getFormattedISO(targetDate), value: 0, notes: '', dhms: { d:0, h:0, m:0, s:0 } }, State.currentSeries);
+                                }
+                            })
+                        ),
+                        m("wa-tab-panel[name=history]", 
+                            m("series-history", {
+                                series: JSON.stringify(State.currentSeries),
+                                entries: JSON.stringify(State.currentSeriesEntries),
+                                'onadd-entry-click': (e) => EntryModal.openForNew(e.detail.series),
+                                'onedit-entry-click': (e) => EntryModal.openForEdit(e.detail.entry, State.currentSeries),
+                                'ondelete-entry-click': (e) => Actions.deleteEntry(e.detail.id)
+                            })
+                        ),
+                        m("wa-tab-panel[name=config]", 
+                            m(SeriesConfiguration, {
+                                "series-id": State.currentSeries?.id
+                            })
+                        )
+                    ]),
+
+                    m(GroupManager, { onGroupsUpdated: Actions.loadSeries }),
+
+                    m(SeriesModal, {
+                        series: State.editingSeries ?? null,  // null = create new
+                        onSave: Actions.loadSeries,
+                    }),
+
+                    m(EntryModal, {
+                      'onentry-saved': (e) => {
+                        Actions.loadSeries();
+                        if (State.currentSeries?.id === e.detail.series.id)
+                          Actions.loadEntries(State.currentSeries.id);
+                      },
+                    }),
+
+                    m(DurationPickerModal),
+
+                    State.toast.show ? m("div", { class: "fixed bottom-5 right-5 z-[100]" }, [
+                        m("div", { class: "bg-slate-800 text-white px-6 py-3 rounded-xl shadow-lg flex items-center space-x-3 dark:bg-slate-700" }, [
+                            m("span", State.toast.message),
+                            m("button", { onclick: () => State.toast.show = false, class: "text-slate-400" }, "×")
+                        ])
+                    ]) : null
+
+                ]);
+            }
+        };
+
+        m.mount(document.getElementById('app'), ChronosApp);
+    </script>
+
+</body></html>

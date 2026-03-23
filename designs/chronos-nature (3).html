@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chronos — Time Series</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --moss:        #4a5e44;
+      --fern:        #6b8c5f;
+      --sage:        #8faa82;
+      --mist:        #c8d9c0;
+      --dew:         #e8f0e4;
+      --parchment:   #f4f0e8;
+      --bark:        #5c4a3a;
+      --stone:       #7a7468;
+      --fog:         #d4cfc8;
+      --cream:       #faf8f3;
+
+      --font-display: 'Cormorant Garamond', Georgia, serif;
+      --font-body:    'Jost', sans-serif;
+
+      --radius-card: 18px;
+      --radius-pill: 999px;
+      --transition:  0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: var(--parchment);
+      color: var(--bark);
+      font-family: var(--font-body);
+      font-weight: 300;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Subtle organic background ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 15% 20%, rgba(143,170,130,0.18) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 60% at 85% 75%, rgba(200,217,192,0.22) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 40% at 50% 50%, rgba(244,240,232,0.5) 0%, transparent 80%);
+      pointer-events: none;
+    }
+
+    /* ── Leaf-vein texture overlay ── */
+    body::after {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      opacity: 0.03;
+      background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%234a5e44' stroke-width='0.5'%3E%3Cpath d='M30 5 Q35 30 30 55 Q25 30 30 5'/%3E%3Cpath d='M30 20 Q45 25 50 30 Q35 32 30 20'/%3E%3Cpath d='M30 20 Q15 25 10 30 Q25 32 30 20'/%3E%3C/g%3E%3C/svg%3E");
+      pointer-events: none;
+    }
+
+    .app {
+      position: relative; z-index: 1;
+      display: flex; flex-direction: column;
+      height: 100vh; overflow: hidden;
+    }
+
+    /* ════════════ HEADER ════════════ */
+    header {
+      position: sticky; top: 0; z-index: 30;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 2rem;
+      height: 64px;
+      background: rgba(244, 240, 232, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(143,170,130,0.25);
+      box-shadow: 0 1px 20px rgba(74, 94, 68, 0.06);
+    }
+
+    .header-brand {
+      display: flex; align-items: baseline; gap: 0.5rem;
+    }
+    .header-brand .wordmark {
+      font-family: var(--font-display);
+      font-size: 1.6rem;
+      font-weight: 300;
+      letter-spacing: 0.04em;
+      color: var(--moss);
+    }
+    .header-brand .tagline {
+      font-size: 0.7rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--sage);
+      font-weight: 400;
+    }
+
+    .header-actions {
+      display: flex; align-items: center; gap: 0.75rem;
+    }
+
+    .btn-icon {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      border: 1px solid rgba(143,170,130,0.35);
+      background: transparent;
+      color: var(--fern);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem;
+      transition: var(--transition);
+    }
+    .btn-icon:hover {
+      background: var(--mist);
+      border-color: var(--sage);
+    }
+
+    .btn-primary {
+      display: flex; align-items: center; gap: 0.4rem;
+      padding: 0.45rem 1.1rem;
+      border-radius: var(--radius-pill);
+      background: var(--moss);
+      color: var(--cream);
+      border: none; cursor: pointer;
+      font-family: var(--font-body);
+      font-size: 0.8rem;
+      font-weight: 400;
+      letter-spacing: 0.06em;
+      transition: var(--transition);
+    }
+    .btn-primary:hover {
+      background: var(--fern);
+      box-shadow: 0 4px 16px rgba(74,94,68,0.25);
+      transform: translateY(-1px);
+    }
+
+    /* ════════════ MAIN LAYOUT ════════════ */
+    main {
+      flex: 1; overflow-y: auto;
+      padding: 2rem;
+      display: flex; flex-direction: column; gap: 2rem;
+    }
+
+    /* Subtle scrollbar */
+    main::-webkit-scrollbar { width: 5px; }
+    main::-webkit-scrollbar-track { background: transparent; }
+    main::-webkit-scrollbar-thumb { background: var(--mist); border-radius: 99px; }
+
+    /* ════════════ SECTION HEADING ════════════ */
+    .section-heading {
+      display: flex; align-items: baseline; gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+    .section-heading h2 {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 400;
+      color: var(--moss);
+      letter-spacing: 0.01em;
+    }
+    .section-heading .count {
+      font-size: 0.75rem;
+      letter-spacing: 0.12em;
+      color: var(--stone);
+      text-transform: uppercase;
+    }
+
+    /* ════════════ FILTER BAR ════════════ */
+    .filter-bar {
+      display: flex; align-items: center; gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.75rem;
+    }
+    .filter-pill {
+      padding: 0.3rem 0.85rem;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--fog);
+      background: transparent;
+      color: var(--stone);
+      font-family: var(--font-body);
+      font-size: 0.75rem;
+      font-weight: 400;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .filter-pill:hover { border-color: var(--sage); color: var(--moss); }
+    .filter-pill.active {
+      background: var(--moss);
+      border-color: var(--moss);
+      color: var(--cream);
+    }
+
+    /* ════════════ MASONRY GRID ════════════ */
+    .masonry {
+      columns: 1;
+      gap: 1.25rem;
+    }
+    @media (min-width: 480px) { .masonry { columns: 2; } }
+    @media (min-width: 800px) { .masonry { columns: 3; } }
+    @media (min-width: 1100px){ .masonry { columns: 4; } }
+
+    .masonry > * { break-inside: avoid; margin-bottom: 1.25rem; }
+
+    /* ════════════ CARD COLOR ACCENTS ════════════ */
+    /* Each series gets a unique nature-toned left border + tinted icon dot */
+    .c-terracotta { --card-accent: #b5654a; --card-accent-bg: rgba(181,101,74,0.10); }
+    .c-slate-blue  { --card-accent: #5a7a8c; --card-accent-bg: rgba(90,122,140,0.10); }
+    .c-ochre       { --card-accent: #a08040; --card-accent-bg: rgba(160,128,64,0.10); }
+    .c-plum        { --card-accent: #7a5c7a; --card-accent-bg: rgba(122,92,122,0.10); }
+    .c-teal        { --card-accent: #3d7a74; --card-accent-bg: rgba(61,122,116,0.10); }
+    .c-rust        { --card-accent: #9c5a3c; --card-accent-bg: rgba(156,90,60,0.10); }
+    .c-dusk        { --card-accent: #6a6a9a; --card-accent-bg: rgba(106,106,154,0.10); }
+    .c-olive       { --card-accent: #6a7a3a; --card-accent-bg: rgba(106,122,58,0.10); }
+
+    /* ════════════ SERIES CARD ════════════ */
+    .series-card {
+      background: rgba(250, 248, 243, 0.8);
+      border: 1px solid rgba(143,170,130,0.22);
+      border-radius: var(--radius-card);
+      padding: 1.4rem 1.5rem 1.2rem 1.75rem;
+      cursor: pointer;
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+      animation: fadeUp 0.5s ease both;
+    }
+    /* Permanent colored left stripe */
+    .series-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; bottom: 0;
+      width: 4px;
+      background: var(--card-accent, var(--fern));
+      border-radius: var(--radius-card) 0 0 var(--radius-card);
+    }
+    /* Hover glow using the card's own accent */
+    .series-card:hover {
+      border-color: color-mix(in srgb, var(--card-accent, var(--fern)) 40%, transparent);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--card-accent, var(--fern)) 15%, transparent);
+      transform: translateY(-2px);
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .card-header {
+      display: flex; align-items: flex-start; justify-content: flex-end;
+      margin-bottom: 0.5rem;
+    }
+    .card-menu {
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--stone);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem;
+      line-height: 1;
+      transition: var(--transition);
+      opacity: 0.5;
+    }
+    .series-card:hover .card-menu { opacity: 1; }
+    .card-menu:hover { background: var(--dew); border-color: var(--fog); }
+
+    .card-name {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 400;
+      color: var(--bark);
+      margin-bottom: 0.2rem;
+      letter-spacing: 0.01em;
+    }
+    .card-group {
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--sage);
+    }
+
+    .card-value {
+      display: flex; align-items: baseline; gap: 0.4rem;
+      margin: 1rem 0 0.5rem;
+    }
+    .card-value .num {
+      font-family: var(--font-display);
+      font-size: 2.2rem;
+      font-weight: 300;
+      color: var(--card-accent, var(--moss));
+      line-height: 1;
+    }
+    .card-value .unit {
+      font-size: 0.75rem;
+      color: var(--stone);
+      letter-spacing: 0.06em;
+    }
+
+    /* Sparkline area */
+    .card-sparkline {
+      height: 40px;
+      margin: 0.75rem -1.5rem -1.2rem;
+      overflow: hidden;
+    }
+    .card-sparkline svg {
+      width: 100%; height: 100%;
+    }
+
+    .card-meta {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 0.8rem;
+      padding-top: 0.8rem;
+      border-top: 1px solid rgba(143,170,130,0.15);
+      font-size: 0.7rem;
+      color: var(--stone);
+      letter-spacing: 0.04em;
+    }
+    .card-trend {
+      display: flex; align-items: center; gap: 0.25rem;
+      font-size: 0.7rem;
+    }
+    .trend-up { color: var(--fern); }
+    .trend-down { color: #b05a4e; }
+
+    .add-entry-btn {
+      display: flex; align-items: center; gap: 0.3rem;
+      padding: 0.3rem 0.7rem;
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(143,170,130,0.35);
+      background: transparent;
+      color: var(--fern);
+      font-family: var(--font-body);
+      font-size: 0.7rem;
+      font-weight: 400;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .add-entry-btn:hover {
+      background: var(--dew);
+      border-color: var(--sage);
+    }
+
+    /* ════════════ DETAIL VIEW ════════════ */
+    .detail-back {
+      display: flex; align-items: center; gap: 0.6rem;
+      font-size: 0.8rem;
+      color: var(--stone);
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .detail-back:hover { color: var(--moss); }
+    .detail-back span { font-family: var(--font-display); font-size: 1.5rem; color: var(--moss); margin-left: 0.5rem; }
+
+    /* Tab nav */
+    .tab-nav {
+      display: flex; gap: 0.25rem;
+      border-bottom: 1px solid rgba(143,170,130,0.2);
+      margin-bottom: 1.5rem;
+    }
+    .tab-btn {
+      padding: 0.6rem 1.2rem;
+      border: none; background: transparent;
+      font-family: var(--font-body);
+      font-size: 0.78rem;
+      font-weight: 400;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--stone);
+      cursor: pointer;
+      position: relative;
+      transition: var(--transition);
+    }
+    .tab-btn::after {
+      content: '';
+      position: absolute; bottom: -1px; left: 0; right: 0;
+      height: 2px;
+      background: var(--moss);
+      transform: scaleX(0);
+      transition: var(--transition);
+    }
+    .tab-btn:hover { color: var(--moss); }
+    .tab-btn.active { color: var(--moss); }
+    .tab-btn.active::after { transform: scaleX(1); }
+
+    /* Chart placeholder */
+    .chart-area {
+      background: rgba(250,248,243,0.8);
+      border: 1px solid rgba(143,170,130,0.2);
+      border-radius: var(--radius-card);
+      padding: 2rem;
+      min-height: 280px;
+      display: flex; align-items: flex-end; gap: 2px;
+      overflow: hidden;
+      position: relative;
+    }
+    .chart-area::before {
+      content: 'Chart View';
+      position: absolute; top: 1.2rem; left: 1.5rem;
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      color: var(--sage);
+      letter-spacing: 0.04em;
+    }
+
+    .chart-bar {
+      flex: 1;
+      background: linear-gradient(to top, var(--fern), var(--sage));
+      border-radius: 4px 4px 0 0;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+      min-height: 4px;
+    }
+    .chart-bar:hover { opacity: 1; }
+
+    /* History table */
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .history-table th {
+      font-size: 0.65rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--sage);
+      padding: 0 1rem 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid rgba(143,170,130,0.2);
+    }
+    .history-table td {
+      padding: 0.85rem 1rem;
+      font-size: 0.85rem;
+      color: var(--bark);
+      border-bottom: 1px solid rgba(143,170,130,0.1);
+      transition: var(--transition);
+    }
+    .history-table tr:hover td {
+      background: rgba(200,217,192,0.12);
+    }
+    .history-table .ts {
+      font-family: var(--font-display);
+      font-size: 0.95rem;
+      color: var(--stone);
+    }
+    .history-table .val {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      color: var(--moss);
+    }
+    .row-actions {
+      display: flex; gap: 0.5rem; opacity: 0; transition: var(--transition);
+    }
+    tr:hover .row-actions { opacity: 1; }
+    .row-action-btn {
+      width: 26px; height: 26px; border-radius: 50%;
+      border: 1px solid var(--fog);
+      background: transparent; color: var(--stone);
+      font-size: 0.65rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: var(--transition);
+    }
+    .row-action-btn:hover { background: var(--dew); color: var(--moss); }
+
+    /* Calendar placeholder */
+    .calendar-grid {
+      display: grid; grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+    .cal-day-name {
+      text-align: center;
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--sage);
+      padding-bottom: 0.5rem;
+    }
+    .cal-day {
+      aspect-ratio: 1;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem;
+      color: var(--stone);
+      cursor: pointer;
+      transition: var(--transition);
+      position: relative;
+    }
+    .cal-day:hover { background: var(--dew); color: var(--moss); }
+    .cal-day.has-entry {
+      background: rgba(143,170,130,0.18);
+      color: var(--moss);
+      font-weight: 500;
+    }
+    .cal-day.has-entry::after {
+      content: '';
+      position: absolute; bottom: 4px;
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      background: var(--fern);
+    }
+    .cal-day.today {
+      background: var(--moss);
+      color: var(--cream);
+    }
+    .cal-day.empty { opacity: 0; cursor: default; }
+
+    /* Config panel */
+    .config-panel {
+      display: flex; flex-direction: column; gap: 1.5rem;
+    }
+    .config-section {
+      background: rgba(250,248,243,0.8);
+      border: 1px solid rgba(143,170,130,0.2);
+      border-radius: var(--radius-card);
+      padding: 1.5rem;
+    }
+    .config-section h3 {
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+      font-weight: 400;
+      color: var(--moss);
+      margin-bottom: 1rem;
+    }
+    .config-field { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1rem; }
+    .config-field label {
+      font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--stone);
+    }
+    .config-field input, .config-field select {
+      padding: 0.55rem 0.9rem;
+      border-radius: 10px;
+      border: 1px solid var(--fog);
+      background: var(--cream);
+      color: var(--bark);
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+      outline: none;
+      transition: var(--transition);
+    }
+    .config-field input:focus, .config-field select:focus {
+      border-color: var(--sage);
+      box-shadow: 0 0 0 3px rgba(143,170,130,0.15);
+    }
+
+    /* ════════════ SEARCH BAR ════════════ */
+    .search-wrap {
+      position: relative; max-width: 260px;
+    }
+    .search-wrap input {
+      width: 100%;
+      padding: 0.45rem 0.9rem 0.45rem 2.1rem;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--fog);
+      background: rgba(255,255,255,0.5);
+      color: var(--bark);
+      font-family: var(--font-body);
+      font-size: 0.8rem;
+      outline: none;
+      transition: var(--transition);
+    }
+    .search-wrap input:focus {
+      border-color: var(--sage);
+      background: rgba(255,255,255,0.85);
+      box-shadow: 0 0 0 3px rgba(143,170,130,0.12);
+    }
+    .search-wrap input::placeholder { color: var(--stone); }
+    .search-icon {
+      position: absolute; left: 0.7rem; top: 50%; transform: translateY(-50%);
+      color: var(--sage); font-size: 0.75rem; pointer-events: none;
+    }
+
+    /* ════════════ TOAST ════════════ */
+    .toast {
+      position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 100;
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 0.85rem 1.2rem;
+      background: var(--moss);
+      color: var(--cream);
+      border-radius: var(--radius-card);
+      box-shadow: 0 8px 32px rgba(74,94,68,0.3);
+      font-size: 0.85rem;
+      animation: toastIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(20px) scale(0.95); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .toast-close {
+      background: transparent; border: none; color: var(--mist);
+      cursor: pointer; font-size: 1rem; line-height: 1;
+      opacity: 0.7; transition: var(--transition);
+    }
+    .toast-close:hover { opacity: 1; }
+
+    /* ════════════ MODAL ════════════ */
+    .modal-backdrop {
+      position: fixed; inset: 0; z-index: 50;
+      background: rgba(74,94,68,0.25);
+      backdrop-filter: blur(6px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 1rem;
+    }
+    .modal {
+      background: var(--parchment);
+      border: 1px solid rgba(143,170,130,0.3);
+      border-radius: 24px;
+      padding: 2rem 2.5rem;
+      width: 100%; max-width: 440px;
+      box-shadow: 0 24px 64px rgba(74,94,68,0.18);
+      animation: modalIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(0.92) translateY(20px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .modal-title {
+      font-family: var(--font-display);
+      font-size: 1.6rem;
+      font-weight: 400;
+      color: var(--moss);
+      margin-bottom: 1.5rem;
+    }
+    .modal-actions {
+      display: flex; justify-content: flex-end; gap: 0.75rem;
+      margin-top: 1.5rem;
+    }
+    .btn-ghost {
+      padding: 0.5rem 1.1rem;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--fog);
+      background: transparent;
+      color: var(--stone);
+      font-family: var(--font-body); font-size: 0.8rem;
+      cursor: pointer; transition: var(--transition);
+    }
+    .btn-ghost:hover { border-color: var(--sage); color: var(--moss); }
+
+    /* ════════════ GROUP BADGE ════════════ */
+    .group-badge {
+      display: inline-flex; align-items: center; gap: 0.3rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: var(--radius-pill);
+      background: var(--dew);
+      border: 1px solid rgba(143,170,130,0.3);
+      font-size: 0.65rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--fern);
+    }
+
+    /* ════════════ STAT ROW ════════════ */
+    .stat-row {
+      display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem;
+    }
+    .stat-card {
+      flex: 1; min-width: 120px;
+      background: rgba(250,248,243,0.8);
+      border: 1px solid rgba(143,170,130,0.2);
+      border-radius: 14px;
+      padding: 1rem 1.25rem;
+    }
+    .stat-label {
+      font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--sage); margin-bottom: 0.3rem;
+    }
+    .stat-val {
+      font-family: var(--font-display);
+      font-size: 1.6rem; font-weight: 300; color: var(--moss);
+    }
+    .stat-sub { font-size: 0.7rem; color: var(--stone); margin-top: 0.1rem; }
+
+    /* ════════════ FAB ════════════ */
+    .fab {
+      position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 40;
+      width: 52px; height: 52px; border-radius: 50%;
+      background: var(--moss); color: var(--cream);
+      border: none; cursor: pointer; font-size: 1.4rem; line-height: 1;
+      box-shadow: 0 4px 20px rgba(74,94,68,0.35);
+      display: flex; align-items: center; justify-content: center;
+      transition: var(--transition);
+    }
+    .fab:hover {
+      background: var(--fern);
+      transform: scale(1.08) rotate(90deg);
+      box-shadow: 0 8px 28px rgba(74,94,68,0.4);
+    }
+
+    /* ════════════ DARK MODE ════════════ */
+    .dark {
+      --parchment:   #1a1f18;
+      --cream:       #232820;
+      --bark:        #d4cfc6;
+      --stone:       #8a8880;
+      --fog:         #3a3f38;
+      --mist:        #2e3830;
+      --dew:         #252c23;
+    }
+    .dark, .dark body { background: var(--parchment); }
+    .dark body::before {
+      background:
+        radial-gradient(ellipse 60% 50% at 15% 20%, rgba(74,94,68,0.25) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 60% at 85% 75%, rgba(50,70,45,0.3) 0%, transparent 70%);
+    }
+    .dark header {
+      background: rgba(26,31,24,0.9);
+      border-bottom-color: rgba(74,94,68,0.3);
+    }
+    .dark .series-card {
+      background: rgba(35,40,32,0.85);
+      border-color: rgba(74,94,68,0.25);
+    }
+    .dark .search-wrap input {
+      background: rgba(35,40,32,0.7);
+      border-color: rgba(74,94,68,0.3);
+      color: var(--bark);
+    }
+    .dark .filter-pill { border-color: rgba(74,94,68,0.3); }
+    .dark .stat-card, .dark .chart-area, .dark .config-section,
+    .dark #tab-history > div, .dark #tab-calendar > div {
+      background: rgba(35,40,32,0.85);
+      border-color: rgba(74,94,68,0.25);
+    }
+    .dark .history-table td { color: var(--bark); }
+    .dark .config-field input, .dark .config-field select {
+      background: #1a1f18; border-color: rgba(74,94,68,0.3); color: var(--bark);
+    }
+
+    /* ════════════ DECORATIVE LEAF ════════════ */
+    .leaf-deco {
+      position: fixed; bottom: -40px; left: -30px; z-index: 0;
+      opacity: 0.06; pointer-events: none;
+      width: 280px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Decorative leaf SVG -->
+<svg class="leaf-deco" viewBox="0 0 200 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M100 280 Q140 200 160 130 Q180 60 100 10 Q20 60 40 130 Q60 200 100 280Z" fill="#4a5e44"/>
+  <path d="M100 280 Q100 200 100 10" stroke="#4a5e44" stroke-width="3"/>
+  <path d="M100 180 Q130 160 155 140" stroke="#4a5e44" stroke-width="1.5"/>
+  <path d="M100 180 Q70 160 45 140" stroke="#4a5e44" stroke-width="1.5"/>
+  <path d="M100 130 Q125 115 145 100" stroke="#4a5e44" stroke-width="1.5"/>
+  <path d="M100 130 Q75 115 55 100" stroke="#4a5e44" stroke-width="1.5"/>
+</svg>
+
+<div class="app" id="app">
+
+  <!-- ══ HEADER (List View) ══ -->
+  <header id="list-header">
+    <div class="header-brand">
+      <span class="wordmark">Chronos</span>
+      <span class="tagline">· Time Series</span>
+    </div>
+    <div class="header-actions">
+      <div class="search-wrap">
+        <span class="search-icon">⌕</span>
+        <input type="text" placeholder="Search series…">
+      </div>
+      <button class="btn-icon" title="Manage groups">⊞</button>
+      <button class="btn-icon" id="theme-btn" title="Toggle dark mode" onclick="toggleTheme()">☽</button>
+      <button class="btn-primary" onclick="showDetail()">
+        <span>＋</span> New Series
+      </button>
+    </div>
+  </header>
+
+  <!-- ══ MAIN: LIST VIEW ══ -->
+  <main id="list-view">
+    <div>
+      <div class="section-heading">
+        <h2>Your Series</h2>
+        <span class="count">8 tracked</span>
+      </div>
+
+      <!-- Filter pills -->
+      <div class="filter-bar">
+        <button class="filter-pill active">All</button>
+        <button class="filter-pill">Health</button>
+        <button class="filter-pill">Productivity</button>
+        <button class="filter-pill">Habits</button>
+        <button class="filter-pill">Finance</button>
+      </div>
+
+      <!-- Card grid -->
+      <div class="masonry">
+
+        <!-- Card 1 -->
+        <div class="series-card c-terracotta" onclick="showDetail()" style="animation-delay:0.05s">
+          <div class="card-header">
+            <button class="card-menu">⋯</button>
+          </div>
+          <div class="card-name">Morning Walk</div>
+          <div class="card-group">Health</div>
+          <div class="card-value">
+            <span class="num">4.2</span>
+            <span class="unit">km</span>
+          </div>
+          <div class="card-meta">
+            <span>Today, 7:14 am</span>
+            <span class="card-trend trend-up">↑ 12%</span>
+          </div>
+          <div style="margin-top:0.75rem">
+            <button class="add-entry-btn">＋ Add entry</button>
+          </div>
+          <div class="card-sparkline">
+            <svg viewBox="0 0 120 40" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="sg1" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#6b8c5f" stop-opacity="0.4"/>
+                  <stop offset="100%" stop-color="#6b8c5f" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <path d="M0 32 L15 28 L30 25 L45 30 L60 20 L75 18 L90 15 L105 10 L120 8 L120 40 L0 40Z" fill="url(#sg1)"/>
+              <path d="M0 32 L15 28 L30 25 L45 30 L60 20 L75 18 L90 15 L105 10 L120 8" fill="none" stroke="#6b8c5f" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="series-card c-slate-blue" style="animation-delay:0.1s">
+          <div class="card-header">
+            <button class="card-menu">⋯</button>
+          </div>
+          <div class="card-name">Water Intake</div>
+          <div class="card-group">Health</div>
+          <div class="card-value">
+            <span class="num">1.8</span>
+            <span class="unit">L</span>
+          </div>
+          <div class="card-meta">
+            <span>Today, 2:00 pm</span>
+            <span class="card-trend trend-down">↓ 5%</span>
+          </div>
+          <div style="margin-top:0.75rem">
+            <button class="add-entry-btn">＋ Add entry</button>
+          </div>
+          <div class="card-sparkline">
+            <svg viewBox="0 0 120 40" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="sg2" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#8faa82" stop-opacity="0.4"/>
+                  <stop offset="100%" stop-color="#8faa82" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <path d="M0 20 L15 15 L30 18 L45 12 L60 16 L75 22 L90 18 L105 24 L120 20 L120 40 L0 40Z" fill="url(#sg2)"/>
+              <path d="M0 20 L15 15 L30 18 L45 12 L60 16 L75 22 L90 18 L105 24 L120 20" fill="none" stroke="#8faa82" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="series-card c-ochre" style="animation-delay:0.15s">
+          <div class="card-header">
+            <button class="card-menu">⋯</button>
+          </div>
+          <div class="card-name">Reading</div>
+          <div class="card-group">Habits</div>
+          <div class="card-value">
+            <span class="num">42</span>
+            <span class="unit">min</span>
+          </div>
+          <div class="card-meta">
+            <span>Yesterday</span>
+            <span class="card-trend trend-up">↑ 20%</span>
+          </div>
+          <div style="margin-top:0.75rem">
+            <button class="add-entry-btn">＋ Add entry</button>
+          </div>
+          <div class="card-sparkline">
+            <svg viewBox="0 0 120 40" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="sg3" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#4a5e44" stop-opacity="0.35"/>
+                  <stop offset="100%" stop-color="#4a5e44" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <path d="M0 30 L15 26 L30 30 L45 22 L60 18 L75 14 L90 16 L105 12 L120 10 L120 40 L0 40Z" fill="url(#sg3)"/>
+              <path d="M0 30 L15 26 L30 30 L45 22 L60 18 L75 14 L90 16 L105 12 L120 10" fill="none" stroke="#4a5e44" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Card 4 -->
+        <div class="series-card c-plum" style="animation-delay:0.2s">
+          <div class="card-header">
+            <button class="card-menu">⋯</button>
+          </div>
+          <div class="card-name">Sleep Quality</div>
+          <div class="card-group">Health</div>
+          <div class="card-value">
+            <span class="num">7.5</span>
+            <span class="unit">hrs</span>
+          </div>
+          <div class="card-meta">
+            <span>This morning</span>
+            <span class="card-trend trend-up">↑ 3%</span>
+          </div>
+          <div style="margin-top:0.75rem">
+            <button class="add-entry-btn">＋ Add entry</button>
+          </div>
+          <div class="card-sparkline">
+            <svg viewBox="0 0 120 40" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="sg4" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#8faa82" stop-opacity="0.4"/>
+                  <stop offset="100%" stop-color="#8faa82" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <path d="M0 22 L15 20 L30 18 L45 24 L60 16 L75 14 L90 12 L105 15 L120 12 L120 40 L0 40Z" fill="url(#sg4)"/>
+              <path d="M0 22 L15 20 L30 18 L45 24 L60 16 L75 14 L90 12 L105 15 L120 12" fill="none" stroke="#8faa82" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Card 5 -->
+        <div class="series-card c-teal" style="animation-delay:0.25s">
+          <div class="card-header">
+            <button class="card-menu">⋯</button>
+          </div>
+          <div class="card-name">Journal Entries</div>
+          <div class="card-group">Habits</div>
+          <div class="card-value">
+            <span class="num">1</span>
+            <span class="unit">today</span>
+          </div>
+          <div class="card-meta">
+            <span>9:30 am</span>
+            <span class="card-trend trend-up">● streak 14</span>
+          </div>
+          <div style="margin-top:0.75rem">
+            <button class="add-entry-btn">＋ Add entry</button>
+          </div>
+        </div>
+
+        <!-- Card 6 -->
+        <div class="series-card c-olive" style="animation-delay:0.3s">
+          <div class="card-header">
+            <button class="card-menu">⋯</button>
+          </div>
+          <div class="card-name">Plant Watering</div>
+          <div class="card-group">Habits</div>
+          <div class="card-value">
+            <span class="num">3</span>
+            <span class="unit">plants</span>
+          </div>
+          <div class="card-meta">
+            <span>2 days ago</span>
+            <span class="card-trend" style="color:var(--stone)">— stable</span>
+          </div>
+          <div style="margin-top:0.75rem">
+            <button class="add-entry-btn">＋ Add entry</button>
+          </div>
+        </div>
+
+        <!-- Card 7 -->
+        <div class="series-card c-rust" style="animation-delay:0.35s">
+          <div class="card-header">
+            <button class="card-menu">⋯</button>
+          </div>
+          <div class="card-name">Daily Spend</div>
+          <div class="card-group">Finance</div>
+          <div class="card-value">
+            <span class="num">24</span>
+            <span class="unit">USD</span>
+          </div>
+          <div class="card-meta">
+            <span>Today</span>
+            <span class="card-trend trend-down">↓ 18%</span>
+          </div>
+          <div style="margin-top:0.75rem">
+            <button class="add-entry-btn">＋ Add entry</button>
+          </div>
+          <div class="card-sparkline">
+            <svg viewBox="0 0 120 40" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="sg5" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#6b8c5f" stop-opacity="0.3"/>
+                  <stop offset="100%" stop-color="#6b8c5f" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <path d="M0 10 L15 18 L30 12 L45 22 L60 28 L75 20 L90 16 L105 24 L120 28 L120 40 L0 40Z" fill="url(#sg5)"/>
+              <path d="M0 10 L15 18 L30 12 L45 22 L60 28 L75 20 L90 16 L105 24 L120 28" fill="none" stroke="#6b8c5f" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Card 8 -->
+        <div class="series-card c-dusk" style="animation-delay:0.4s">
+          <div class="card-header">
+            <button class="card-menu">⋯</button>
+          </div>
+          <div class="card-name">Meditation</div>
+          <div class="card-group">Habits</div>
+          <div class="card-value">
+            <span class="num">20</span>
+            <span class="unit">min</span>
+          </div>
+          <div class="card-meta">
+            <span>Today, 6:00 am</span>
+            <span class="card-trend trend-up">↑ 33%</span>
+          </div>
+          <div style="margin-top:0.75rem">
+            <button class="add-entry-btn">＋ Add entry</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- ══ HEADER (Detail View) — hidden by default ══ -->
+  <header id="detail-header" style="display:none">
+    <div class="detail-back" onclick="showList()">
+      ← <span>Morning Walk</span>
+    </div>
+    <div class="header-actions">
+      <button class="btn-icon" title="Edit">✎</button>
+      <button class="btn-primary">
+        <span>＋</span> Add Entry
+      </button>
+    </div>
+  </header>
+
+  <!-- ══ MAIN: DETAIL VIEW — hidden by default ══ -->
+  <main id="detail-view" style="display:none">
+    <!-- Stats row -->
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="stat-label">Latest</div>
+        <div class="stat-val">4.2 km</div>
+        <div class="stat-sub">Today, 7:14 am</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">7-day Avg</div>
+        <div class="stat-val">3.8 km</div>
+        <div class="stat-sub">+12% vs prior week</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total</div>
+        <div class="stat-val">142 km</div>
+        <div class="stat-sub">Since Jan 2025</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Streak</div>
+        <div class="stat-val">14 days</div>
+        <div class="stat-sub">Personal best: 21</div>
+      </div>
+    </div>
+
+    <!-- Tab nav -->
+    <div class="tab-nav">
+      <button class="tab-btn active" onclick="switchTab(this,'chart')">Chart</button>
+      <button class="tab-btn" onclick="switchTab(this,'calendar')">Calendar</button>
+      <button class="tab-btn" onclick="switchTab(this,'history')">History</button>
+      <button class="tab-btn" onclick="switchTab(this,'config')">Config</button>
+    </div>
+
+    <!-- CHART TAB -->
+    <div id="tab-chart">
+      <div class="chart-area">
+        <div class="chart-bar" style="height:55%"></div>
+        <div class="chart-bar" style="height:62%"></div>
+        <div class="chart-bar" style="height:48%"></div>
+        <div class="chart-bar" style="height:70%"></div>
+        <div class="chart-bar" style="height:65%"></div>
+        <div class="chart-bar" style="height:80%"></div>
+        <div class="chart-bar" style="height:75%"></div>
+        <div class="chart-bar" style="height:58%"></div>
+        <div class="chart-bar" style="height:72%"></div>
+        <div class="chart-bar" style="height:85%"></div>
+        <div class="chart-bar" style="height:78%"></div>
+        <div class="chart-bar" style="height:90%"></div>
+        <div class="chart-bar" style="height:82%"></div>
+        <div class="chart-bar" style="height:95%"></div>
+      </div>
+    </div>
+
+    <!-- CALENDAR TAB -->
+    <div id="tab-calendar" style="display:none">
+      <div style="background:rgba(250,248,243,0.8);border:1px solid rgba(143,170,130,0.2);border-radius:var(--radius-card);padding:1.5rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
+          <h3 style="font-family:var(--font-display);font-size:1.2rem;color:var(--moss);font-weight:400;">March 2026</h3>
+          <div style="display:flex;gap:0.5rem;">
+            <button class="btn-icon" style="width:28px;height:28px;font-size:0.8rem;">‹</button>
+            <button class="btn-icon" style="width:28px;height:28px;font-size:0.8rem;">›</button>
+          </div>
+        </div>
+        <div class="calendar-grid">
+          <div class="cal-day-name">Sun</div><div class="cal-day-name">Mon</div><div class="cal-day-name">Tue</div>
+          <div class="cal-day-name">Wed</div><div class="cal-day-name">Thu</div><div class="cal-day-name">Fri</div>
+          <div class="cal-day-name">Sat</div>
+          <div class="cal-day empty"></div><div class="cal-day empty"></div><div class="cal-day empty"></div>
+          <div class="cal-day empty"></div><div class="cal-day empty"></div><div class="cal-day empty"></div>
+          <div class="cal-day">1</div>
+          <div class="cal-day">2</div><div class="cal-day has-entry">3</div><div class="cal-day has-entry">4</div>
+          <div class="cal-day">5</div><div class="cal-day has-entry">6</div><div class="cal-day has-entry">7</div>
+          <div class="cal-day has-entry">8</div>
+          <div class="cal-day">9</div><div class="cal-day has-entry">10</div><div class="cal-day has-entry">11</div>
+          <div class="cal-day has-entry">12</div><div class="cal-day has-entry">13</div><div class="cal-day has-entry">14</div>
+          <div class="cal-day has-entry">15</div>
+          <div class="cal-day has-entry">16</div><div class="cal-day has-entry">17</div><div class="cal-day has-entry">18</div>
+          <div class="cal-day has-entry">19</div><div class="cal-day has-entry">20</div><div class="cal-day has-entry">21</div>
+          <div class="cal-day today">22</div>
+          <div class="cal-day">23</div><div class="cal-day">24</div><div class="cal-day">25</div>
+          <div class="cal-day">26</div><div class="cal-day">27</div><div class="cal-day">28</div>
+          <div class="cal-day">29</div>
+          <div class="cal-day">30</div><div class="cal-day">31</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HISTORY TAB -->
+    <div id="tab-history" style="display:none">
+      <div style="background:rgba(250,248,243,0.8);border:1px solid rgba(143,170,130,0.2);border-radius:var(--radius-card);overflow:hidden;">
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>Date & Time</th>
+              <th>Value</th>
+              <th>Notes</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="ts">Mar 22, 2026 — 7:14 am</td>
+              <td class="val">4.2 km</td>
+              <td style="color:var(--stone);font-size:0.8rem;">Beautiful sunrise</td>
+              <td><div class="row-actions"><button class="row-action-btn">✎</button><button class="row-action-btn">✕</button></div></td>
+            </tr>
+            <tr>
+              <td class="ts">Mar 21, 2026 — 7:02 am</td>
+              <td class="val">3.9 km</td>
+              <td style="color:var(--stone);font-size:0.8rem;">Foggy morning</td>
+              <td><div class="row-actions"><button class="row-action-btn">✎</button><button class="row-action-btn">✕</button></div></td>
+            </tr>
+            <tr>
+              <td class="ts">Mar 20, 2026 — 6:58 am</td>
+              <td class="val">4.5 km</td>
+              <td style="color:var(--stone);font-size:0.8rem;">Took the long trail</td>
+              <td><div class="row-actions"><button class="row-action-btn">✎</button><button class="row-action-btn">✕</button></div></td>
+            </tr>
+            <tr>
+              <td class="ts">Mar 19, 2026 — 7:30 am</td>
+              <td class="val">3.6 km</td>
+              <td style="color:var(--stone);font-size:0.8rem;"></td>
+              <td><div class="row-actions"><button class="row-action-btn">✎</button><button class="row-action-btn">✕</button></div></td>
+            </tr>
+            <tr>
+              <td class="ts">Mar 18, 2026 — 7:10 am</td>
+              <td class="val">4.0 km</td>
+              <td style="color:var(--stone);font-size:0.8rem;">Listened to podcast</td>
+              <td><div class="row-actions"><button class="row-action-btn">✎</button><button class="row-action-btn">✕</button></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CONFIG TAB -->
+    <div id="tab-config" style="display:none">
+      <div class="config-panel">
+        <div class="config-section">
+          <h3>Series Details</h3>
+          <div class="config-field">
+            <label>Name</label>
+            <input type="text" value="Morning Walk">
+          </div>
+          <div class="config-field">
+            <label>Unit</label>
+            <input type="text" value="km">
+          </div>
+          <div class="config-field">
+            <label>Group</label>
+            <select><option>Health</option><option>Habits</option><option>Finance</option><option>Productivity</option></select>
+          </div>
+        </div>
+        <div class="config-section">
+          <h3>Display</h3>
+          <div class="config-field">
+            <label>Chart Type</label>
+            <select><option>Bar</option><option>Line</option><option>Scatter</option></select>
+          </div>
+          <div class="config-field">
+            <label>Goal</label>
+            <input type="text" value="5 km">
+          </div>
+        </div>
+        <div style="display:flex;gap:0.75rem;">
+          <button class="btn-primary" style="flex:1;justify-content:center;">Save Changes</button>
+          <button class="btn-ghost" style="color:#b05a4e;border-color:rgba(176,90,78,0.3);">Delete Series</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- FAB (list view only) -->
+  <button class="fab" id="fab" onclick="showDetail()" title="New entry">＋</button>
+
+  <!-- Toast example -->
+  <div class="toast" id="toast" style="display:none">
+    <span>Entry saved</span>
+    <button class="toast-close" onclick="document.getElementById('toast').style.display='none'">✕</button>
+  </div>
+
+</div>
+
+<script>
+  function toggleTheme() {
+    const isDark = document.documentElement.classList.toggle('dark');
+    document.getElementById('theme-btn').textContent = isDark ? '○' : '☽';
+  }
+
+  function showDetail() {
+    document.getElementById('list-header').style.display = 'none';
+    document.getElementById('list-view').style.display = 'none';
+    document.getElementById('fab').style.display = 'none';
+    document.getElementById('detail-header').style.display = '';
+    document.getElementById('detail-view').style.display = '';
+  }
+  function showList() {
+    document.getElementById('list-header').style.display = '';
+    document.getElementById('list-view').style.display = '';
+    document.getElementById('fab').style.display = '';
+    document.getElementById('detail-header').style.display = 'none';
+    document.getElementById('detail-view').style.display = 'none';
+  }
+
+  const tabs = ['chart','calendar','history','config'];
+  function switchTab(btn, name) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    tabs.forEach(t => {
+      document.getElementById('tab-'+t).style.display = (t === name) ? '' : 'none';
+    });
+  }
+
+  // Filter pills
+  document.querySelectorAll('.filter-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chronos — Time Series Manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --cream: #f7f4ef;
+      --white: #ffffff;
+      --ink: #1a1612;
+      --ink-2: #3d3830;
+      --ink-3: #6b6457;
+      --ink-4: #a8a098;
+      --indigo: #4338ca;
+      --indigo-light: #eef2ff;
+      --indigo-mid: #c7d2fe;
+      --rose: #e11d48;
+      --rose-light: #fff1f2;
+      --teal: #0d9488;
+      --teal-light: #f0fdfa;
+      --amber: #d97706;
+      --amber-light: #fffbeb;
+      --border: #e2ddd6;
+      --shadow-sm: 0 1px 3px rgba(26,22,18,0.06), 0 1px 2px rgba(26,22,18,0.04);
+      --shadow-md: 0 4px 12px rgba(26,22,18,0.08), 0 2px 4px rgba(26,22,18,0.05);
+      --shadow-hover: 0 8px 24px rgba(26,22,18,0.10), 0 3px 8px rgba(26,22,18,0.06);
+      --radius: 10px;
+      --radius-sm: 6px;
+      --font-display: 'DM Serif Display', Georgia, serif;
+      --font-body: 'DM Sans', sans-serif;
+      --font-mono: 'DM Mono', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--cream);
+      color: var(--ink);
+      min-height: 100vh;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* HEADER */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.5rem;
+      height: 52px;
+      max-width: 1440px;
+      margin: 0 auto;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .brand-icon {
+      width: 30px;
+      height: 30px;
+      background: var(--indigo);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .brand-icon svg { width: 16px; height: 16px; color: white; }
+
+    .brand-name {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      color: var(--ink);
+      letter-spacing: -0.01em;
+      line-height: 1;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 14px;
+      height: 32px;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+      line-height: 1;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--ink-2);
+      border-color: var(--border);
+    }
+
+    .btn-ghost:hover {
+      background: var(--cream);
+      border-color: var(--ink-4);
+    }
+
+    .btn-primary {
+      background: var(--indigo);
+      color: white;
+      border-color: var(--indigo);
+    }
+
+    .btn-primary:hover { background: #3730a3; }
+
+    .btn-icon {
+      width: 32px;
+      padding: 0;
+      justify-content: center;
+    }
+
+    /* FILTER BAR */
+    .filter-bar {
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      padding: 0 1.5rem;
+    }
+
+    .filter-bar-inner {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      height: 38px;
+      max-width: 1440px;
+      margin: 0 auto;
+    }
+
+    .filter-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-4);
+      flex-shrink: 0;
+    }
+
+    .filter-chips {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow-x: auto;
+    }
+
+    .filter-chips::-webkit-scrollbar { display: none; }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      background: var(--white);
+      color: var(--ink-3);
+      cursor: pointer;
+      transition: all 0.12s ease;
+      white-space: nowrap;
+    }
+
+    .chip:hover, .chip.active {
+      background: var(--indigo-light);
+      border-color: var(--indigo-mid);
+      color: var(--indigo);
+    }
+
+    .chip-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* MAIN */
+    main {
+      padding: 1.5rem;
+      max-width: 1440px;
+      margin: 0 auto;
+    }
+
+    /* MASONRY */
+    .grid-masonry {
+      columns: 1;
+      gap: 1rem;
+    }
+
+    @media (min-width: 480px) { .grid-masonry { columns: 2; } }
+    @media (min-width: 768px) { .grid-masonry { columns: 3; } }
+    @media (min-width: 1100px) { .grid-masonry { columns: 4; } }
+
+    /* GROUP CARD */
+    .group-card {
+      break-inside: avoid;
+      margin-bottom: 1rem;
+      background: var(--white);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      transition: box-shadow 0.2s ease, transform 0.2s ease;
+      animation: fadeUp 0.4s ease both;
+    }
+
+    .group-card:hover {
+      box-shadow: var(--shadow-hover);
+      transform: translateY(-1px);
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .group-card:nth-child(1) { animation-delay: 0.05s; }
+    .group-card:nth-child(2) { animation-delay: 0.10s; }
+    .group-card:nth-child(3) { animation-delay: 0.15s; }
+    .group-card:nth-child(4) { animation-delay: 0.20s; }
+    .group-card:nth-child(5) { animation-delay: 0.25s; }
+
+    .group-card-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .group-accent-bar {
+      width: 3px;
+      height: 14px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    .group-name {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .group-count {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--ink-4);
+    }
+
+    /* SERIES ROW */
+    .series-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 14px;
+      cursor: pointer;
+      transition: background 0.12s ease;
+      border-bottom: 1px solid transparent;
+      gap: 8px;
+    }
+
+    .series-row:last-child { border-bottom: none; }
+    .series-row:hover { background: var(--cream); }
+
+    .series-info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .series-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .series-meta {
+      display: flex;
+      align-items: baseline;
+      gap: 5px;
+    }
+
+    .series-value {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .card-indigo .series-value { color: var(--indigo); }
+    .card-rose   .series-value { color: var(--rose); }
+    .card-teal   .series-value { color: var(--teal); }
+    .card-amber  .series-value { color: var(--amber); }
+
+    .series-stat-label {
+      font-size: 9px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--ink-4);
+    }
+
+    .series-no-data {
+      font-size: 11px;
+      font-style: italic;
+      color: var(--ink-4);
+    }
+
+    .series-action {
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.12s ease, color 0.12s ease;
+      flex-shrink: 0;
+    }
+
+    .series-action svg { width: 14px; height: 14px; stroke-width: 2.2; }
+
+    .card-indigo .series-action { color: var(--indigo); }
+    .card-rose   .series-action { color: var(--rose); }
+    .card-teal   .series-action { color: var(--teal); }
+    .card-amber  .series-action { color: var(--amber); }
+
+    .card-indigo .series-action:hover { background: var(--indigo-light); }
+    .card-rose   .series-action:hover { background: var(--rose-light); }
+    .card-teal   .series-action:hover { background: var(--teal-light); }
+    .card-amber  .series-action:hover { background: var(--amber-light); }
+
+    .card-indigo .group-card-header { background: rgba(99,102,241,0.04); }
+    .card-rose   .group-card-header { background: rgba(225,29,72,0.04); }
+    .card-teal   .group-card-header { background: rgba(13,148,136,0.04); }
+    .card-amber  .group-card-header { background: rgba(217,119,6,0.04); }
+
+    /* DROPDOWN */
+    .dropdown-wrapper { position: relative; }
+
+    .dropdown-menu {
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-md);
+      min-width: 160px;
+      z-index: 60;
+      overflow: hidden;
+      animation: scaleIn 0.15s ease;
+    }
+
+    @keyframes scaleIn {
+      from { opacity: 0; transform: scale(0.96) translateY(-4px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .dropdown-section-label {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-4);
+      padding: 8px 12px 4px;
+    }
+
+    .dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      font-size: 13px;
+      color: var(--ink-2);
+      cursor: pointer;
+      transition: background 0.1s;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+    }
+
+    .dropdown-item:hover { background: var(--cream); }
+    .dropdown-item svg { width: 13px; height: 13px; color: var(--ink-4); flex-shrink: 0; }
+
+    .dropdown-divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+    /* DIALOGS */
+    .dialog-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(26,22,18,0.45);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      backdrop-filter: blur(2px);
+      animation: fadeIn 0.15s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    .dialog {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: 0 20px 60px rgba(26,22,18,0.2);
+      width: 100%;
+      max-width: 420px;
+      animation: scaleIn 0.2s ease;
+    }
+
+    .dialog-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 20px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .dialog-title {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      color: var(--ink);
+    }
+
+    .dialog-close {
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--ink-4);
+      transition: background 0.12s;
+    }
+
+    .dialog-close:hover { background: var(--cream); }
+
+    .dialog-body {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .dialog-footer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    /* FORM */
+    .form-field { display: flex; flex-direction: column; gap: 5px; }
+
+    .form-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--ink-3);
+    }
+
+    .form-input {
+      height: 36px;
+      padding: 0 11px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--ink);
+      background: var(--white);
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      outline: none;
+    }
+
+    .form-input:focus {
+      border-color: var(--indigo);
+      box-shadow: 0 0 0 3px rgba(67,56,202,0.1);
+    }
+
+    select.form-input {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a8a098' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      padding-right: 30px;
+      cursor: pointer;
+    }
+
+    /* GROUP MANAGE */
+    .group-manage-list {
+      display: flex;
+      flex-direction: column;
+      max-height: 280px;
+      overflow-y: auto;
+    }
+
+    .group-manage-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--border);
+      gap: 10px;
+    }
+
+    .group-manage-row:last-child { border-bottom: none; }
+
+    .group-manage-name {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--ink);
+    }
+
+    .group-color-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .btn-danger {
+      background: transparent;
+      border: none;
+      color: var(--ink-4);
+      cursor: pointer;
+      width: 26px;
+      height: 26px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.12s, color 0.12s;
+    }
+
+    .btn-danger:hover { background: var(--rose-light); color: var(--rose); }
+    .btn-danger svg { width: 13px; height: 13px; stroke-width: 2; }
+
+    /* DURATION */
+    .duration-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    /* UTILITY */
+    .hidden { display: none !important; }
+
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-inner">
+    <a class="brand" href="#">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+          <polyline points="16 7 22 7 22 13"/>
+        </svg>
+      </div>
+      <span class="brand-name">Chronos</span>
+    </a>
+
+    <div class="header-actions">
+      <button class="btn btn-ghost" onclick="openDialog('group-dialog')">Groups</button>
+      <button class="btn btn-primary" onclick="openDialog('series-dialog')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New Series
+      </button>
+      <div class="dropdown-wrapper">
+        <button class="btn btn-ghost btn-icon" onclick="toggleDropdown()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+        </button>
+        <div class="dropdown-menu hidden" id="dropdown-menu">
+          <div class="dropdown-section-label">Transfer</div>
+          <button class="dropdown-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export JSON
+          </button>
+          <button class="dropdown-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Import JSON
+          </button>
+          <div class="dropdown-divider"></div>
+          <button class="dropdown-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Export CSV
+          </button>
+          <button class="dropdown-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Import CSV
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- FILTER BAR -->
+<div class="filter-bar">
+  <div class="filter-bar-inner">
+    <span class="filter-label">Filter</span>
+    <div class="filter-chips">
+      <span class="chip active"><span class="chip-dot" style="background:#6366f1"></span>All</span>
+      <span class="chip"><span class="chip-dot" style="background:#6366f1"></span>Finances</span>
+      <span class="chip"><span class="chip-dot" style="background:#6366f1"></span>Habits</span>
+      <span class="chip"><span class="chip-dot" style="background:#d97706"></span>money</span>
+      <span class="chip"><span class="chip-dot" style="background:#e11d48"></span>sports</span>
+      <span class="chip"><span class="chip-dot" style="background:#0d9488"></span>srt</span>
+      <span class="chip"><span class="chip-dot" style="background:#6366f1"></span>Well-being</span>
+      <span class="chip"><span class="chip-dot" style="background:#6366f1"></span>Work</span>
+    </div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<main>
+  <div class="grid-masonry">
+
+    <!-- group11 -->
+    <div class="group-card card-indigo">
+      <div class="group-card-header">
+        <div class="group-accent-bar" style="background:#6366f1"></div>
+        <span class="group-name" style="color:#6366f1">group11</span>
+        <span class="group-count">4</span>
+      </div>
+      <div class="series-row">
+        <div class="series-info">
+          <span class="series-name">serie2</span>
+          <div class="series-meta"><span class="series-value">7</span><span class="series-stat-label">Last</span></div>
+        </div>
+        <button class="series-action">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
+      <div class="series-row">
+        <div class="series-info">
+          <span class="series-name">tim</span>
+          <div class="series-meta"><span class="series-value">23s</span><span class="series-stat-label">Last</span></div>
+        </div>
+        <button class="series-action">
+          <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+      </div>
+      <div class="series-row">
+        <div class="series-info">
+          <span class="series-name">G1</span>
+          <span class="series-no-data">No data</span>
+        </div>
+        <button class="series-action">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
+      <div class="series-row">
+        <div class="series-info">
+          <span class="series-name">timeSer</span>
+          <div class="series-meta"><span class="series-value">18h 53m 25s</span><span class="series-stat-label">Last</span></div>
+        </div>
+        <button class="series-action">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Habits -->
+    <div class="group-card card-indigo">
+      <div class="group-card-header">
+        <div class="group-accent-bar" style="background:#6366f1"></div>
+        <span class="group-name" style="color:#6366f1">Habits</span>
+        <span class="group-count">3</span>
+      </div>
+      <div class="series-row">
+        <div class="series-info">
+          <span class="series-name">Approach</span>
+          <div class="series-meta"><span class="series-value">2.66</span><span class="series-stat-label">Avg</span></div>
+        </div>
+        <button class="series-action">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
+      <div class="series-row">
+        <div class="series-info">
+          <span class="series-name">Talk</span>
+          <div class="series-meta"><span class="series-value">2</span><span class="series-stat-label">Mean</span></div>
+        </div>
+        <button class="series-action">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
+      <div class="series-row">
+        <div class="series-info">
+          <span class="series-name">Find</span>
+          <div class="series-meta"><span class="series-value">5.1</span><span class="series-stat-label">Mean</span></div>
+        </div>
+        <button class="series-action">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- money -->
+    <div class="group-card card-amber">
+      <div class="group-card-header">
+        <div class="group-accent-bar" style="background:#d97706"></div>
+        <span class="group-name" style="color:#d97706">money</span>
+        <span class="group-count">4</span>
+      </div>
+      <div class="series-row">
+        <div class="series-info">
+          <span class="series-name">Pesos</span>
+          <div class="series-meta"><span class="series-value">127.12</span><span class="series-stat-label">Avg</span></div>
+        </div>
+        <button class="series-action">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
+      <div class="series-row">
+        <div class="series-info">
+          <span class="series-name">DolarEq</span>
+          <span class="series-no-data">No data</span>
+        </div>
+        <button class="series-action">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
+      <div class="series-row">
+        <div class="series-info">
+          <span class="series-name">DolarSum</span>
+          <div class="series-meta"><span class="series-value">23.91</span><span class="series-stat-label">Mean</span></div>
+        </div>
+        <button class="series-action">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
+      <div class="series-row">
+        <div class="series-info">
+          <span class="series-name">Dolares</span>
+          <div class="series-meta"><span class="series-value">21.16</span><span class="series-stat-label">Mean</span></div>
+        </div>
+        <button class="series-action">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- sports -->
+    <div class="group-card card-rose">
+      <div class="group-card-header">
+        <div class="group-accent-bar" style="background:#e11d48"></div>
+        <span class="group-name" style="color:#e11d48">sports</span>
+        <span class="group-count">1</span>
+      </div>
+      <div class="series-row">
+        <div class="series-info">
+          <span class="series-name">sportserie</span>
+          <span class="series-no-data">No data</span>
+        </div>
+        <button class="series-action">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Well-being -->
+    <div class="group-card card-teal">
+      <div class="group-card-header">
+        <div class="group-accent-bar" style="background:#0d9488"></div>
+        <span class="group-name" style="color:#0d9488">Well-being</span>
+        <span class="group-count">3</span>
+      </div>
+      <div class="series-row">
+        <div class="series-info">
+          <span class="series-name">WakeUp</span>
+          <div class="series-meta"><span class="series-value">10.25</span><span class="series-stat-label">Mean</span></div>
+        </div>
+        <button class="series-action">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
+      <div class="series-row">
+        <div class="series-info">
+          <span class="series-name">GoToBed</span>
+          <div class="series-meta"><span class="series-value">1.7</span><span class="series-stat-label">Mean</span></div>
+        </div>
+        <button class="series-action">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
+      <div class="series-row">
+        <div class="series-info">
+          <span class="series-name">Phone</span>
+          <div class="series-meta"><span class="series-value">4.62</span><span class="series-stat-label">Mean</span></div>
+        </div>
+        <button class="series-action">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- DIALOG: Manage Groups -->
+<div class="dialog-overlay hidden" id="group-dialog" onclick="closeDialog('group-dialog')">
+  <div class="dialog" onclick="event.stopPropagation()">
+    <div class="dialog-header">
+      <span class="dialog-title">Manage Groups</span>
+      <button class="dialog-close" onclick="closeDialog('group-dialog')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="dialog-body">
+      <button class="btn btn-ghost" style="align-self:flex-start;font-size:12px;">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add New
+      </button>
+      <div class="group-manage-list">
+        <div class="group-manage-row"><div class="group-manage-name"><div class="group-color-dot" style="background:#6366f1"></div>Finances</div><button class="btn-danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button></div>
+        <div class="group-manage-row"><div class="group-manage-name"><div class="group-color-dot" style="background:#6366f1"></div>group1</div><button class="btn-danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button></div>
+        <div class="group-manage-row"><div class="group-manage-name"><div class="group-color-dot" style="background:#6366f1"></div>group11</div><button class="btn-danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button></div>
+        <div class="group-manage-row"><div class="group-manage-name"><div class="group-color-dot" style="background:#6366f1"></div>Habits</div><button class="btn-danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button></div>
+        <div class="group-manage-row"><div class="group-manage-name"><div class="group-color-dot" style="background:#e11d48"></div>sports</div><button class="btn-danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button></div>
+        <div class="group-manage-row"><div class="group-manage-name"><div class="group-color-dot" style="background:#0d9488"></div>srt</div><button class="btn-danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button></div>
+        <div class="group-manage-row"><div class="group-manage-name"><div class="group-color-dot" style="background:#6366f1"></div>Well-being</div><button class="btn-danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button></div>
+        <div class="group-manage-row"><div class="group-manage-name"><div class="group-color-dot" style="background:#6366f1"></div>Work</div><button class="btn-danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DIALOG: New Series -->
+<div class="dialog-overlay hidden" id="series-dialog" onclick="closeDialog('series-dialog')">
+  <div class="dialog" onclick="event.stopPropagation()">
+    <div class="dialog-header">
+      <span class="dialog-title">New Series</span>
+      <button class="dialog-close" onclick="closeDialog('series-dialog')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="dialog-body">
+      <div class="form-field">
+        <label class="form-label">Name</label>
+        <input class="form-input" type="text" placeholder="Series name" autofocus>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Type</label>
+        <select class="form-input"><option>Number</option><option>Time</option></select>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Group</label>
+        <select class="form-input">
+          <option value="">— None —</option>
+          <option>Finances</option><option>group1</option><option>group11</option>
+          <option>Habits</option><option>Health</option><option>money</option>
+          <option>sports</option><option>srt</option><option>Well-being</option><option>Work</option>
+        </select>
+      </div>
+    </div>
+    <div class="dialog-footer">
+      <button class="btn btn-ghost" onclick="closeDialog('series-dialog')">Cancel</button>
+      <button class="btn btn-primary">Save Series</button>
+    </div>
+  </div>
+</div>
+
+<!-- DIALOG: Add Entry -->
+<div class="dialog-overlay hidden" id="entry-dialog" onclick="closeDialog('entry-dialog')">
+  <div class="dialog" onclick="event.stopPropagation()">
+    <div class="dialog-header">
+      <span class="dialog-title">Add Entry</span>
+      <button class="dialog-close" onclick="closeDialog('entry-dialog')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="dialog-body">
+      <div class="form-field">
+        <label class="form-label">Date &amp; Time</label>
+        <input class="form-input" type="text" placeholder="yyyy-MM-dd HH:mm:ss">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Value</label>
+        <input class="form-input" type="number" step="1">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Notes (Optional)</label>
+        <input class="form-input" type="text">
+      </div>
+    </div>
+    <div class="dialog-footer">
+      <button class="btn btn-ghost" onclick="closeDialog('entry-dialog')">Cancel</button>
+      <button class="btn btn-primary">Save Entry</button>
+    </div>
+  </div>
+</div>
+
+<!-- DIALOG: Duration -->
+<div class="dialog-overlay hidden" id="duration-dialog" onclick="closeDialog('duration-dialog')">
+  <div class="dialog" onclick="event.stopPropagation()">
+    <div class="dialog-header">
+      <span class="dialog-title">Edit Duration</span>
+      <button class="dialog-close" onclick="closeDialog('duration-dialog')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="dialog-body">
+      <div class="duration-grid">
+        <div class="form-field"><label class="form-label">Days</label><input class="form-input" type="number" value="0" min="0" style="text-align:center;padding:0 4px;"></div>
+        <div class="form-field"><label class="form-label">Hours</label><input class="form-input" type="number" value="0" min="0" max="23" style="text-align:center;padding:0 4px;"></div>
+        <div class="form-field"><label class="form-label">Mins</label><input class="form-input" type="number" value="0" min="0" max="59" style="text-align:center;padding:0 4px;"></div>
+        <div class="form-field"><label class="form-label">Secs</label><input class="form-input" type="number" value="0" min="0" max="59" style="text-align:center;padding:0 4px;"></div>
+      </div>
+    </div>
+    <div class="dialog-footer">
+      <button class="btn btn-ghost" onclick="closeDialog('duration-dialog')">Cancel</button>
+      <button class="btn btn-primary">OK</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openDialog(id) { document.getElementById(id).classList.remove('hidden'); }
+  function closeDialog(id) { document.getElementById(id).classList.add('hidden'); }
+
+  function toggleDropdown() {
+    document.getElementById('dropdown-menu').classList.toggle('hidden');
+  }
+
+  document.addEventListener('click', function(e) {
+    const w = document.querySelector('.dropdown-wrapper');
+    if (w && !w.contains(e.target)) document.getElementById('dropdown-menu').classList.add('hidden');
+  });
+
+  document.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', function() {
+      document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

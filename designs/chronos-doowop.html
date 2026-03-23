@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chronos – Time Series Manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Permanent+Marker&family=Josefin+Sans:wght@300;400;600;700&family=Special+Elite&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --cream:    #fdf6e3;
+      --parchment:#f5e9cc;
+      --red:      #c0392b;
+      --red-dark: #922b21;
+      --teal:     #1a7f6e;
+      --teal-lt:  #21a08c;
+      --gold:     #d4a017;
+      --gold-lt:  #f0c040;
+      --charcoal: #1c1a15;
+      --ink:      #2d2a22;
+      --dust:     #8b7d5c;
+      --rose:     #e8a598;
+      --navy:     #1b2a4a;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--cream);
+      background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 27px, rgba(180,160,100,0.08) 27px, rgba(180,160,100,0.08) 28px),
+        repeating-linear-gradient(90deg, transparent, transparent 27px, rgba(180,160,100,0.04) 27px, rgba(180,160,100,0.04) 28px);
+      font-family: 'Josefin Sans', sans-serif;
+      color: var(--ink);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── NOISE OVERLAY ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 999;
+      opacity: 0.5;
+    }
+
+    /* ══════════════════════════════
+       HEADER
+    ══════════════════════════════ */
+    header {
+      background-color: var(--red);
+      background-image: repeating-linear-gradient(
+        -45deg,
+        transparent,
+        transparent 8px,
+        rgba(0,0,0,0.06) 8px,
+        rgba(0,0,0,0.06) 9px
+      );
+      border-bottom: 5px double var(--red-dark);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+    }
+
+    .header-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+      height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    /* Logo area */
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+    }
+
+    .logo-badge {
+      width: 44px;
+      height: 44px;
+      background: var(--gold);
+      border: 3px solid var(--gold-lt);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .logo-badge::after {
+      content: '';
+      position: absolute;
+      top: -30%;
+      left: -10%;
+      width: 60%;
+      height: 60%;
+      background: rgba(255,255,255,0.25);
+      border-radius: 50%;
+      transform: rotate(-25deg);
+    }
+
+    .logo-text {
+      font-family: 'Alfa Slab One', serif;
+      font-size: 1.75rem;
+      color: var(--cream);
+      letter-spacing: 0.04em;
+      text-shadow: 2px 2px 0 var(--red-dark), 3px 3px 6px rgba(0,0,0,0.3);
+      line-height: 1;
+    }
+
+    .logo-tagline {
+      font-family: 'Special Elite', cursive;
+      font-size: 0.6rem;
+      color: var(--rose);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      display: block;
+      margin-top: 2px;
+    }
+
+    /* Nav buttons */
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .btn {
+      font-family: 'Josefin Sans', sans-serif;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-size: 0.7rem;
+      border: none;
+      cursor: pointer;
+      padding: 0.55rem 1.1rem;
+      border-radius: 3px;
+      transition: all 0.15s ease;
+      position: relative;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .btn-ghost {
+      background: rgba(255,255,255,0.12);
+      color: var(--cream);
+      border: 1.5px solid rgba(255,255,255,0.3);
+    }
+    .btn-ghost:hover {
+      background: rgba(255,255,255,0.22);
+      border-color: rgba(255,255,255,0.5);
+    }
+
+    .btn-primary {
+      background: var(--gold);
+      color: var(--charcoal);
+      border: 2px solid var(--gold-lt);
+      box-shadow: 0 3px 0 var(--red-dark), 0 4px 8px rgba(0,0,0,0.3);
+    }
+    .btn-primary:hover {
+      background: var(--gold-lt);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 0 var(--red-dark), 0 6px 12px rgba(0,0,0,0.3);
+    }
+    .btn-primary:active {
+      transform: translateY(1px);
+      box-shadow: 0 2px 0 var(--red-dark);
+    }
+
+    .btn-icon {
+      padding: 0.5rem 0.65rem;
+      background: rgba(255,255,255,0.1);
+      color: var(--cream);
+      border: 1.5px solid rgba(255,255,255,0.25);
+      font-size: 0.9rem;
+    }
+    .btn-icon:hover { background: rgba(255,255,255,0.2); }
+
+    /* ══════════════════════════════
+       FILTER STRIP
+    ══════════════════════════════ */
+    .filter-strip {
+      border-bottom: 3px solid var(--parchment);
+      padding: 0.5rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: rgba(212,160,23,0.06);
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .filter-label {
+      font-family: 'Special Elite', cursive;
+      font-size: 0.62rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--dust);
+    }
+
+    .filter-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    .tag {
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.65rem;
+      border-radius: 2px;
+      cursor: pointer;
+      border: 1.5px solid;
+      transition: all 0.15s;
+    }
+
+    .tag-indigo { color: #4f46e5; border-color: rgba(79,70,229,0.35); background: rgba(79,70,229,0.07); }
+    .tag-indigo:hover { background: rgba(79,70,229,0.15); }
+    .tag-rose   { color: var(--red); border-color: rgba(192,57,43,0.35); background: rgba(192,57,43,0.07); }
+    .tag-rose:hover { background: rgba(192,57,43,0.15); }
+    .tag-teal   { color: var(--teal); border-color: rgba(26,127,110,0.35); background: rgba(26,127,110,0.07); }
+    .tag-teal:hover { background: rgba(26,127,110,0.15); }
+
+    /* ══════════════════════════════
+       MAIN / GRID
+    ══════════════════════════════ */
+    main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 1.5rem;
+    }
+
+    .masonry {
+      columns: 1;
+      gap: 1.25rem;
+    }
+    @media (min-width: 420px) { .masonry { columns: 2; } }
+    @media (min-width: 780px) { .masonry { columns: 3; } }
+    @media (min-width: 1100px) { .masonry { columns: 4; } }
+
+    .masonry > * { break-inside: avoid; margin-bottom: 1.25rem; }
+
+    /* ══════════════════════════════
+       SERIES CARD
+    ══════════════════════════════ */
+    .card {
+      background: var(--cream);
+      border: 2px solid;
+      border-radius: 4px;
+      overflow: hidden;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      box-shadow: 4px 4px 0 rgba(0,0,0,0.12);
+      position: relative;
+    }
+
+    .card:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 6px 6px 0 rgba(0,0,0,0.18);
+    }
+
+    /* Diagonal corner ribbon */
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; right: 0;
+      width: 0; height: 0;
+      border-style: solid;
+      border-width: 0 28px 28px 0;
+    }
+
+    .card-indigo { border-color: rgba(79,70,229,0.45); }
+    .card-indigo::before { border-color: transparent rgba(79,70,229,0.55) transparent transparent; }
+    .card-rose   { border-color: rgba(192,57,43,0.45); }
+    .card-rose::before   { border-color: transparent rgba(192,57,43,0.55) transparent transparent; }
+    .card-teal   { border-color: rgba(26,127,110,0.45); }
+    .card-teal::before   { border-color: transparent rgba(26,127,110,0.55) transparent transparent; }
+
+    .card-header {
+      padding: 0.5rem 0.75rem 0.4rem;
+      border-bottom: 1.5px solid;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .card-indigo .card-header { border-color: rgba(79,70,229,0.25); background: rgba(79,70,229,0.05); }
+    .card-rose   .card-header { border-color: rgba(192,57,43,0.25); background: rgba(192,57,43,0.05); }
+    .card-teal   .card-header { border-color: rgba(26,127,110,0.25); background: rgba(26,127,110,0.05); }
+
+    .group-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .card-header-title {
+      font-family: 'Alfa Slab One', serif;
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .card-indigo .card-header-title { color: #4f46e5; }
+    .card-rose   .card-header-title { color: var(--red); }
+    .card-teal   .card-header-title { color: var(--teal); }
+
+    /* Series rows */
+    .series-row {
+      display: flex;
+      align-items: center;
+      padding: 0.55rem 0.75rem;
+      border-bottom: 1px dashed rgba(139,125,92,0.2);
+      cursor: pointer;
+      transition: background 0.12s;
+      gap: 0.5rem;
+    }
+
+    .series-row:last-child { border-bottom: none; }
+
+    .series-row:hover { background: rgba(139,125,92,0.07); }
+
+    .series-info { flex: 1; min-width: 0; }
+
+    .series-name {
+      font-weight: 700;
+      font-size: 0.8rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--ink);
+      letter-spacing: 0.02em;
+    }
+
+    .series-stat {
+      display: flex;
+      align-items: baseline;
+      gap: 0.3rem;
+      margin-top: 0.1rem;
+    }
+
+    .stat-value {
+      font-family: 'Alfa Slab One', serif;
+      font-size: 0.78rem;
+    }
+
+    .card-indigo .stat-value { color: #4f46e5; }
+    .card-rose   .stat-value { color: var(--red); }
+    .card-teal   .stat-value { color: var(--teal); }
+
+    .stat-label {
+      font-size: 0.58rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--dust);
+    }
+
+    .no-data {
+      font-family: 'Special Elite', cursive;
+      font-size: 0.65rem;
+      color: var(--dust);
+      font-style: italic;
+      margin-top: 0.1rem;
+      opacity: 0.7;
+    }
+
+    /* Quick action button */
+    .quick-btn {
+      flex-shrink: 0;
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      border: 2px solid;
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 900;
+      font-family: 'Josefin Sans', sans-serif;
+      transition: all 0.15s;
+      color: inherit;
+    }
+
+    .card-indigo .quick-btn { border-color: rgba(79,70,229,0.4); color: #4f46e5; }
+    .card-indigo .quick-btn:hover { background: rgba(79,70,229,0.1); border-color: #4f46e5; }
+    .card-rose   .quick-btn { border-color: rgba(192,57,43,0.4); color: var(--red); }
+    .card-rose   .quick-btn:hover { background: rgba(192,57,43,0.1); border-color: var(--red); }
+    .card-teal   .quick-btn { border-color: rgba(26,127,110,0.4); color: var(--teal); }
+    .card-teal   .quick-btn:hover { background: rgba(26,127,110,0.1); border-color: var(--teal); }
+
+    /* ══════════════════════════════
+       DECORATIVE VINYL DIVIDER
+    ══════════════════════════════ */
+    .vinyl-divider {
+      text-align: center;
+      margin: 0.5rem 0 1.5rem;
+      position: relative;
+      line-height: 0;
+    }
+    .vinyl-divider::before {
+      content: '';
+      position: absolute;
+      left: 0; right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(to right, transparent, var(--dust), transparent);
+      opacity: 0.35;
+    }
+    .vinyl-divider span {
+      position: relative;
+      background: var(--cream);
+      padding: 0 0.75rem;
+      font-family: 'Special Elite', cursive;
+      font-size: 0.65rem;
+      color: var(--dust);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+
+    /* ══════════════════════════════
+       MODAL BACKDROP
+    ══════════════════════════════ */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(28,26,21,0.75);
+      backdrop-filter: blur(3px);
+      z-index: 500;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    .modal-backdrop.open { display: flex; }
+
+    .modal {
+      background: var(--cream);
+      background-image: repeating-linear-gradient(
+        0deg, transparent, transparent 27px,
+        rgba(180,160,100,0.1) 27px, rgba(180,160,100,0.1) 28px
+      );
+      border: 3px solid var(--charcoal);
+      border-radius: 4px;
+      box-shadow: 8px 8px 0 var(--charcoal);
+      width: 100%;
+      max-width: 420px;
+      animation: modal-in 0.2s ease;
+    }
+
+    @keyframes modal-in {
+      from { opacity: 0; transform: translateY(16px) scale(0.97); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    .modal-header {
+      background: var(--charcoal);
+      padding: 0.85rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 3px solid var(--gold);
+    }
+
+    .modal-title {
+      font-family: 'Alfa Slab One', serif;
+      font-size: 1rem;
+      color: var(--cream);
+      letter-spacing: 0.05em;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--rose);
+      font-size: 1.2rem;
+      cursor: pointer;
+      line-height: 1;
+      padding: 0;
+      transition: color 0.15s;
+    }
+    .modal-close:hover { color: var(--cream); }
+
+    .modal-body { padding: 1.25rem; }
+
+    .field-group { margin-bottom: 1rem; }
+    .field-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--dust);
+      display: block;
+      margin-bottom: 0.35rem;
+    }
+
+    .field-input {
+      width: 100%;
+      background: var(--parchment);
+      border: 2px solid rgba(139,125,92,0.4);
+      border-radius: 3px;
+      padding: 0.55rem 0.75rem;
+      font-family: 'Josefin Sans', sans-serif;
+      font-size: 0.85rem;
+      color: var(--ink);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .field-input:focus { border-color: var(--red); }
+
+    .modal-footer {
+      padding: 1rem 1.25rem;
+      border-top: 1.5px dashed rgba(139,125,92,0.3);
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.65rem;
+    }
+
+    .btn-cancel {
+      background: transparent;
+      color: var(--dust);
+      border: 2px solid rgba(139,125,92,0.4);
+      padding: 0.5rem 1rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      border-radius: 3px;
+      cursor: pointer;
+      font-family: 'Josefin Sans', sans-serif;
+      transition: all 0.15s;
+    }
+    .btn-cancel:hover { border-color: var(--dust); color: var(--ink); }
+
+    .btn-save {
+      background: var(--red);
+      color: var(--cream);
+      border: 2px solid var(--red-dark);
+      padding: 0.5rem 1.1rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      border-radius: 3px;
+      cursor: pointer;
+      font-family: 'Josefin Sans', sans-serif;
+      box-shadow: 0 3px 0 var(--red-dark);
+      transition: all 0.15s;
+    }
+    .btn-save:hover { background: var(--red-dark); transform: translateY(-1px); }
+    .btn-save:active { transform: translateY(1px); box-shadow: 0 1px 0 var(--red-dark); }
+
+    /* ══════════════════════════════
+       TOAST
+    ══════════════════════════════ */
+    .toast {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      background: var(--charcoal);
+      color: var(--cream);
+      padding: 0.75rem 1.25rem;
+      border-radius: 4px;
+      border-left: 4px solid var(--gold);
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      box-shadow: 4px 4px 0 rgba(0,0,0,0.3);
+      z-index: 1000;
+      animation: toast-in 0.25s ease;
+    }
+    @keyframes toast-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: none; }
+    }
+    .toast-x {
+      background: none; border: none;
+      color: var(--dust); cursor: pointer; font-size: 1rem;
+      transition: color 0.15s;
+    }
+    .toast-x:hover { color: var(--cream); }
+
+    /* ══════════════════════════════
+       GROUPS MODAL ITEMS
+    ══════════════════════════════ */
+    .group-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.6rem 0;
+      border-bottom: 1px dashed rgba(139,125,92,0.25);
+    }
+    .group-item:last-child { border-bottom: none; }
+    .group-name-row {
+      display: flex; align-items: center; gap: 0.5rem;
+      font-size: 0.85rem; font-weight: 600;
+    }
+    .btn-danger {
+      background: none;
+      border: 1.5px solid rgba(192,57,43,0.35);
+      color: var(--red);
+      width: 26px; height: 26px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 0.7rem;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+    }
+    .btn-danger:hover { background: rgba(192,57,43,0.1); border-color: var(--red); }
+
+    /* ══════════════════════════════
+       DURATION GRID
+    ══════════════════════════════ */
+    .duration-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.75rem;
+    }
+
+    /* ══════════════════════════════
+       PAGE HEADING AREA
+    ══════════════════════════════ */
+    .page-heading {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 3px double rgba(139,125,92,0.3);
+    }
+    .page-heading h2 {
+      font-family: 'Permanent Marker', cursive;
+      font-size: 1.6rem;
+      color: var(--ink);
+      letter-spacing: 0.02em;
+    }
+    .series-count {
+      font-family: 'Special Elite', cursive;
+      font-size: 0.7rem;
+      color: var(--dust);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-left: auto;
+    }
+
+    /* ══════════════════════════════
+       RESPONSIVE TWEAKS
+    ══════════════════════════════ */
+    @media (max-width: 500px) {
+      .nav-actions .btn-ghost { display: none; }
+      .filter-strip { padding: 0.5rem 1rem; }
+      main { padding: 1rem; }
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--parchment); }
+    ::-webkit-scrollbar-thumb { background: var(--dust); border-radius: 10px; }
+  </style>
+</head>
+<body>
+
+<!-- ══════ HEADER ══════ -->
+<header>
+  <div class="header-inner">
+    <a class="logo" href="#">
+      <div class="logo-badge">🎵</div>
+      <div>
+        <div class="logo-text">Chronos</div>
+        <span class="logo-tagline">Time Series Manager</span>
+      </div>
+    </a>
+
+    <nav class="nav-actions">
+      <button class="btn btn-ghost" onclick="openModal('groups-modal')">Groups</button>
+      <button class="btn btn-primary" onclick="openModal('new-series-modal')">+ New Series</button>
+      <button class="btn btn-icon" title="More options" onclick="openModal('transfer-modal')">⋮</button>
+    </nav>
+  </div>
+</header>
+
+<!-- ══════ FILTER STRIP ══════ -->
+<div style="background: rgba(253,246,227,0.9); border-bottom: 1px solid rgba(139,125,92,0.2);">
+  <div class="filter-strip">
+    <span class="filter-label">Filter</span>
+    <div class="filter-tags">
+      <span class="tag tag-indigo">Finances</span>
+      <span class="tag tag-indigo">group1</span>
+      <span class="tag tag-indigo">group11</span>
+      <span class="tag tag-indigo">Habits</span>
+      <span class="tag tag-indigo">Health</span>
+      <span class="tag tag-indigo">money</span>
+      <span class="tag tag-rose">sports</span>
+      <span class="tag tag-teal">srt</span>
+      <span class="tag tag-indigo">Well-being</span>
+      <span class="tag tag-indigo">Work</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ MAIN CONTENT ══════ -->
+<main>
+  <div class="page-heading">
+    <h2>Your Series</h2>
+    <span class="series-count">5 groups · 16 series</span>
+  </div>
+
+  <div class="vinyl-divider"><span>♩ ♪ ♫ ♬</span></div>
+
+  <div class="masonry">
+
+    <!-- GROUP: group11 -->
+    <div class="card card-indigo">
+      <div class="card-header">
+        <div class="group-dot" style="background:#6366f1;"></div>
+        <span class="card-header-title">group11</span>
+      </div>
+
+      <div class="series-row">
+        <div class="series-info">
+          <div class="series-name">serie2</div>
+          <div class="series-stat">
+            <span class="stat-value">7</span>
+            <span class="stat-label">Last</span>
+          </div>
+        </div>
+        <button class="quick-btn" title="Add +1">+1</button>
+      </div>
+
+      <div class="series-row">
+        <div class="series-info">
+          <div class="series-name">tim</div>
+          <div class="series-stat">
+            <span class="stat-value">23s</span>
+            <span class="stat-label">Last</span>
+          </div>
+        </div>
+        <button class="quick-btn" title="Start timer">▶</button>
+      </div>
+
+      <div class="series-row">
+        <div class="series-info">
+          <div class="series-name">G1</div>
+          <div class="no-data">No data yet</div>
+        </div>
+        <button class="quick-btn" title="Add entry">+</button>
+      </div>
+
+      <div class="series-row">
+        <div class="series-info">
+          <div class="series-name">timeSer</div>
+          <div class="series-stat">
+            <span class="stat-value">18h 53m</span>
+            <span class="stat-label">Last</span>
+          </div>
+        </div>
+        <button class="quick-btn" title="Add duration">🕐</button>
+      </div>
+    </div>
+
+    <!-- GROUP: Habits -->
+    <div class="card card-indigo">
+      <div class="card-header">
+        <div class="group-dot" style="background:#6366f1;"></div>
+        <span class="card-header-title">Habits</span>
+      </div>
+
+      <div class="series-row">
+        <div class="series-info">
+          <div class="series-name">Approach</div>
+          <div class="series-stat">
+            <span class="stat-value">2.66</span>
+            <span class="stat-label">Avg</span>
+          </div>
+        </div>
+        <button class="quick-btn">+</button>
+      </div>
+
+      <div class="series-row">
+        <div class="series-info">
+          <div class="series-name">Talk</div>
+          <div class="series-stat">
+            <span class="stat-value">2</span>
+            <span class="stat-label">Mean</span>
+          </div>
+        </div>
+        <button class="quick-btn">+</button>
+      </div>
+
+      <div class="series-row">
+        <div class="series-info">
+          <div class="series-name">Find</div>
+          <div class="series-stat">
+            <span class="stat-value">5.1</span>
+            <span class="stat-label">Mean</span>
+          </div>
+        </div>
+        <button class="quick-btn">+</button>
+      </div>
+    </div>
+
+    <!-- GROUP: money -->
+    <div class="card card-indigo">
+      <div class="card-header">
+        <div class="group-dot" style="background:#6366f1;"></div>
+        <span class="card-header-title">money</span>
+      </div>
+
+      <div class="series-row">
+        <div class="series-info">
+          <div class="series-name">Pesos</div>
+          <div class="series-stat">
+            <span class="stat-value">127.12</span>
+            <span class="stat-label">Avg</span>
+          </div>
+        </div>
+        <button class="quick-btn">+</button>
+      </div>
+
+      <div class="series-row">
+        <div class="series-info">
+          <div class="series-name">DolarEq</div>
+          <div class="no-data">No data yet</div>
+        </div>
+        <button class="quick-btn">+</button>
+      </div>
+
+      <div class="series-row">
+        <div class="series-info">
+          <div class="series-name">DolarSum</div>
+          <div class="series-stat">
+            <span class="stat-value">23.91</span>
+            <span class="stat-label">Mean</span>
+          </div>
+        </div>
+        <button class="quick-btn">+</button>
+      </div>
+
+      <div class="series-row">
+        <div class="series-info">
+          <div class="series-name">Dolares</div>
+          <div class="series-stat">
+            <span class="stat-value">21.16</span>
+            <span class="stat-label">Mean</span>
+          </div>
+        </div>
+        <button class="quick-btn">+</button>
+      </div>
+    </div>
+
+    <!-- GROUP: sports -->
+    <div class="card card-rose">
+      <div class="card-header">
+        <div class="group-dot" style="background:#f43f5e;"></div>
+        <span class="card-header-title">sports</span>
+      </div>
+
+      <div class="series-row">
+        <div class="series-info">
+          <div class="series-name">sportserie</div>
+          <div class="no-data">No data yet</div>
+        </div>
+        <button class="quick-btn">+</button>
+      </div>
+    </div>
+
+    <!-- GROUP: Well-being -->
+    <div class="card card-indigo">
+      <div class="card-header">
+        <div class="group-dot" style="background:#6366f1;"></div>
+        <span class="card-header-title">Well-being</span>
+      </div>
+
+      <div class="series-row">
+        <div class="series-info">
+          <div class="series-name">WakeUp</div>
+          <div class="series-stat">
+            <span class="stat-value">10.25</span>
+            <span class="stat-label">Mean</span>
+          </div>
+        </div>
+        <button class="quick-btn">+</button>
+      </div>
+
+      <div class="series-row">
+        <div class="series-info">
+          <div class="series-name">GoToBed</div>
+          <div class="series-stat">
+            <span class="stat-value">1.7</span>
+            <span class="stat-label">Mean</span>
+          </div>
+        </div>
+        <button class="quick-btn">+</button>
+      </div>
+
+      <div class="series-row">
+        <div class="series-info">
+          <div class="series-name">Phone</div>
+          <div class="series-stat">
+            <span class="stat-value">4.62</span>
+            <span class="stat-label">Mean</span>
+          </div>
+        </div>
+        <button class="quick-btn">+</button>
+      </div>
+    </div>
+
+  </div><!-- /masonry -->
+</main>
+
+<!-- ══════ TOAST ══════ -->
+<div class="toast" id="toast" style="display:none;">
+  <span id="toast-msg">Entry saved!</span>
+  <button class="toast-x" onclick="document.getElementById('toast').style.display='none'">×</button>
+</div>
+
+
+<!-- ══════ MODAL: New Series ══════ -->
+<div class="modal-backdrop" id="new-series-modal" onclick="closeOnBackdrop(event, 'new-series-modal')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Create New Series</span>
+      <button class="modal-close" onclick="closeModal('new-series-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-group">
+        <label class="field-label">Name</label>
+        <input class="field-input" type="text" placeholder="Series name">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Type</label>
+        <select class="field-input">
+          <option>Number</option>
+          <option>Time</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Group</label>
+        <select class="field-input">
+          <option value=""></option>
+          <option>Finances</option>
+          <option>group1</option>
+          <option>group11</option>
+          <option>Habits</option>
+          <option>Health</option>
+          <option>money</option>
+          <option>sports</option>
+          <option>srt</option>
+          <option>Well-being</option>
+          <option>Work</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('new-series-modal')">Cancel</button>
+      <button class="btn-save" onclick="showToast('Series created!'); closeModal('new-series-modal')">Save Series</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ MODAL: Groups ══════ -->
+<div class="modal-backdrop" id="groups-modal" onclick="closeOnBackdrop(event, 'groups-modal')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Manage Groups</span>
+      <button class="modal-close" onclick="closeModal('groups-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:0.75rem; text-align:right;">
+        <button class="btn-save" style="font-size:0.65rem; padding:0.35rem 0.8rem;">+ Add New</button>
+      </div>
+      <div class="group-item">
+        <div class="group-name-row"><div class="group-dot" style="background:#6366f1;"></div>Finances</div>
+        <button class="btn-danger">🗑</button>
+      </div>
+      <div class="group-item">
+        <div class="group-name-row"><div class="group-dot" style="background:#6366f1;"></div>group1</div>
+        <button class="btn-danger">🗑</button>
+      </div>
+      <div class="group-item">
+        <div class="group-name-row"><div class="group-dot" style="background:#6366f1;"></div>group11</div>
+        <button class="btn-danger">🗑</button>
+      </div>
+      <div class="group-item">
+        <div class="group-name-row"><div class="group-dot" style="background:#6366f1;"></div>Habits</div>
+        <button class="btn-danger">🗑</button>
+      </div>
+      <div class="group-item">
+        <div class="group-name-row"><div class="group-dot" style="background:#6366f1;"></div>Health</div>
+        <button class="btn-danger">🗑</button>
+      </div>
+      <div class="group-item">
+        <div class="group-name-row"><div class="group-dot" style="background:#6366f1;"></div>money</div>
+        <button class="btn-danger">🗑</button>
+      </div>
+      <div class="group-item">
+        <div class="group-name-row"><div class="group-dot" style="background:#f43f5e;"></div>sports</div>
+        <button class="btn-danger">🗑</button>
+      </div>
+      <div class="group-item">
+        <div class="group-name-row"><div class="group-dot" style="background:#14b8a6;"></div>srt</div>
+        <button class="btn-danger">🗑</button>
+      </div>
+      <div class="group-item">
+        <div class="group-name-row"><div class="group-dot" style="background:#6366f1;"></div>Well-being</div>
+        <button class="btn-danger">🗑</button>
+      </div>
+      <div class="group-item">
+        <div class="group-name-row"><div class="group-dot" style="background:#6366f1;"></div>Work</div>
+        <button class="btn-danger">🗑</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('groups-modal')">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ MODAL: Transfer / More ══════ -->
+<div class="modal-backdrop" id="transfer-modal" onclick="closeOnBackdrop(event, 'transfer-modal')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Transfer Data</span>
+      <button class="modal-close" onclick="closeModal('transfer-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex; flex-direction:column; gap:0.5rem;">
+        <button class="btn-save" style="justify-content:flex-start; gap:0.5rem;" onclick="showToast('Exported JSON!'); closeModal('transfer-modal')">⬇ Export JSON</button>
+        <button class="btn-save" style="justify-content:flex-start; gap:0.5rem;" onclick="showToast('Imported JSON!'); closeModal('transfer-modal')">⬆ Import JSON</button>
+        <button class="btn-save" style="justify-content:flex-start; gap:0.5rem; background:var(--teal); border-color:var(--teal);" onclick="showToast('Exported CSV!'); closeModal('transfer-modal')">⬇ Export CSV</button>
+        <button class="btn-save" style="justify-content:flex-start; gap:0.5rem; background:var(--teal); border-color:var(--teal);" onclick="showToast('Imported CSV!'); closeModal('transfer-modal')">⬆ Import CSV</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('transfer-modal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openModal(id) {
+    document.getElementById(id).classList.add('open');
+  }
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+  }
+  function closeOnBackdrop(e, id) {
+    if (e.target === document.getElementById(id)) closeModal(id);
+  }
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    document.getElementById('toast-msg').textContent = msg;
+    t.style.display = 'flex';
+    setTimeout(() => { t.style.display = 'none'; }, 3000);
+  }
+
+  // ESC key closes modals
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.modal-backdrop.open').forEach(m => m.classList.remove('open'));
+    }
+  });
+</script>
+
+</body>
+</html>
