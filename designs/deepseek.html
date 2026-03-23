@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Chronos — Timeless Analytics</title>
+  <!-- Google Fonts + modern system stack -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+  <!-- Font Awesome 6 (free icons) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: radial-gradient(circle at 10% 20%, rgba(15, 25, 35, 1) 0%, rgba(5, 12, 20, 1) 100%);
+      min-height: 100vh;
+      color: #eef2ff;
+      line-height: 1.4;
+    }
+
+    /* modern glassmorphism + smooth scroll */
+    .app-container {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 1.5rem 2rem 3rem;
+    }
+
+    /* header – sleek blur glass */
+    .glass-header {
+      backdrop-filter: blur(16px);
+      background: rgba(18, 25, 40, 0.65);
+      border-radius: 2rem;
+      border: 1px solid rgba(99, 102, 241, 0.25);
+      padding: 0.8rem 2rem;
+      margin-bottom: 2.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .logo-icon {
+      background: linear-gradient(135deg, #6366f1, #a855f7);
+      width: 44px;
+      height: 44px;
+      border-radius: 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      box-shadow: 0 8px 14px -6px rgba(99, 102, 241, 0.4);
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(to right, #f0f4ff, #cbd5ff);
+      background-clip: text;
+      -webkit-background-clip: text;
+      color: transparent;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 0.6rem 1.2rem;
+      border-radius: 2rem;
+      font-weight: 500;
+      font-size: 0.9rem;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      backdrop-filter: blur(4px);
+    }
+
+    .btn-primary {
+      background: linear-gradient(105deg, #4f46e5, #7c3aed);
+      color: white;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      background: linear-gradient(105deg, #6366f1, #8b5cf6);
+      box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.5);
+    }
+
+    .btn-outline {
+      border: 1px solid rgba(139, 148, 184, 0.5);
+      background: rgba(20, 30, 45, 0.6);
+      color: #e2e8f0;
+    }
+
+    .btn-outline:hover {
+      background: rgba(99, 102, 241, 0.2);
+      border-color: #818cf8;
+      color: white;
+    }
+
+    .btn-icon {
+      background: rgba(30, 41, 59, 0.7);
+      border-radius: 2rem;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      transition: 0.2s;
+      cursor: pointer;
+      border: 1px solid rgba(71, 85, 105, 0.6);
+    }
+
+    .btn-icon:hover {
+      background: #4f46e5;
+      border-color: #a78bfa;
+    }
+
+    /* filter bar */
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 1.2rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+      background: rgba(15, 23, 42, 0.5);
+      backdrop-filter: blur(8px);
+      border-radius: 2rem;
+      padding: 0.6rem 1.5rem;
+      border: 1px solid rgba(71, 85, 105, 0.4);
+    }
+
+    .filter-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #94a3b8;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+    }
+
+    .chip {
+      background: rgba(30, 41, 59, 0.7);
+      padding: 0.3rem 1rem;
+      border-radius: 2rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      backdrop-filter: blur(2px);
+      transition: 0.15s;
+      border: 1px solid rgba(71, 85, 105, 0.5);
+      cursor: pointer;
+      color: #cbd5e6;
+    }
+
+    .chip.active {
+      background: #4f46e5;
+      color: white;
+      border-color: #818cf8;
+      box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+    }
+
+    /* masonry grid — premium card design */
+    .masonry-grid {
+      column-count: 1;
+      column-gap: 1.8rem;
+    }
+
+    @media (min-width: 640px) {
+      .masonry-grid { column-count: 2; }
+    }
+    @media (min-width: 1024px) {
+      .masonry-grid { column-count: 3; }
+    }
+    @media (min-width: 1400px) {
+      .masonry-grid { column-count: 4; }
+    }
+
+    .group-card {
+      break-inside: avoid;
+      margin-bottom: 1.8rem;
+      border-radius: 1.8rem;
+      background: rgba(12, 20, 30, 0.6);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(71, 85, 105, 0.35);
+      transition: all 0.25s cubic-bezier(0.2, 0, 0, 1);
+      overflow: hidden;
+    }
+
+    .group-card:hover {
+      transform: translateY(-5px);
+      border-color: rgba(129, 140, 248, 0.6);
+      box-shadow: 0 20px 30px -15px rgba(0, 0, 0, 0.5);
+      background: rgba(18, 28, 42, 0.8);
+    }
+
+    .group-header {
+      padding: 1rem 1.2rem 0.6rem;
+      border-bottom: 1px solid rgba(71, 85, 105, 0.4);
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+    }
+
+    .group-title {
+      font-weight: 700;
+      font-size: 1rem;
+      letter-spacing: -0.2px;
+      background: linear-gradient(120deg, #e0e7ff, #c7d2fe);
+      background-clip: text;
+      -webkit-background-clip: text;
+      color: transparent;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .group-badge {
+      width: 10px;
+      height: 10px;
+      border-radius: 10px;
+      display: inline-block;
+      background: #6366f1;
+      box-shadow: 0 0 6px currentColor;
+    }
+
+    .series-list {
+      padding: 0.8rem 0.4rem 0.8rem 0;
+    }
+
+    .series-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1rem;
+      margin: 0 0.6rem;
+      border-radius: 1.2rem;
+      transition: all 0.15s;
+      cursor: pointer;
+    }
+
+    .series-item:hover {
+      background: rgba(99, 102, 241, 0.15);
+      transform: scale(0.99);
+    }
+
+    .series-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .series-name {
+      font-weight: 600;
+      font-size: 0.95rem;
+      letter-spacing: -0.2px;
+      color: #f1f5f9;
+    }
+
+    .series-stats {
+      display: flex;
+      align-items: baseline;
+      gap: 0.4rem;
+      font-size: 0.7rem;
+      font-weight: 500;
+    }
+
+    .stat-value {
+      font-size: 0.85rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #a78bfa, #818cf8);
+      background-clip: text;
+      -webkit-background-clip: text;
+      color: transparent;
+    }
+
+    .stat-label {
+      color: #7e8aa2;
+      text-transform: uppercase;
+      font-size: 0.6rem;
+      letter-spacing: 0.5px;
+    }
+
+    .action-icon {
+      background: rgba(0, 0, 0, 0.4);
+      width: 34px;
+      height: 34px;
+      border-radius: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      transition: 0.2s;
+      color: #b9c2da;
+    }
+
+    .action-icon:hover {
+      background: #4f46e5;
+      color: white;
+      transform: scale(1.05);
+    }
+
+    .empty-series {
+      font-size: 0.75rem;
+      padding: 0.6rem 1rem;
+      color: #6c7a91;
+      font-style: italic;
+    }
+
+    /* floating add button */
+    .floating-add {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: linear-gradient(145deg, #4f46e5, #6d28d9);
+      width: 56px;
+      height: 56px;
+      border-radius: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      box-shadow: 0 10px 20px rgba(79, 70, 229, 0.4);
+      cursor: pointer;
+      transition: 0.2s;
+      z-index: 20;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .floating-add:hover {
+      transform: scale(1.07);
+      background: linear-gradient(145deg, #6366f1, #7c3aed);
+    }
+
+    /* mock modals (visual only, no functionality) */
+    .mock-dialog {
+      display: none;
+    }
+
+    /* footer micro */
+    .footer-note {
+      text-align: center;
+      margin-top: 3rem;
+      font-size: 0.7rem;
+      color: #4a5a7a;
+      border-top: 1px solid rgba(71, 85, 105, 0.3);
+      padding-top: 2rem;
+    }
+
+    /* animations */
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .group-card {
+      animation: fadeSlideUp 0.4s ease backwards;
+      animation-delay: calc(var(--order) * 0.03s);
+    }
+  </style>
+</head>
+<body>
+<div class="app-container">
+  <!-- Glass header -->
+  <div class="glass-header">
+    <div class="logo-area">
+      <div class="logo-icon">
+        <i class="fas fa-chart-line" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));"></i>
+      </div>
+      <h1>Chronos</h1>
+      <span style="font-size: 0.7rem; background: rgba(79,70,229,0.3); padding: 0.2rem 0.6rem; border-radius: 2rem; margin-left: 0.5rem;">time intelligence</span>
+    </div>
+    <div class="action-buttons">
+      <button class="btn btn-outline"><i class="fas fa-layer-group"></i> Groups</button>
+      <button class="btn btn-primary"><i class="fas fa-plus-circle"></i> New Series</button>
+      <div class="btn-icon"><i class="fas fa-ellipsis-h"></i></div>
+    </div>
+  </div>
+
+  <!-- Filter row (aesthetic) -->
+  <div class="filter-bar">
+    <span class="filter-label"><i class="fas fa-sliders-h" style="margin-right: 6px;"></i> FILTERS</span>
+    <div class="chips">
+      <span class="chip active">All series</span>
+      <span class="chip">Finances</span>
+      <span class="chip">Habits</span>
+      <span class="chip">Well-being</span>
+      <span class="chip">Sports</span>
+      <span class="chip">Work</span>
+    </div>
+    <div style="flex:1"></div>
+    <i class="fas fa-search" style="color:#6b7b9a; font-size: 0.9rem;"></i>
+  </div>
+
+  <!-- MASONRY LAYOUT - redesigned groups & series (purely visual) -->
+  <div class="masonry-grid">
+    <!-- Group: Finances (modern stats) -->
+    <div class="group-card" style="--order:1">
+      <div class="group-header">
+        <div class="group-title"><span class="group-badge" style="background: #4f46e5;"></span> Finances</div>
+        <i class="fas fa-chevron-down" style="color:#6c7e9e; font-size: 0.8rem;"></i>
+      </div>
+      <div class="series-list">
+        <div class="series-item">
+          <div class="series-info">
+            <span class="series-name">💰 Pesos ARS</span>
+            <div class="series-stats"><span class="stat-value">$12,450.30</span><span class="stat-label">last avg</span></div>
+          </div>
+          <div class="action-icon"><i class="fas fa-plus"></i></div>
+        </div>
+        <div class="series-item">
+          <div class="series-info">
+            <span class="series-name">💵 Dolar MEP</span>
+            <div class="series-stats"><span class="stat-value">1,215.20</span><span class="stat-label">current</span></div>
+          </div>
+          <div class="action-icon"><i class="fas fa-chart-simple"></i></div>
+        </div>
+        <div class="series-item">
+          <div class="series-info">
+            <span class="series-name">📊 Crypto Index</span>
+            <div class="series-stats"><span class="stat-value">+18.4%</span><span class="stat-label">trend</span></div>
+          </div>
+          <div class="action-icon"><i class="fas fa-plus"></i></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Group: Habits (glow track) -->
+    <div class="group-card" style="--order:2">
+      <div class="group-header">
+        <div class="group-title"><span class="group-badge" style="background: #10b981;"></span> Habits</div>
+        <i class="fas fa-ellipsis-h" style="color:#6c7e9e;"></i>
+      </div>
+      <div class="series-list">
+        <div class="series-item">
+          <div class="series-info">
+            <span class="series-name">🧠 Meditation (min)</span>
+            <div class="series-stats"><span class="stat-value">24</span><span class="stat-label">daily avg</span></div>
+          </div>
+          <div class="action-icon"><i class="fas fa-plus"></i></div>
+        </div>
+        <div class="series-item">
+          <div class="series-info">
+            <span class="series-name">📖 Reading pages</span>
+            <div class="series-stats"><span class="stat-value">32</span><span class="stat-label">last entry</span></div>
+          </div>
+          <div class="action-icon"><i class="fas fa-pen"></i></div>
+        </div>
+        <div class="series-item">
+          <div class="series-info">
+            <span class="series-name">💧 Water intake (L)</span>
+            <div class="series-stats"><span class="stat-value">2.4 L</span><span class="stat-label">mean</span></div>
+          </div>
+          <div class="action-icon"><i class="fas fa-plus"></i></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Group: Well-being (zen style) -->
+    <div class="group-card" style="--order:3">
+      <div class="group-header">
+        <div class="group-title"><span class="group-badge" style="background: #f59e0b;"></span> Well-being</div>
+      </div>
+      <div class="series-list">
+        <div class="series-item">
+          <div class="series-info">
+            <span class="series-name">🌙 Sleep duration</span>
+            <div class="series-stats"><span class="stat-value">7h 42m</span><span class="stat-label">avg</span></div>
+          </div>
+          <div class="action-icon"><i class="fas fa-moon"></i></div>
+        </div>
+        <div class="series-item">
+          <div class="series-info">
+            <span class="series-name">⚡ Energy level</span>
+            <div class="series-stats"><span class="stat-value">7.8/10</span><span class="stat-label">weekly</span></div>
+          </div>
+          <div class="action-icon"><i class="fas fa-bolt"></i></div>
+        </div>
+        <div class="series-item">
+          <div class="series-info">
+            <span class="series-name">😌 Mood score</span>
+            <div class="series-stats"><span class="stat-value">8.2</span><span class="stat-label">mean</span></div>
+          </div>
+          <div class="action-icon"><i class="fas fa-face-smile"></i></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Group: Sports (dynamic) -->
+    <div class="group-card" style="--order:4">
+      <div class="group-header">
+        <div class="group-title"><span class="group-badge" style="background: #ef4444;"></span> Sports</div>
+      </div>
+      <div class="series-list">
+        <div class="series-item">
+          <div class="series-info">
+            <span class="series-name">🏃 Running km</span>
+            <div class="series-stats"><span class="stat-value">5.2 km</span><span class="stat-label">last run</span></div>
+          </div>
+          <div class="action-icon"><i class="fas fa-stopwatch"></i></div>
+        </div>
+        <div class="series-item">
+          <div class="series-info">
+            <span class="series-name">🏋️ Gym sessions</span>
+            <div class="series-stats"><span class="stat-value">12</span><span class="stat-label">this month</span></div>
+          </div>
+          <div class="action-icon"><i class="fas fa-dumbbell"></i></div>
+        </div>
+        <div class="series-item">
+          <div class="series-info">
+            <span class="series-name">🧘 Stretching (min)</span>
+            <div class="series-stats"><span class="stat-value">18 min</span><span class="stat-label">avg</span></div>
+          </div>
+          <div class="action-icon"><i class="fas fa-plus"></i></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Group: Work (productivity) -->
+    <div class="group-card" style="--order:5">
+      <div class="group-header">
+        <div class="group-title"><span class="group-badge" style="background: #3b82f6;"></span> Work & Focus</div>
+      </div>
+      <div class="series-list">
+        <div class="series-item">
+          <div class="series-info">
+            <span class="series-name">⌛ Deep work (hours)</span>
+            <div class="series-stats"><span class="stat-value">3.2h</span><span class="stat-label">daily avg</span></div>
+          </div>
+          <div class="action-icon"><i class="fas fa-hourglass-half"></i></div>
+        </div>
+        <div class="series-item">
+          <div class="series-info">
+            <span class="series-name">✅ Tasks completed</span>
+            <div class="series-stats"><span class="stat-value">14</span><span class="stat-label">this week</span></div>
+          </div>
+          <div class="action-icon"><i class="fas fa-check-double"></i></div>
+        </div>
+        <div class="series-item">
+          <div class="series-info">
+            <span class="series-name">🎯 Focus score</span>
+            <div class="series-stats"><span class="stat-value">87%</span><span class="stat-label">efficiency</span></div>
+          </div>
+          <div class="action-icon"><i class="fas fa-chart-line"></i></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Group: Experiments / time tracking -->
+    <div class="group-card" style="--order:6">
+      <div class="group-header">
+        <div class="group-title"><span class="group-badge" style="background: #a855f7;"></span> Time trials</div>
+      </div>
+      <div class="series-list">
+        <div class="series-item">
+          <div class="series-info">
+            <span class="series-name">⏱️ Pomodoro cycles</span>
+            <div class="series-stats"><span class="stat-value">6</span><span class="stat-label">today</span></div>
+          </div>
+          <div class="action-icon"><i class="fas fa-clock"></i></div>
+        </div>
+        <div class="series-item">
+          <div class="series-info">
+            <span class="series-name">🎧 Focus music sessions</span>
+            <div class="series-stats"><span class="stat-value">4</span><span class="stat-label">week avg</span></div>
+          </div>
+          <div class="action-icon"><i class="fas fa-headphones"></i></div>
+        </div>
+        <div class="series-item">
+          <div class="series-info">
+            <span class="series-name">📱 Screen time (hrs)</span>
+            <div class="series-stats"><span class="stat-value">2.8h</span><span class="stat-label">reduction</span></div>
+          </div>
+          <div class="action-icon"><i class="fas fa-mobile-alt"></i></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Group: Money & investments -->
+    <div class="group-card" style="--order:7">
+      <div class="group-header">
+        <div class="group-title"><span class="group-badge" style="background: #ec489a;"></span> Investments</div>
+      </div>
+      <div class="series-list">
+        <div class="series-item">
+          <div class="series-info">
+            <span class="series-name">📈 S&P 500 tracking</span>
+            <div class="series-stats"><span class="stat-value">+12.3%</span><span class="stat-label">YTD</span></div>
+          </div>
+          <div class="action-icon"><i class="fas fa-chart-line"></i></div>
+        </div>
+        <div class="series-item">
+          <div class="series-info">
+            <span class="series-name">₿ BTC balance</span>
+            <div class="series-stats"><span class="stat-value">0.045 BTC</span><span class="stat-label">current</span></div>
+          </div>
+          <div class="action-icon"><i class="fab fa-bitcoin"></i></div>
+        </div>
+        <div class="empty-series"><i class="far fa-plus-square"></i> Add new asset series</div>
+      </div>
+    </div>
+
+    <!-- Group: Creative metrics -->
+    <div class="group-card" style="--order:8">
+      <div class="group-header">
+        <div class="group-title"><span class="group-badge" style="background: #14b8a6;"></span> Creative pulse</div>
+      </div>
+      <div class="series-list">
+        <div class="series-item">
+          <div class="series-info">
+            <span class="series-name">✍️ Words written</span>
+            <div class="series-stats"><span class="stat-value">1,420</span><span class="stat-label">today</span></div>
+          </div>
+          <div class="action-icon"><i class="fas fa-feather-alt"></i></div>
+        </div>
+        <div class="series-item">
+          <div class="series-info">
+            <span class="series-name">🎨 Creative hours</span>
+            <div class="series-stats"><span class="stat-value">1.8h</span><span class="stat-label">streak</span></div>
+          </div>
+          <div class="action-icon"><i class="fas fa-palette"></i></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- elegant floating action button (visual redesign) -->
+  <div class="floating-add">
+    <i class="fas fa-plus"></i>
+  </div>
+
+  <div class="footer-note">
+    <i class="fas fa-chart-simple" style="margin-right: 6px;"></i> Chronos — redesigned with clarity • fluid time intelligence
+  </div>
+</div>
+
+<!-- subtle decorative gradient overlay (optional) -->
+<div style="position: fixed; bottom: 0; left: 0; width: 100%; height: 200px; pointer-events: none; background: radial-gradient(ellipse at 50% 100%, rgba(79,70,229,0.08), transparent); z-index: 0;"></div>
+
+<!-- visual only: interactive chip "active" toggling for pure style (no state management) -->
+<script>
+  (function() {
+    // just a tiny style enhancer: chips can be clicked to simulate filter (visual only)
+    const chips = document.querySelectorAll('.chip');
+    chips.forEach(chip => {
+      chip.addEventListener('click', function(e) {
+        chips.forEach(c => c.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+    // hover micro-interactions on series items
+    const seriesItems = document.querySelectorAll('.series-item');
+    seriesItems.forEach(item => {
+      item.addEventListener('click', () => {
+        // visual ripple effect (just for delight)
+        item.style.transform = 'scale(0.98)';
+        setTimeout(() => { item.style.transform = ''; }, 120);
+      });
+    });
+    // floating add button mini pulse effect
+    const fab = document.querySelector('.floating-add');
+    if(fab) {
+      fab.addEventListener('click', () => {
+        fab.style.transform = 'scale(1.1)';
+        setTimeout(() => { fab.style.transform = ''; }, 150);
+      });
+    }
+    // Group manager dummy hover (no actual modals, only aesthetic)
+    const groupBtn = document.querySelector('.btn-outline');
+    if(groupBtn) groupBtn.addEventListener('click', () => {});
+    const newSeriesBtn = document.querySelector('.btn-primary');
+    if(newSeriesBtn) newSeriesBtn.addEventListener('click', () => {});
+  })();
+</script>
+</body>
+</html>

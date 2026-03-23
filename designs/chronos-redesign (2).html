@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chronos — Time Series Manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:              #0e0e0f;
+      --surface:         #161618;
+      --surface2:        #1e1e21;
+      --surface3:        #252529;
+      --border:          rgba(255,255,255,0.07);
+      --border2:         rgba(255,255,255,0.12);
+      --text:            #e8e6e1;
+      --muted:           #6b6966;
+      --quiet:           #9b9794;
+      --indigo:          #7c6ef5;
+      --indigo-dim:      rgba(124,110,245,0.11);
+      --indigo-border:   rgba(124,110,245,0.30);
+      --rose:            #f04e6b;
+      --rose-dim:        rgba(240,78,107,0.09);
+      --rose-border:     rgba(240,78,107,0.28);
+      --teal:            #3ec6b8;
+      --teal-dim:        rgba(62,198,184,0.09);
+      --teal-border:     rgba(62,198,184,0.28);
+      --amber:           #e8a14a;
+      --radius:          10px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body { height: 100%; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 300;
+      overflow-x: hidden;
+    }
+
+    /* subtle noise grain */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+      opacity: 0.025;
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* ── HEADER ──────────────────────────────── */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 22px;
+      background: rgba(14,14,15,0.90);
+      backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+    }
+
+    .logo {
+      width: 28px; height: 28px;
+      background: var(--indigo);
+      border-radius: 7px;
+      display: grid; place-items: center;
+      flex-shrink: 0;
+    }
+    .logo svg { width: 14px; height: 14px; }
+
+    .app-name {
+      font-family: 'DM Serif Display', serif;
+      font-size: 17px;
+      letter-spacing: -0.01em;
+    }
+
+    .hdivider { width: 1px; height: 16px; background: var(--border2); }
+
+    .app-sub {
+      font-family: 'DM Mono', monospace;
+      font-size: 9.5px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .header-right { display: flex; align-items: center; gap: 7px; }
+
+    /* ── BUTTONS ──────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: 7px;
+      border: 1px solid var(--border2);
+      background: var(--surface2);
+      color: var(--quiet);
+      cursor: pointer;
+      transition: background 0.12s, border-color 0.12s, color 0.12s;
+      white-space: nowrap;
+      line-height: 1;
+    }
+    .btn:hover { background: var(--surface3); color: var(--text); }
+
+    .btn-primary {
+      background: var(--indigo);
+      border-color: var(--indigo);
+      color: #fff;
+    }
+    .btn-primary:hover { background: #9083f8; border-color: #9083f8; color: #fff; }
+
+    .btn-ghost {
+      background: transparent;
+      border-color: transparent;
+      padding: 6px 8px;
+    }
+    .btn-ghost:hover { background: var(--surface2); border-color: var(--border); }
+
+    .btn-sm { padding: 4px 9px; font-size: 11px; }
+
+    .btn-danger {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      background: transparent;
+      border: 1px solid rgba(240,78,107,0.18);
+      color: rgba(240,78,107,0.55);
+      padding: 4px 8px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.12s ease;
+    }
+    .btn-danger:hover {
+      background: var(--rose-dim);
+      border-color: var(--rose-border);
+      color: var(--rose);
+    }
+
+    /* ── TOOLBAR ──────────────────────────────── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 9px 22px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .filter-lbl {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .tags { display: flex; flex-wrap: wrap; gap: 5px; }
+
+    .tag {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.04em;
+      padding: 3px 9px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.11s ease;
+      user-select: none;
+    }
+    .tag:hover { border-color: var(--indigo-border); color: var(--indigo); }
+    .tag.on { border-color: var(--indigo-border); color: var(--indigo); background: var(--indigo-dim); }
+
+    /* ── MASONRY GRID ─────────────────────────── */
+    main {
+      padding: 18px 22px 48px;
+      columns: 1;
+      column-gap: 14px;
+    }
+    @media (min-width: 480px)  { main { columns: 2; } }
+    @media (min-width: 768px)  { main { columns: 3; } }
+    @media (min-width: 1100px) { main { columns: 4; } }
+
+    /* ── GROUP CARD ───────────────────────────── */
+    .card {
+      break-inside: avoid;
+      margin-bottom: 14px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      overflow: hidden;
+      transition: box-shadow 0.18s ease, border-color 0.18s ease;
+      animation: rise 0.38s ease both;
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(7px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .card:nth-child(1) { animation-delay: 0.03s; }
+    .card:nth-child(2) { animation-delay: 0.07s; }
+    .card:nth-child(3) { animation-delay: 0.11s; }
+    .card:nth-child(4) { animation-delay: 0.15s; }
+    .card:nth-child(5) { animation-delay: 0.19s; }
+
+    .card[data-c="indigo"] { border-color: var(--indigo-border); }
+    .card[data-c="indigo"]:hover {
+      box-shadow: 0 0 0 1px var(--indigo-border), 0 10px 30px rgba(124,110,245,0.10);
+    }
+    .card[data-c="rose"] { border-color: var(--rose-border); }
+    .card[data-c="rose"]:hover {
+      box-shadow: 0 0 0 1px var(--rose-border), 0 10px 30px rgba(240,78,107,0.09);
+    }
+    .card[data-c="teal"] { border-color: var(--teal-border); }
+    .card[data-c="teal"]:hover {
+      box-shadow: 0 0 0 1px var(--teal-border), 0 10px 30px rgba(62,198,184,0.09);
+    }
+
+    .card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 13px 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .grp-name {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      font-weight: 500;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+    [data-c="indigo"] .grp-name { color: var(--indigo); }
+    [data-c="rose"]   .grp-name { color: var(--rose); }
+    [data-c="teal"]   .grp-name { color: var(--teal); }
+
+    .grp-count {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      color: var(--muted);
+    }
+
+    /* series row */
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 13px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.11s ease;
+    }
+    .row:last-child { border-bottom: none; }
+    .row:hover { background: var(--surface2); }
+
+    .row-info { min-width: 0; flex: 1; }
+
+    .row-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.3;
+      margin-bottom: 1px;
+    }
+
+    .row-meta {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+    }
+
+    .row-val {
+      font-family: 'DM Mono', monospace;
+      font-size: 11.5px;
+      font-weight: 500;
+    }
+    [data-c="indigo"] .row-val { color: var(--indigo); }
+    [data-c="rose"]   .row-val { color: var(--rose); }
+    [data-c="teal"]   .row-val { color: var(--teal); }
+
+    .row-stat {
+      font-family: 'DM Mono', monospace;
+      font-size: 8px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .row-empty {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      font-style: italic;
+      color: var(--muted);
+      opacity: 0.7;
+    }
+
+    .row-btn {
+      flex-shrink: 0;
+      margin-left: 8px;
+      width: 27px; height: 27px;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      font-family: 'DM Mono', monospace;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      transition: all 0.11s ease;
+    }
+    .row-btn:hover {
+      background: var(--indigo-dim);
+      border-color: var(--indigo-border);
+      color: var(--indigo);
+    }
+    [data-c="rose"] .row-btn:hover {
+      background: var(--rose-dim);
+      border-color: var(--rose-border);
+      color: var(--rose);
+    }
+
+    /* SVG icon shorthand */
+    .ic { width: 11px; height: 11px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* ── MODAL ────────────────────────────────── */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.72);
+      backdrop-filter: blur(5px);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.18s ease;
+    }
+    .overlay.open { opacity: 1; pointer-events: all; }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 14px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 28px 70px rgba(0,0,0,0.55);
+      transform: translateY(10px) scale(0.99);
+      transition: transform 0.2s ease;
+    }
+    .overlay.open .modal { transform: translateY(0) scale(1); }
+
+    .modal-hd {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 18px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .modal-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 16px;
+      font-style: italic;
+      color: var(--text);
+    }
+
+    .modal-x {
+      width: 24px; height: 24px;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--muted);
+      font-size: 14px;
+      cursor: pointer;
+      display: grid; place-items: center;
+      transition: all 0.11s;
+    }
+    .modal-x:hover { color: var(--text); border-color: var(--border2); }
+
+    .modal-bd {
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 13px;
+    }
+
+    .field { display: flex; flex-direction: column; gap: 5px; }
+
+    .field-lbl {
+      font-family: 'DM Mono', monospace;
+      font-size: 9.5px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .field-input, .field-sel {
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: 7px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      padding: 9px 11px;
+      outline: none;
+      transition: border-color 0.14s;
+      width: 100%;
+    }
+    .field-input:focus, .field-sel:focus { border-color: var(--indigo); }
+    .field-sel { appearance: none; cursor: pointer; }
+    .field-sel option { background: #1e1e21; }
+
+    .modal-ft {
+      display: flex;
+      justify-content: flex-end;
+      gap: 7px;
+      padding: 13px 18px 17px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* groups list */
+    .grp-rows { display: flex; flex-direction: column; gap: 3px; }
+    .grp-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 11px;
+      border-radius: 7px;
+      background: var(--surface2);
+    }
+    .grp-row-name {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text);
+    }
+    .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* toast */
+    .toast {
+      position: fixed;
+      bottom: 22px; right: 22px;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: 10px;
+      padding: 11px 15px;
+      font-size: 13px;
+      color: var(--text);
+      box-shadow: 0 8px 28px rgba(0,0,0,0.42);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 300;
+      animation: toast-in 0.22s ease;
+    }
+    @keyframes toast-in {
+      from { opacity:0; transform: translateY(6px); }
+      to   { opacity:1; transform: translateY(0); }
+    }
+    .toast-x { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; padding: 0; line-height: 1; }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-left">
+    <div class="logo">
+      <svg viewBox="0 0 14 14" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="1,10 4,5 7,8 10,3 13,6"/>
+      </svg>
+    </div>
+    <span class="app-name">Chronos</span>
+    <div class="hdivider"></div>
+    <span class="app-sub">Time Series</span>
+  </div>
+
+  <div class="header-right">
+    <button class="btn" onclick="open('groupsModal')">
+      <svg class="ic" viewBox="0 0 12 12"><circle cx="4" cy="6" r="2"/><circle cx="9" cy="6" r="2"/></svg>
+      Groups
+    </button>
+    <button class="btn btn-primary" onclick="open('newSeriesModal')">
+      <svg class="ic" viewBox="0 0 12 12"><line x1="6" y1="2" x2="6" y2="10"/><line x1="2" y1="6" x2="10" y2="6"/></svg>
+      New Series
+    </button>
+    <button class="btn btn-ghost" title="More">
+      <svg class="ic" viewBox="0 0 12 12"><circle cx="6" cy="2.5" r="0.9"/><circle cx="6" cy="6" r="0.9"/><circle cx="6" cy="9.5" r="0.9"/></svg>
+    </button>
+  </div>
+</header>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <span class="filter-lbl">Filter</span>
+  <div class="tags">
+    <span class="tag on">All</span>
+    <span class="tag">Finances</span>
+    <span class="tag">Habits</span>
+    <span class="tag">Health</span>
+    <span class="tag">money</span>
+    <span class="tag">sports</span>
+    <span class="tag">Well-being</span>
+    <span class="tag">Work</span>
+    <span class="tag">group11</span>
+    <span class="tag">srt</span>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<main>
+
+  <!-- group11 -->
+  <div class="card" data-c="indigo">
+    <div class="card-head">
+      <span class="grp-name">group11</span>
+      <span class="grp-count">4 series</span>
+    </div>
+    <div class="row">
+      <div class="row-info">
+        <div class="row-name">serie2</div>
+        <div class="row-meta"><span class="row-val">7</span><span class="row-stat">Last</span></div>
+      </div>
+      <button class="row-btn">+1</button>
+    </div>
+    <div class="row">
+      <div class="row-info">
+        <div class="row-name">tim</div>
+        <div class="row-meta"><span class="row-val">23s</span><span class="row-stat">Last</span></div>
+      </div>
+      <button class="row-btn">
+        <svg class="ic" viewBox="0 0 12 12"><polygon points="3,1.5 10.5,6 3,10.5"/></svg>
+      </button>
+    </div>
+    <div class="row">
+      <div class="row-info">
+        <div class="row-name">G1</div>
+        <div class="row-meta"><span class="row-empty">No data</span></div>
+      </div>
+      <button class="row-btn">
+        <svg class="ic" viewBox="0 0 12 12"><line x1="6" y1="2" x2="6" y2="10"/><line x1="2" y1="6" x2="10" y2="6"/></svg>
+      </button>
+    </div>
+    <div class="row">
+      <div class="row-info">
+        <div class="row-name">timeSer</div>
+        <div class="row-meta"><span class="row-val">18h 53m 25s</span><span class="row-stat">Last</span></div>
+      </div>
+      <button class="row-btn">
+        <svg class="ic" viewBox="0 0 12 12"><circle cx="6" cy="6.5" r="3.8"/><polyline points="6,4.5 6,6.5 7.5,7.5"/><line x1="4.5" y1="1.5" x2="7.5" y2="1.5"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Habits -->
+  <div class="card" data-c="indigo">
+    <div class="card-head">
+      <span class="grp-name">Habits</span>
+      <span class="grp-count">3 series</span>
+    </div>
+    <div class="row">
+      <div class="row-info">
+        <div class="row-name">Approach</div>
+        <div class="row-meta"><span class="row-val">2.66</span><span class="row-stat">Avg</span></div>
+      </div>
+      <button class="row-btn"><svg class="ic" viewBox="0 0 12 12"><line x1="6" y1="2" x2="6" y2="10"/><line x1="2" y1="6" x2="10" y2="6"/></svg></button>
+    </div>
+    <div class="row">
+      <div class="row-info">
+        <div class="row-name">Talk</div>
+        <div class="row-meta"><span class="row-val">2</span><span class="row-stat">Mean</span></div>
+      </div>
+      <button class="row-btn"><svg class="ic" viewBox="0 0 12 12"><line x1="6" y1="2" x2="6" y2="10"/><line x1="2" y1="6" x2="10" y2="6"/></svg></button>
+    </div>
+    <div class="row">
+      <div class="row-info">
+        <div class="row-name">Find</div>
+        <div class="row-meta"><span class="row-val">5.1</span><span class="row-stat">Mean</span></div>
+      </div>
+      <button class="row-btn"><svg class="ic" viewBox="0 0 12 12"><line x1="6" y1="2" x2="6" y2="10"/><line x1="2" y1="6" x2="10" y2="6"/></svg></button>
+    </div>
+  </div>
+
+  <!-- money -->
+  <div class="card" data-c="indigo">
+    <div class="card-head">
+      <span class="grp-name">money</span>
+      <span class="grp-count">4 series</span>
+    </div>
+    <div class="row">
+      <div class="row-info">
+        <div class="row-name">Pesos</div>
+        <div class="row-meta"><span class="row-val">127.12</span><span class="row-stat">Avg</span></div>
+      </div>
+      <button class="row-btn"><svg class="ic" viewBox="0 0 12 12"><line x1="6" y1="2" x2="6" y2="10"/><line x1="2" y1="6" x2="10" y2="6"/></svg></button>
+    </div>
+    <div class="row">
+      <div class="row-info">
+        <div class="row-name">DolarEq</div>
+        <div class="row-meta"><span class="row-empty">No data</span></div>
+      </div>
+      <button class="row-btn"><svg class="ic" viewBox="0 0 12 12"><line x1="6" y1="2" x2="6" y2="10"/><line x1="2" y1="6" x2="10" y2="6"/></svg></button>
+    </div>
+    <div class="row">
+      <div class="row-info">
+        <div class="row-name">DolarSum</div>
+        <div class="row-meta"><span class="row-val">23.91</span><span class="row-stat">Mean</span></div>
+      </div>
+      <button class="row-btn"><svg class="ic" viewBox="0 0 12 12"><line x1="6" y1="2" x2="6" y2="10"/><line x1="2" y1="6" x2="10" y2="6"/></svg></button>
+    </div>
+    <div class="row">
+      <div class="row-info">
+        <div class="row-name">Dolares</div>
+        <div class="row-meta"><span class="row-val">21.16</span><span class="row-stat">Mean</span></div>
+      </div>
+      <button class="row-btn"><svg class="ic" viewBox="0 0 12 12"><line x1="6" y1="2" x2="6" y2="10"/><line x1="2" y1="6" x2="10" y2="6"/></svg></button>
+    </div>
+  </div>
+
+  <!-- sports -->
+  <div class="card" data-c="rose">
+    <div class="card-head">
+      <span class="grp-name">sports</span>
+      <span class="grp-count">1 series</span>
+    </div>
+    <div class="row">
+      <div class="row-info">
+        <div class="row-name">sportserie</div>
+        <div class="row-meta"><span class="row-empty">No data</span></div>
+      </div>
+      <button class="row-btn"><svg class="ic" viewBox="0 0 12 12"><line x1="6" y1="2" x2="6" y2="10"/><line x1="2" y1="6" x2="10" y2="6"/></svg></button>
+    </div>
+  </div>
+
+  <!-- Well-being -->
+  <div class="card" data-c="indigo">
+    <div class="card-head">
+      <span class="grp-name">Well-being</span>
+      <span class="grp-count">3 series</span>
+    </div>
+    <div class="row">
+      <div class="row-info">
+        <div class="row-name">WakeUp</div>
+        <div class="row-meta"><span class="row-val">10.25</span><span class="row-stat">Mean</span></div>
+      </div>
+      <button class="row-btn"><svg class="ic" viewBox="0 0 12 12"><line x1="6" y1="2" x2="6" y2="10"/><line x1="2" y1="6" x2="10" y2="6"/></svg></button>
+    </div>
+    <div class="row">
+      <div class="row-info">
+        <div class="row-name">GoToBed</div>
+        <div class="row-meta"><span class="row-val">1.7</span><span class="row-stat">Mean</span></div>
+      </div>
+      <button class="row-btn"><svg class="ic" viewBox="0 0 12 12"><line x1="6" y1="2" x2="6" y2="10"/><line x1="2" y1="6" x2="10" y2="6"/></svg></button>
+    </div>
+    <div class="row">
+      <div class="row-info">
+        <div class="row-name">Phone</div>
+        <div class="row-meta"><span class="row-val">4.62</span><span class="row-stat">Mean</span></div>
+      </div>
+      <button class="row-btn"><svg class="ic" viewBox="0 0 12 12"><line x1="6" y1="2" x2="6" y2="10"/><line x1="2" y1="6" x2="10" y2="6"/></svg></button>
+    </div>
+  </div>
+
+</main>
+
+<!-- MODAL: New Series -->
+<div class="overlay" id="newSeriesModal" onclick="if(event.target===this)close('newSeriesModal')">
+  <div class="modal">
+    <div class="modal-hd">
+      <span class="modal-title">New Series</span>
+      <button class="modal-x" onclick="close('newSeriesModal')">×</button>
+    </div>
+    <div class="modal-bd">
+      <div class="field">
+        <label class="field-lbl">Name</label>
+        <input class="field-input" type="text" placeholder="Series name…">
+      </div>
+      <div class="field">
+        <label class="field-lbl">Type</label>
+        <select class="field-sel">
+          <option>Number</option>
+          <option>Time</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field-lbl">Group</label>
+        <select class="field-sel">
+          <option value="">— none —</option>
+          <option>Finances</option><option>group1</option><option>group11</option>
+          <option>Habits</option><option>Health</option><option>money</option>
+          <option>sports</option><option>srt</option><option>Well-being</option>
+          <option>Work</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn" onclick="close('newSeriesModal')">Cancel</button>
+      <button class="btn btn-primary">Save Series</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Groups -->
+<div class="overlay" id="groupsModal" onclick="if(event.target===this)close('groupsModal')">
+  <div class="modal">
+    <div class="modal-hd">
+      <span class="modal-title">Manage Groups</span>
+      <button class="modal-x" onclick="close('groupsModal')">×</button>
+    </div>
+    <div class="modal-bd">
+      <div class="grp-rows">
+        <div class="grp-row"><span class="grp-row-name"><span class="dot" style="background:#7c6ef5"></span>Finances</span><button class="btn-danger">Delete</button></div>
+        <div class="grp-row"><span class="grp-row-name"><span class="dot" style="background:#7c6ef5"></span>group1</span><button class="btn-danger">Delete</button></div>
+        <div class="grp-row"><span class="grp-row-name"><span class="dot" style="background:#7c6ef5"></span>group11</span><button class="btn-danger">Delete</button></div>
+        <div class="grp-row"><span class="grp-row-name"><span class="dot" style="background:#7c6ef5"></span>Habits</span><button class="btn-danger">Delete</button></div>
+        <div class="grp-row"><span class="grp-row-name"><span class="dot" style="background:#7c6ef5"></span>Health</span><button class="btn-danger">Delete</button></div>
+        <div class="grp-row"><span class="grp-row-name"><span class="dot" style="background:#7c6ef5"></span>money</span><button class="btn-danger">Delete</button></div>
+        <div class="grp-row"><span class="grp-row-name"><span class="dot" style="background:#f04e6b"></span>sports</span><button class="btn-danger">Delete</button></div>
+        <div class="grp-row"><span class="grp-row-name"><span class="dot" style="background:#3ec6b8"></span>srt</span><button class="btn-danger">Delete</button></div>
+        <div class="grp-row"><span class="grp-row-name"><span class="dot" style="background:#7c6ef5"></span>Well-being</span><button class="btn-danger">Delete</button></div>
+        <div class="grp-row"><span class="grp-row-name"><span class="dot" style="background:#7c6ef5"></span>Work</span><button class="btn-danger">Delete</button></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-primary">
+        <svg class="ic" viewBox="0 0 12 12"><line x1="6" y1="2" x2="6" y2="10"/><line x1="2" y1="6" x2="10" y2="6"/></svg>
+        Add Group
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function open(id)  { document.getElementById(id).classList.add('open'); }
+  function close(id) { document.getElementById(id).classList.remove('open'); }
+
+  // tag filter toggle
+  document.querySelectorAll('.tag').forEach(t => {
+    t.addEventListener('click', () => {
+      if (t.textContent.trim() === 'All') {
+        document.querySelectorAll('.tag').forEach(x => x.classList.remove('on'));
+        t.classList.add('on');
+      } else {
+        document.querySelector('.tag').classList.remove('on');
+        t.classList.toggle('on');
+      }
+    });
+  });
+</script>
+</body>
+</html>

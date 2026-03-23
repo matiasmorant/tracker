@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chronos — Time Series Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Pacifico&family=Josefin+Sans:wght@400;600;700&family=Special+Elite&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --cream:    #F5EDD6;
+      --teal:     #2BBFB3;
+      --coral:    #F4623A;
+      --mustard:  #E8B84B;
+      --navy:     #1A2744;
+      --pink:     #E8507A;
+      --mint:     #A8D8C8;
+      --charcoal: #2E2E2E;
+      --white:    #FEFCF5;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Josefin Sans', sans-serif;
+      background-color: var(--cream);
+      color: var(--charcoal);
+      min-height: 100vh;
+      overflow-x: hidden;
+      background-image:
+        radial-gradient(circle at 10% 20%, rgba(43,191,179,0.08) 0%, transparent 50%),
+        radial-gradient(circle at 90% 80%, rgba(244,98,58,0.07) 0%, transparent 50%),
+        url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%232BBFB3' fill-opacity='0.04'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--navy);
+      position: relative;
+      overflow: hidden;
+      padding: 0 2rem;
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 4px solid var(--teal);
+    }
+
+    header::before {
+      content: '';
+      position: absolute;
+      top: -30px; right: -30px;
+      width: 120px; height: 120px;
+      background: var(--coral);
+      border-radius: 50%;
+      opacity: 0.15;
+    }
+    header::after {
+      content: '';
+      position: absolute;
+      bottom: -40px; left: 30%;
+      width: 160px; height: 80px;
+      background: var(--teal);
+      border-radius: 50%;
+      opacity: 0.1;
+      transform: rotate(-20deg);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      position: relative;
+      z-index: 1;
+    }
+
+    .logo-icon {
+      width: 42px; height: 42px;
+      background: var(--coral);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem;
+      box-shadow: 3px 3px 0 var(--mustard);
+      position: relative;
+    }
+    .logo-icon::before {
+      content: '↑';
+      font-family: 'Alfa Slab One', serif;
+      color: var(--white);
+      font-size: 1.3rem;
+      line-height: 1;
+    }
+
+    .logo-text {
+      font-family: 'Pacifico', cursive;
+      font-size: 1.8rem;
+      color: var(--cream);
+      letter-spacing: 0.02em;
+    }
+    .logo-text span {
+      color: var(--teal);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── BUTTONS ── */
+    .btn {
+      font-family: 'Josefin Sans', sans-serif;
+      font-weight: 700;
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 0.5rem 1.1rem;
+      border: 2.5px solid currentColor;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: all 0.12s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      white-space: nowrap;
+      position: relative;
+    }
+    .btn::after {
+      content: '';
+      position: absolute;
+      bottom: -4px; right: -4px;
+      width: 100%; height: 100%;
+      border: 2px solid currentColor;
+      border-radius: 2px;
+      opacity: 0;
+      transition: opacity 0.12s;
+    }
+    .btn:hover::after { opacity: 0.4; }
+    .btn:hover { transform: translate(-1px, -1px); }
+    .btn:active { transform: translate(0, 0); }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--cream);
+      border-color: rgba(245,237,214,0.35);
+    }
+    .btn-ghost:hover { background: rgba(245,237,214,0.1); border-color: var(--cream); }
+
+    .btn-teal {
+      background: var(--teal);
+      color: var(--navy);
+      border-color: var(--teal);
+      box-shadow: 3px 3px 0 rgba(0,0,0,0.25);
+    }
+    .btn-teal:hover { box-shadow: 4px 4px 0 rgba(0,0,0,0.3); }
+
+    .btn-coral {
+      background: var(--coral);
+      color: var(--white);
+      border-color: var(--coral);
+      box-shadow: 3px 3px 0 rgba(0,0,0,0.25);
+    }
+    .btn-coral:hover { box-shadow: 4px 4px 0 rgba(0,0,0,0.3); }
+
+    .btn-sm {
+      padding: 0.35rem 0.7rem;
+      font-size: 0.65rem;
+    }
+
+    /* ── FILTER BAR ── */
+    .filter-bar {
+      background: var(--navy);
+      padding: 0.6rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      border-bottom: 2px solid var(--teal);
+    }
+    .filter-label {
+      font-family: 'Josefin Sans', sans-serif;
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--teal);
+    }
+    .filter-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+    .filter-pill {
+      font-family: 'Josefin Sans', sans-serif;
+      font-size: 0.6rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 0.25rem 0.7rem;
+      border: 1.5px solid rgba(43,191,179,0.35);
+      border-radius: 1px;
+      color: rgba(245,237,214,0.6);
+      cursor: pointer;
+      transition: all 0.12s;
+      background: transparent;
+    }
+    .filter-pill:hover, .filter-pill.active {
+      background: var(--teal);
+      color: var(--navy);
+      border-color: var(--teal);
+    }
+
+    /* ── MAIN CONTENT ── */
+    main {
+      padding: 2rem;
+    }
+
+    /* ── SECTION TITLE ── */
+    .section-eyebrow {
+      font-family: 'Josefin Sans', sans-serif;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--coral);
+      margin-bottom: 0.25rem;
+    }
+
+    /* ── MASONRY GRID ── */
+    .grid {
+      columns: 1;
+      gap: 1.5rem;
+    }
+    @media (min-width: 500px) { .grid { columns: 2; } }
+    @media (min-width: 800px) { .grid { columns: 3; } }
+    @media (min-width: 1100px) { .grid { columns: 4; } }
+    .grid > * { break-inside: avoid; margin-bottom: 1.5rem; }
+
+    /* ── GROUP CARD ── */
+    .group-card {
+      background: var(--white);
+      border: 3px solid var(--navy);
+      border-radius: 0;
+      box-shadow: 6px 6px 0 var(--navy);
+      overflow: hidden;
+      position: relative;
+      transition: transform 0.12s, box-shadow 0.12s;
+    }
+    .group-card:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 8px 8px 0 var(--navy);
+    }
+
+    /* decorative corner starburst */
+    .group-card::before {
+      content: '★';
+      position: absolute;
+      top: 6px; right: 8px;
+      font-size: 0.7rem;
+      opacity: 0.15;
+      color: var(--navy);
+      pointer-events: none;
+    }
+
+    .group-header {
+      padding: 0.55rem 0.9rem 0.45rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border-bottom: 2.5px solid var(--navy);
+      position: relative;
+    }
+    .group-header-dot {
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      border: 2px solid rgba(0,0,0,0.2);
+    }
+    .group-title {
+      font-family: 'Alfa Slab One', serif;
+      font-size: 0.65rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* group accent stripe on left */
+    .group-card .accent-stripe {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 4px;
+    }
+
+    /* ── SERIES ROW ── */
+    .series-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.55rem 0.9rem 0.55rem 1.1rem;
+      cursor: pointer;
+      transition: background 0.1s;
+      position: relative;
+      border-bottom: 1px dashed rgba(26,39,68,0.12);
+    }
+    .series-row:last-child { border-bottom: none; }
+    .series-row:hover { background: rgba(43,191,179,0.07); }
+
+    .series-info { min-width: 0; flex: 1; }
+    .series-name {
+      font-family: 'Josefin Sans', sans-serif;
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: var(--navy);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      letter-spacing: 0.01em;
+    }
+    .series-stat {
+      display: flex;
+      align-items: baseline;
+      gap: 0.35rem;
+      margin-top: 0.1rem;
+    }
+    .series-value {
+      font-family: 'Alfa Slab One', serif;
+      font-size: 0.82rem;
+      color: var(--coral);
+    }
+    .series-label {
+      font-family: 'Josefin Sans', sans-serif;
+      font-size: 0.55rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--charcoal);
+      opacity: 0.45;
+    }
+    .series-nodata {
+      font-family: 'Special Elite', cursive;
+      font-size: 0.68rem;
+      color: var(--charcoal);
+      opacity: 0.35;
+      font-style: italic;
+      margin-top: 0.1rem;
+    }
+
+    /* ── ADD BUTTON ── */
+    .add-btn {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      border: 2px solid var(--navy);
+      background: transparent;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--navy);
+      transition: all 0.12s;
+      flex-shrink: 0;
+      margin-left: 0.5rem;
+      font-family: 'Josefin Sans', sans-serif;
+    }
+    .add-btn:hover {
+      background: var(--coral);
+      border-color: var(--coral);
+      color: var(--white);
+      transform: rotate(90deg) scale(1.1);
+    }
+    .add-btn.timer {
+      font-size: 0.75rem;
+    }
+    .add-btn.counter {
+      font-size: 0.68rem;
+      font-weight: 900;
+    }
+
+    /* ── STARBURST DECORATION ── */
+    .starburst {
+      position: fixed;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .starburst svg { opacity: 0.06; }
+
+    /* ── MODAL OVERLAY ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(26,39,68,0.75);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .modal {
+      background: var(--white);
+      border: 3px solid var(--navy);
+      box-shadow: 8px 8px 0 var(--navy);
+      width: 90%;
+      max-width: 420px;
+      position: relative;
+      transform: translateY(20px);
+      transition: transform 0.2s;
+    }
+    .modal-overlay.open .modal { transform: translateY(0); }
+
+    .modal-header {
+      background: var(--navy);
+      padding: 1rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .modal-title {
+      font-family: 'Pacifico', cursive;
+      font-size: 1.1rem;
+      color: var(--cream);
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--cream);
+      font-size: 1.2rem;
+      cursor: pointer;
+      line-height: 1;
+      opacity: 0.7;
+      transition: opacity 0.1s;
+    }
+    .modal-close:hover { opacity: 1; }
+
+    .modal-body { padding: 1.5rem 1.25rem; }
+    .modal-footer {
+      padding: 1rem 1.25rem;
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      border-top: 2px dashed rgba(26,39,68,0.15);
+    }
+
+    /* ── FORM FIELDS ── */
+    .field {
+      margin-bottom: 1rem;
+    }
+    .field label {
+      display: block;
+      font-family: 'Josefin Sans', sans-serif;
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--navy);
+      margin-bottom: 0.35rem;
+    }
+    .field input,
+    .field select {
+      width: 100%;
+      font-family: 'Josefin Sans', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 0.55rem 0.75rem;
+      border: 2.5px solid var(--navy);
+      border-radius: 0;
+      background: var(--cream);
+      color: var(--navy);
+      outline: none;
+      transition: border-color 0.12s, box-shadow 0.12s;
+      -webkit-appearance: none;
+    }
+    .field input:focus,
+    .field select:focus {
+      border-color: var(--teal);
+      box-shadow: 3px 3px 0 var(--teal);
+    }
+
+    /* ── DROPDOWN MENU ── */
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    .dropdown-menu {
+      display: none;
+      position: absolute;
+      right: 0; top: calc(100% + 4px);
+      background: var(--white);
+      border: 2.5px solid var(--navy);
+      box-shadow: 5px 5px 0 var(--navy);
+      min-width: 160px;
+      z-index: 100;
+    }
+    .dropdown.open .dropdown-menu { display: block; }
+    .dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.55rem 0.9rem;
+      font-family: 'Josefin Sans', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      color: var(--navy);
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      width: 100%;
+      text-align: left;
+      text-transform: uppercase;
+      transition: background 0.1s;
+    }
+    .dropdown-item:hover { background: var(--teal); color: var(--navy); }
+    .dropdown-divider {
+      border: none;
+      border-top: 1.5px dashed rgba(26,39,68,0.18);
+      margin: 0.2rem 0;
+    }
+    .dropdown-section-label {
+      padding: 0.35rem 0.9rem;
+      font-size: 0.55rem;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--coral);
+      font-family: 'Josefin Sans', sans-serif;
+    }
+
+    /* ── TICKER / MARQUEE ── */
+    .ticker {
+      background: var(--mustard);
+      border-top: 2px solid var(--navy);
+      border-bottom: 2px solid var(--navy);
+      overflow: hidden;
+      white-space: nowrap;
+      padding: 0.3rem 0;
+    }
+    .ticker-inner {
+      display: inline-block;
+      animation: ticker 30s linear infinite;
+    }
+    .ticker-item {
+      display: inline-block;
+      font-family: 'Alfa Slab One', serif;
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      color: var(--navy);
+      padding: 0 2rem;
+    }
+    .ticker-item::before {
+      content: '★ ';
+      color: var(--coral);
+    }
+    @keyframes ticker {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    /* ── PAGE LOAD ANIMATIONS ── */
+    .group-card {
+      animation: cardIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    .group-card:nth-child(1) { animation-delay: 0.05s; }
+    .group-card:nth-child(2) { animation-delay: 0.1s; }
+    .group-card:nth-child(3) { animation-delay: 0.15s; }
+    .group-card:nth-child(4) { animation-delay: 0.2s; }
+    .group-card:nth-child(5) { animation-delay: 0.25s; }
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── BADGE ── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.15rem 0.45rem;
+      font-family: 'Josefin Sans', sans-serif;
+      font-size: 0.55rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      border: 1.5px solid;
+      border-radius: 1px;
+      white-space: nowrap;
+    }
+
+    /* ── GROUPS PANEL ── */
+    .groups-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .group-list-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.6rem 0;
+      border-bottom: 1px dashed rgba(26,39,68,0.18);
+    }
+    .group-list-row:last-child { border-bottom: none; }
+    .group-list-name {
+      font-family: 'Josefin Sans', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .group-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      border: 2px solid rgba(0,0,0,0.2);
+    }
+    .btn-danger {
+      background: transparent;
+      color: var(--coral);
+      border-color: var(--coral);
+      font-size: 0.6rem;
+    }
+    .btn-danger:hover { background: var(--coral); color: var(--white); }
+
+    /* ── FAB ── */
+    .fab {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      width: 52px; height: 52px;
+      background: var(--coral);
+      border: 3px solid var(--navy);
+      border-radius: 50%;
+      box-shadow: 4px 4px 0 var(--navy);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      color: var(--white);
+      cursor: pointer;
+      z-index: 50;
+      transition: transform 0.12s, box-shadow 0.12s;
+      font-family: 'Josefin Sans', sans-serif;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .fab:hover {
+      transform: translate(-2px, -2px) rotate(90deg);
+      box-shadow: 6px 6px 0 var(--navy);
+    }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+    }
+    .empty-starburst {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+      opacity: 0.25;
+      display: block;
+    }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: var(--cream); }
+    ::-webkit-scrollbar-thumb { background: var(--navy); border: 2px solid var(--cream); }
+
+    /* color helpers per group */
+    .c-indigo  { --gc: #6366f1; }
+    .c-rose    { --gc: #f43f5e; }
+    .c-teal    { --gc: #14b8a6; }
+  </style>
+</head>
+<body>
+
+  <!-- Background starbursts -->
+  <div class="starburst" style="top:10%; right:5%;">
+    <svg width="180" height="180" viewBox="0 0 100 100">
+      <polygon points="50,5 61,35 95,35 68,57 79,91 50,70 21,91 32,57 5,35 39,35" fill="#F4623A"/>
+    </svg>
+  </div>
+  <div class="starburst" style="bottom:15%; left:3%;">
+    <svg width="120" height="120" viewBox="0 0 100 100">
+      <polygon points="50,5 61,35 95,35 68,57 79,91 50,70 21,91 32,57 5,35 39,35" fill="#2BBFB3"/>
+    </svg>
+  </div>
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon"></div>
+      <span class="logo-text">Chron<span>os</span></span>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-ghost" onclick="openModal('groups-modal')">Groups</button>
+      <button class="btn btn-teal" onclick="openModal('new-series-modal')">+ New Series</button>
+      <div class="dropdown" id="more-dropdown">
+        <button class="btn btn-ghost" onclick="toggleDropdown('more-dropdown')">&#8942;</button>
+        <div class="dropdown-menu">
+          <div class="dropdown-section-label">Transfer</div>
+          <button class="dropdown-item">⬇ Export JSON</button>
+          <button class="dropdown-item">⬆ Import JSON</button>
+          <div class="dropdown-divider"></div>
+          <button class="dropdown-item">📄 Export CSV</button>
+          <button class="dropdown-item">📤 Import CSV</button>
+          <div class="dropdown-divider"></div>
+          <button class="dropdown-item">☀ Light Theme</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- TICKER -->
+  <div class="ticker">
+    <div class="ticker-inner">
+      <span class="ticker-item">Chronos Time Series Manager</span>
+      <span class="ticker-item">Track Everything</span>
+      <span class="ticker-item">Habits</span>
+      <span class="ticker-item">Finances</span>
+      <span class="ticker-item">Well-Being</span>
+      <span class="ticker-item">Sports</span>
+      <span class="ticker-item">Work</span>
+      <span class="ticker-item">Health</span>
+      <span class="ticker-item">Chronos Time Series Manager</span>
+      <span class="ticker-item">Track Everything</span>
+      <span class="ticker-item">Habits</span>
+      <span class="ticker-item">Finances</span>
+      <span class="ticker-item">Well-Being</span>
+      <span class="ticker-item">Sports</span>
+      <span class="ticker-item">Work</span>
+      <span class="ticker-item">Health</span>
+    </div>
+  </div>
+
+  <!-- FILTER BAR -->
+  <div class="filter-bar">
+    <span class="filter-label">Filter</span>
+    <div class="filter-pills">
+      <button class="filter-pill active" onclick="togglePill(this)">All</button>
+      <button class="filter-pill" onclick="togglePill(this)">Finances</button>
+      <button class="filter-pill" onclick="togglePill(this)">Habits</button>
+      <button class="filter-pill" onclick="togglePill(this)">Health</button>
+      <button class="filter-pill" onclick="togglePill(this)">Money</button>
+      <button class="filter-pill" onclick="togglePill(this)">Sports</button>
+      <button class="filter-pill" onclick="togglePill(this)">Well-being</button>
+      <button class="filter-pill" onclick="togglePill(this)">Work</button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <main>
+    <div class="grid">
+
+      <!-- group11 -->
+      <div class="group-card c-indigo">
+        <div class="accent-stripe" style="background: var(--gc, #6366f1);"></div>
+        <div class="group-header">
+          <div class="group-header-dot" style="background: var(--gc, #6366f1);"></div>
+          <h3 class="group-title" style="color: var(--gc, #6366f1);">group11</h3>
+        </div>
+        <div class="series-row">
+          <div class="series-info">
+            <div class="series-name">serie2</div>
+            <div class="series-stat">
+              <span class="series-value">7</span>
+              <span class="series-label">Last</span>
+            </div>
+          </div>
+          <button class="add-btn counter" title="Add +1">+1</button>
+        </div>
+        <div class="series-row">
+          <div class="series-info">
+            <div class="series-name">tim</div>
+            <div class="series-stat">
+              <span class="series-value">23s</span>
+              <span class="series-label">Last</span>
+            </div>
+          </div>
+          <button class="add-btn timer" title="Start timer">▶</button>
+        </div>
+        <div class="series-row">
+          <div class="series-info">
+            <div class="series-name">G1</div>
+            <div class="series-nodata">No data yet</div>
+          </div>
+          <button class="add-btn" title="Add entry">+</button>
+        </div>
+        <div class="series-row">
+          <div class="series-info">
+            <div class="series-name">timeSer</div>
+            <div class="series-stat">
+              <span class="series-value">18h 53m</span>
+              <span class="series-label">Last</span>
+            </div>
+          </div>
+          <button class="add-btn timer" title="Start timer">⏱</button>
+        </div>
+      </div>
+
+      <!-- Habits -->
+      <div class="group-card c-indigo">
+        <div class="accent-stripe" style="background: var(--gc, #6366f1);"></div>
+        <div class="group-header">
+          <div class="group-header-dot" style="background: var(--gc, #6366f1);"></div>
+          <h3 class="group-title" style="color: var(--gc, #6366f1);">Habits</h3>
+        </div>
+        <div class="series-row">
+          <div class="series-info">
+            <div class="series-name">Approach</div>
+            <div class="series-stat">
+              <span class="series-value">2.66</span>
+              <span class="series-label">Avg</span>
+            </div>
+          </div>
+          <button class="add-btn" title="Add entry">+</button>
+        </div>
+        <div class="series-row">
+          <div class="series-info">
+            <div class="series-name">Talk</div>
+            <div class="series-stat">
+              <span class="series-value">2</span>
+              <span class="series-label">Mean</span>
+            </div>
+          </div>
+          <button class="add-btn" title="Add entry">+</button>
+        </div>
+        <div class="series-row">
+          <div class="series-info">
+            <div class="series-name">Find</div>
+            <div class="series-stat">
+              <span class="series-value">5.1</span>
+              <span class="series-label">Mean</span>
+            </div>
+          </div>
+          <button class="add-btn" title="Add entry">+</button>
+        </div>
+      </div>
+
+      <!-- money -->
+      <div class="group-card c-indigo">
+        <div class="accent-stripe" style="background: var(--mustard);"></div>
+        <div class="group-header">
+          <div class="group-header-dot" style="background: var(--mustard);"></div>
+          <h3 class="group-title" style="color: #c49a2a;">money</h3>
+        </div>
+        <div class="series-row">
+          <div class="series-info">
+            <div class="series-name">Pesos</div>
+            <div class="series-stat">
+              <span class="series-value">127.12</span>
+              <span class="series-label">Avg</span>
+            </div>
+          </div>
+          <button class="add-btn" title="Add entry">+</button>
+        </div>
+        <div class="series-row">
+          <div class="series-info">
+            <div class="series-name">DolarEq</div>
+            <div class="series-nodata">No data yet</div>
+          </div>
+          <button class="add-btn" title="Add entry">+</button>
+        </div>
+        <div class="series-row">
+          <div class="series-info">
+            <div class="series-name">DolarSum</div>
+            <div class="series-stat">
+              <span class="series-value">23.91</span>
+              <span class="series-label">Mean</span>
+            </div>
+          </div>
+          <button class="add-btn" title="Add entry">+</button>
+        </div>
+        <div class="series-row">
+          <div class="series-info">
+            <div class="series-name">Dolares</div>
+            <div class="series-stat">
+              <span class="series-value">21.16</span>
+              <span class="series-label">Mean</span>
+            </div>
+          </div>
+          <button class="add-btn" title="Add entry">+</button>
+        </div>
+      </div>
+
+      <!-- sports -->
+      <div class="group-card c-rose">
+        <div class="accent-stripe" style="background: var(--gc, #f43f5e);"></div>
+        <div class="group-header">
+          <div class="group-header-dot" style="background: var(--gc, #f43f5e);"></div>
+          <h3 class="group-title" style="color: var(--gc, #f43f5e);">sports</h3>
+        </div>
+        <div class="series-row">
+          <div class="series-info">
+            <div class="series-name">sportserie</div>
+            <div class="series-nodata">No data yet</div>
+          </div>
+          <button class="add-btn" title="Add entry">+</button>
+        </div>
+      </div>
+
+      <!-- Well-being -->
+      <div class="group-card c-teal">
+        <div class="accent-stripe" style="background: var(--teal);"></div>
+        <div class="group-header">
+          <div class="group-header-dot" style="background: var(--teal);"></div>
+          <h3 class="group-title" style="color: #1a9e94;">Well-being</h3>
+        </div>
+        <div class="series-row">
+          <div class="series-info">
+            <div class="series-name">WakeUp</div>
+            <div class="series-stat">
+              <span class="series-value">10.25</span>
+              <span class="series-label">Mean</span>
+            </div>
+          </div>
+          <button class="add-btn" title="Add entry">+</button>
+        </div>
+        <div class="series-row">
+          <div class="series-info">
+            <div class="series-name">GoToBed</div>
+            <div class="series-stat">
+              <span class="series-value">1.7</span>
+              <span class="series-label">Mean</span>
+            </div>
+          </div>
+          <button class="add-btn" title="Add entry">+</button>
+        </div>
+        <div class="series-row">
+          <div class="series-info">
+            <div class="series-name">Phone</div>
+            <div class="series-stat">
+              <span class="series-value">4.62</span>
+              <span class="series-label">Mean</span>
+            </div>
+          </div>
+          <button class="add-btn" title="Add entry">+</button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- FAB -->
+  <button class="fab" onclick="openModal('new-series-modal')" title="New series">+</button>
+
+  <!-- ── MODAL: Groups ── -->
+  <div class="modal-overlay" id="groups-modal" onclick="overlayClose(event, 'groups-modal')">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <span class="modal-title">Manage Groups</span>
+        <button class="modal-close" onclick="closeModal('groups-modal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="display:flex; justify-content:flex-end; margin-bottom:1rem;">
+          <button class="btn btn-teal btn-sm">+ Add New</button>
+        </div>
+        <div class="groups-list">
+          <div class="group-list-row">
+            <div class="group-list-name"><div class="group-dot" style="background:#6366f1;"></div>Finances</div>
+            <button class="btn btn-danger btn-sm">🗑 Delete</button>
+          </div>
+          <div class="group-list-row">
+            <div class="group-list-name"><div class="group-dot" style="background:#6366f1;"></div>group1</div>
+            <button class="btn btn-danger btn-sm">🗑 Delete</button>
+          </div>
+          <div class="group-list-row">
+            <div class="group-list-name"><div class="group-dot" style="background:#6366f1;"></div>group11</div>
+            <button class="btn btn-danger btn-sm">🗑 Delete</button>
+          </div>
+          <div class="group-list-row">
+            <div class="group-list-name"><div class="group-dot" style="background:#6366f1;"></div>Habits</div>
+            <button class="btn btn-danger btn-sm">🗑 Delete</button>
+          </div>
+          <div class="group-list-row">
+            <div class="group-list-name"><div class="group-dot" style="background:#6366f1;"></div>Health</div>
+            <button class="btn btn-danger btn-sm">🗑 Delete</button>
+          </div>
+          <div class="group-list-row">
+            <div class="group-list-name"><div class="group-dot" style="background:#6366f1;"></div>money</div>
+            <button class="btn btn-danger btn-sm">🗑 Delete</button>
+          </div>
+          <div class="group-list-row">
+            <div class="group-list-name"><div class="group-dot" style="background:#f43f5e;"></div>sports</div>
+            <button class="btn btn-danger btn-sm">🗑 Delete</button>
+          </div>
+          <div class="group-list-row">
+            <div class="group-list-name"><div class="group-dot" style="background:#14b8a6;"></div>srt</div>
+            <button class="btn btn-danger btn-sm">🗑 Delete</button>
+          </div>
+          <div class="group-list-row">
+            <div class="group-list-name"><div class="group-dot" style="background:#6366f1;"></div>Well-being</div>
+            <button class="btn btn-danger btn-sm">🗑 Delete</button>
+          </div>
+          <div class="group-list-row">
+            <div class="group-list-name"><div class="group-dot" style="background:#6366f1;"></div>Work</div>
+            <button class="btn btn-danger btn-sm">🗑 Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL: New Series ── -->
+  <div class="modal-overlay" id="new-series-modal" onclick="overlayClose(event, 'new-series-modal')">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <span class="modal-title">New Series</span>
+        <button class="modal-close" onclick="closeModal('new-series-modal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <label>Name</label>
+          <input type="text" placeholder="Series name…">
+        </div>
+        <div class="field">
+          <label>Type</label>
+          <select>
+            <option value="number">Number</option>
+            <option value="time">Time</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Group</label>
+          <select>
+            <option value="">— none —</option>
+            <option>Finances</option>
+            <option>group1</option>
+            <option>group11</option>
+            <option>Habits</option>
+            <option>Health</option>
+            <option>money</option>
+            <option>sports</option>
+            <option>srt</option>
+            <option>Well-being</option>
+            <option>Work</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" style="color:var(--navy); border-color:var(--navy);" onclick="closeModal('new-series-modal')">Cancel</button>
+        <button class="btn btn-coral">Save Series</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL: Add Entry ── -->
+  <div class="modal-overlay" id="entry-modal" onclick="overlayClose(event, 'entry-modal')">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <span class="modal-title">Add Entry</span>
+        <button class="modal-close" onclick="closeModal('entry-modal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <label>Date &amp; Time</label>
+          <input type="text" placeholder="yyyy-MM-dd HH:mm:ss">
+        </div>
+        <div class="field">
+          <label>Value</label>
+          <input type="number" placeholder="0" step="1">
+        </div>
+        <div class="field">
+          <label>Notes (Optional)</label>
+          <input type="text" placeholder="…">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" style="color:var(--navy); border-color:var(--navy);" onclick="closeModal('entry-modal')">Cancel</button>
+        <button class="btn btn-coral">Save Entry</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function openModal(id) {
+      document.getElementById(id).classList.add('open');
+    }
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('open');
+    }
+    function overlayClose(e, id) {
+      if (e.target === document.getElementById(id)) closeModal(id);
+    }
+    function toggleDropdown(id) {
+      document.getElementById(id).classList.toggle('open');
+    }
+    document.addEventListener('click', e => {
+      document.querySelectorAll('.dropdown.open').forEach(d => {
+        if (!d.contains(e.target)) d.classList.remove('open');
+      });
+    });
+    function togglePill(el) {
+      el.classList.toggle('active');
+    }
+
+    // Wire up + buttons to open entry modal
+    document.querySelectorAll('.add-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        openModal('entry-modal');
+      });
+    });
+  </script>
+</body>
+</html>

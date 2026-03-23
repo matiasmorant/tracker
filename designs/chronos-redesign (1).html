@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chronos — Time Series Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0d0f14;
+    --surface:   #13161e;
+    --raised:    #1a1e28;
+    --border:    #252935;
+    --border-hi: #363c4e;
+
+    --text:      #e8ecf4;
+    --muted:     #6b7285;
+    --quiet:     #3d4355;
+
+    --amber:     #f5a623;
+    --amber-dim: rgba(245,166,35,0.12);
+    --amber-glow:rgba(245,166,35,0.06);
+    --indigo:    #7b8cde;
+    --rose:      #e8547a;
+    --teal:      #3ecfb0;
+
+    --font-mono: 'Space Mono', monospace;
+    --font-sans: 'Syne', sans-serif;
+    --radius:    10px;
+    --r-sm:      6px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── GRID TEXTURE ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image:
+      linear-gradient(rgba(245,166,35,0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(245,166,35,0.015) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(13,15,20,0.88);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    height: 56px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  .header-left {
+    display: flex; align-items: center; gap: 14px;
+  }
+
+  .logo-icon {
+    width: 34px; height: 34px;
+    background: var(--amber);
+    border-radius: 8px;
+    display: grid; place-items: center;
+  }
+  .logo-icon svg { width: 18px; height: 18px; }
+
+  .logo-name {
+    font-family: var(--font-sans);
+    font-weight: 800;
+    font-size: 1.05rem;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+
+  .header-right {
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .btn {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 0.78rem;
+    letter-spacing: 0.02em;
+    border: none; cursor: pointer;
+    border-radius: var(--r-sm);
+    padding: 6px 14px;
+    transition: all 0.15s ease;
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { color: var(--text); border-color: var(--border-hi); background: var(--raised); }
+  .btn-primary {
+    background: var(--amber);
+    color: #0d0f14;
+  }
+  .btn-primary:hover { background: #fbb740; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(245,166,35,0.3); }
+  .btn-icon {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+  }
+  .btn-icon:hover { color: var(--text); border-color: var(--border-hi); background: var(--raised); }
+
+  /* ── TOOLBAR ── */
+  .toolbar {
+    padding: 10px 24px;
+    display: flex; align-items: center; gap: 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    position: relative; z-index: 1;
+  }
+
+  .filter-label {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.15em;
+    color: var(--quiet);
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color 0.15s;
+  }
+  .filter-label:hover { color: var(--amber); }
+
+  .tag-list {
+    display: flex; flex-wrap: wrap; gap: 6px;
+  }
+  .tag {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.05em;
+    padding: 3px 9px;
+    border-radius: 99px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.12s;
+    user-select: none;
+  }
+  .tag:hover, .tag.active {
+    border-color: var(--amber);
+    color: var(--amber);
+    background: var(--amber-glow);
+  }
+
+  /* ── MAIN CONTENT ── */
+  main {
+    position: relative; z-index: 1;
+    padding: 24px;
+    columns: 1;
+    column-gap: 16px;
+  }
+  @media(min-width: 480px)  { main { columns: 2; } }
+  @media(min-width: 768px)  { main { columns: 3; } }
+  @media(min-width: 1100px) { main { columns: 4; } }
+
+  /* ── GROUP CARD ── */
+  .group-card {
+    break-inside: avoid;
+    margin-bottom: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    animation: cardIn 0.35s ease both;
+  }
+  .group-card:hover {
+    border-color: var(--border-hi);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .group-card:nth-child(1) { animation-delay: 0.04s; }
+  .group-card:nth-child(2) { animation-delay: 0.08s; }
+  .group-card:nth-child(3) { animation-delay: 0.12s; }
+  .group-card:nth-child(4) { animation-delay: 0.16s; }
+  .group-card:nth-child(5) { animation-delay: 0.20s; }
+
+  /* ── GROUP CARD color theming via CSS variable ── */
+  .group-card {
+    --c: var(--indigo);      /* default, overridden inline */
+    border-left: 3px solid var(--c) !important;
+  }
+
+  .group-header {
+    padding: 9px 14px 8px;
+    display: flex; align-items: center; gap: 9px;
+    border-bottom: 1px solid var(--border);
+    background: color-mix(in srgb, var(--c) 10%, transparent);
+  }
+
+  .group-name {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--c) 85%, #fff);
+    flex: 1;
+    font-weight: 700;
+  }
+
+  /* ── SERIES ROW ── */
+  .series-row {
+    display: flex; align-items: center;
+    padding: 9px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    cursor: pointer;
+    transition: background 0.12s;
+    gap: 8px;
+  }
+  .series-row:last-child { border-bottom: none; }
+  .series-row:hover { background: rgba(255,255,255,0.04); }
+
+  .series-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .series-name {
+    font-weight: 700;
+    font-size: 0.86rem;
+    color: #dde3f0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+  }
+
+  .series-meta {
+    display: flex; align-items: baseline; gap: 5px;
+    margin-top: 3px;
+  }
+
+  .series-value {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: color-mix(in srgb, var(--c) 90%, #fff);
+    line-height: 1;
+  }
+
+  .series-label {
+    font-family: var(--font-mono);
+    font-size: 0.57rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #4e5670;
+  }
+
+  .series-empty {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    color: #4e5670;
+    font-style: italic;
+    margin-top: 3px;
+  }
+
+  /* ── ACTION BUTTON ── */
+  .series-action {
+    flex-shrink: 0;
+    width: 28px; height: 28px;
+    border-radius: var(--r-sm);
+    border: 1px solid var(--border);
+    background: transparent;
+    color: #5a6280;
+    cursor: pointer;
+    display: grid; place-items: center;
+    transition: all 0.12s;
+    font-size: 0.85rem;
+    font-weight: 700;
+  }
+  .series-action:hover {
+    border-color: var(--c);
+    color: var(--c);
+    background: color-mix(in srgb, var(--c) 12%, transparent);
+  }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: var(--raised);
+    border: 1px solid var(--border-hi);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    padding: 10px 20px;
+    border-radius: var(--radius);
+    z-index: 300;
+    display: flex; align-items: center; gap: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    animation: toastIn 0.25s ease;
+  }
+  @keyframes toastIn { from { opacity:0; transform: translateX(-50%) translateY(8px); } }
+  .toast-close { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1rem; line-height: 1; }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 99px; }
+
+
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-left">
+    <div class="logo-icon">
+      <svg viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <polyline points="2,13 6,8 9,10 13,4 16,7" stroke="#0d0f14" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <span class="logo-name">Chronos</span>
+  </div>
+  <div class="header-right">
+    <button class="btn btn-ghost">Groups</button>
+    <button class="btn btn-ghost btn-icon">⋯</button>
+    <button class="btn btn-primary">+ New Series</button>
+  </div>
+</header>
+
+<!-- TOOLBAR / FILTER -->
+<div class="toolbar">
+  <span class="filter-label">Filter</span>
+  <div class="tag-list">
+    <span class="tag active">All</span>
+    <span class="tag">Finances</span>
+    <span class="tag">Habits</span>
+    <span class="tag">Health</span>
+    <span class="tag">money</span>
+    <span class="tag">sports</span>
+    <span class="tag">Well-being</span>
+    <span class="tag">Work</span>
+    <span class="tag">srt</span>
+    <span class="tag">group11</span>
+  </div>
+</div>
+
+<!-- MAIN DASHBOARD -->
+<main>
+
+  <!-- group11 -->
+  <div class="group-card" style="--c:#7b8cde">
+    <div class="group-header">
+      <span class="group-name">group11</span>
+    </div>
+    <div class="series-row">
+      <div class="series-info">
+        <div class="series-name">serie2</div>
+        <div class="series-meta">
+          <span class="series-value">7</span>
+          <span class="series-label">Last</span>
+        </div>
+      </div>
+      <button class="series-action" title="Add +1">+1</button>
+    </div>
+    <div class="series-row">
+      <div class="series-info">
+        <div class="series-name">tim</div>
+        <div class="series-meta">
+          <span class="series-value">23s</span>
+          <span class="series-label">Last</span>
+        </div>
+      </div>
+      <button class="series-action" title="Start timer">▶</button>
+    </div>
+    <div class="series-row">
+      <div class="series-info">
+        <div class="series-name">G1</div>
+        <div class="series-empty">no data yet</div>
+      </div>
+      <button class="series-action" title="Add entry">+</button>
+    </div>
+    <div class="series-row">
+      <div class="series-info">
+        <div class="series-name">timeSer</div>
+        <div class="series-meta">
+          <span class="series-value">18h 53m</span>
+          <span class="series-label">Last</span>
+        </div>
+      </div>
+      <button class="series-action" title="Log time">⏱</button>
+    </div>
+  </div>
+
+  <!-- Habits -->
+  <div class="group-card" style="--c:#7b8cde">
+    <div class="group-header">
+      <span class="group-name">Habits</span>
+    </div>
+    <div class="series-row">
+      <div class="series-info">
+        <div class="series-name">Approach</div>
+        <div class="series-meta">
+          <span class="series-value">2.66</span>
+          <span class="series-label">Avg</span>
+        </div>
+      </div>
+      <button class="series-action">+</button>
+    </div>
+    <div class="series-row">
+      <div class="series-info">
+        <div class="series-name">Talk</div>
+        <div class="series-meta">
+          <span class="series-value">2</span>
+          <span class="series-label">Mean</span>
+        </div>
+      </div>
+      <button class="series-action">+</button>
+    </div>
+    <div class="series-row">
+      <div class="series-info">
+        <div class="series-name">Find</div>
+        <div class="series-meta">
+          <span class="series-value">5.1</span>
+          <span class="series-label">Mean</span>
+        </div>
+      </div>
+      <button class="series-action">+</button>
+    </div>
+  </div>
+
+  <!-- money -->
+  <div class="group-card" style="--c:#f5a623">
+    <div class="group-header">
+      <span class="group-name">money</span>
+    </div>
+    <div class="series-row">
+      <div class="series-info">
+        <div class="series-name">Pesos</div>
+        <div class="series-meta">
+          <span class="series-value">127.12</span>
+          <span class="series-label">Avg</span>
+        </div>
+      </div>
+      <button class="series-action">+</button>
+    </div>
+    <div class="series-row">
+      <div class="series-info">
+        <div class="series-name">DolarEq</div>
+        <div class="series-empty">no data yet</div>
+      </div>
+      <button class="series-action">+</button>
+    </div>
+    <div class="series-row">
+      <div class="series-info">
+        <div class="series-name">DolarSum</div>
+        <div class="series-meta">
+          <span class="series-value">23.91</span>
+          <span class="series-label">Mean</span>
+        </div>
+      </div>
+      <button class="series-action">+</button>
+    </div>
+    <div class="series-row">
+      <div class="series-info">
+        <div class="series-name">Dolares</div>
+        <div class="series-meta">
+          <span class="series-value">21.16</span>
+          <span class="series-label">Mean</span>
+        </div>
+      </div>
+      <button class="series-action">+</button>
+    </div>
+  </div>
+
+  <!-- sports -->
+  <div class="group-card" style="--c:#e8547a">
+    <div class="group-header">
+      <span class="group-name">sports</span>
+    </div>
+    <div class="series-row">
+      <div class="series-info">
+        <div class="series-name">sportserie</div>
+        <div class="series-empty">no data yet</div>
+      </div>
+      <button class="series-action">+</button>
+    </div>
+  </div>
+
+  <!-- Well-being -->
+  <div class="group-card" style="--c:#a78bfa">
+    <div class="group-header">
+      <span class="group-name">Well-being</span>
+    </div>
+    <div class="series-row">
+      <div class="series-info">
+        <div class="series-name">WakeUp</div>
+        <div class="series-meta">
+          <span class="series-value">10.25</span>
+          <span class="series-label">Mean</span>
+        </div>
+      </div>
+      <button class="series-action">+</button>
+    </div>
+    <div class="series-row">
+      <div class="series-info">
+        <div class="series-name">GoToBed</div>
+        <div class="series-meta">
+          <span class="series-value">1.7</span>
+          <span class="series-label">Mean</span>
+        </div>
+      </div>
+      <button class="series-action">+</button>
+    </div>
+    <div class="series-row">
+      <div class="series-info">
+        <div class="series-name">Phone</div>
+        <div class="series-meta">
+          <span class="series-value">4.62</span>
+          <span class="series-label">Mean</span>
+        </div>
+      </div>
+      <button class="series-action">+</button>
+    </div>
+  </div>
+
+  <!-- srt -->
+  <div class="group-card" style="--c:#3ecfb0">
+    <div class="group-header">
+      <span class="group-name">srt</span>
+    </div>
+    <div class="series-row">
+      <div class="series-info">
+        <div class="series-name">srt_series</div>
+        <div class="series-empty">no data yet</div>
+      </div>
+      <button class="series-action">+</button>
+    </div>
+  </div>
+
+</main>
+
+
+<!-- interactive tag filtering -->
+<script>
+  document.querySelectorAll('.tag').forEach(tag => {
+    tag.addEventListener('click', () => {
+      document.querySelectorAll('.tag').forEach(t => t.classList.remove('active'));
+      tag.classList.add('active');
+    });
+  });
+</script>
+
+</body>
+</html>
