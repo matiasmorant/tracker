@@ -7,15 +7,8 @@ const addClass = (child, injected) => {
   return { ...child, attrs: { ...rest, class: `${injected} ${existing}` } };
 };
 
-const Summary = {
-  view({ children }) {
-    const [value, label] = children;
-    return m(".wa-cluster.wa-gap-0.items-baseline", [
-      addClass(value, 'text-[11px] font-black'),
-      addClass(label, 'text-[9px] font-bold uppercase ml-1.5'),
-    ]);
-  }
-};
+// const Summary = ".wa-cluster.wa-gap-0.items-baseline.*:first:text-xs.*:first:font-black.*:last:text-2xs.*:last:font-bold.*:last:uppercase.*:last:ml-1";
+const Summary = ".wa-cluster.wa-gap-0.items-baseline.*:first:(text-xs font-black).*:last:(text-2xs font-bold uppercase ml-1)";
 
 const GroupCard = () => {
     let updateInterval = null;
@@ -55,7 +48,7 @@ const GroupCard = () => {
             return m(".wa-stack.wa-gap-3xs.px-3.py-1.rounded-xl.border.shadow-sm.overflow-hidden.transition-all.hover:shadow-md", {
                 style: { borderColor: `${group.color}40`, backgroundColor: `${group.color}12` }
             }, [
-                m("h3", { class: "border-b text-2xs font-bold uppercase tracking-widest truncate", style: { color: group.color } }, group.name),
+                m("h3.border-b.text-2xs.font-bold.uppercase.tracking-widest.truncate", { style: { color: group.color } }, group.name),
 
                 seriesList.map(series => {
                     const isRunning = chronosDB.isChrono(series) && chronosDB.isRunning(series);
@@ -64,9 +57,9 @@ const GroupCard = () => {
                         onclick: () => vnode.dom.dispatchEvent(new CustomEvent('series-click', { detail: { series }, bubbles: true }))
                     }, [
                         m(".wa-stack.wa-gap-3xs.min-w-0", [
-                            m("span.font-bold.text-sm.text-slate-800.truncate.dark:text-slate-100", series.name),
+                            m("span.font-bold.text-sm.text-normal.truncate", series.name),
                             ...(isRunning 
-                                ? [m(Summary, {class:"animate-pulse"}, [
+                                ? [m(Summary+".animate-pulse", [
                                     m("span.text-red-600.dark:text-red-400", getRunningTime(series)),
                                     m("span.text-red-400.dark:text-red-300", "Running")
                                   ])]
@@ -74,8 +67,8 @@ const GroupCard = () => {
                                     ? series.summaries.map(s => {
                                         const [label,value] = s.split(': ');
                                         return m(Summary, [
-                                            m("span.text-indigo-600.truncate.dark:text-indigo-400", value),
-                                            m("span.text-slate-400.dark:text-slate-500", label)
+                                            m("span.text-brand.truncate", value),
+                                            m("span.text-quiet", label)
                                         ]);
                                     })
                                     : [m("span", { class: "text-[9px] text-slate-300 italic dark:text-slate-600" }, "No data")]
