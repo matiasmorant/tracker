@@ -1,385 +1,365 @@
 import { formatDuration } from './utils.js';
 import { calculateStats, getPeriodData } from './analytics.js';
 import chronosDB from './db.js';
-import './series-chart-config.js';
+import SeriesChartConfig from './series-chart-config.js';
 
-export class SeriesChart extends HTMLElement {
-  constructor() {
-    super();
-    this.seriesId = null;
-    this.series = null;
-    this.entries = [];
-    this.allSeries = [];
-    this.chartSettings = {
-      period: 'none',
-      logScale: false,
-      runningMetric: '',
-      window: 7,
-      range: 'all',
-      customDays: 30,
-      compareSeriesIds: []
-    };
-    this.analysisSelection = ['mean', 'dayMean', 'count'];
-    this.metrics = [
-      { id: 'mean', label: 'Mean', color: '#4f46e5' },
-      { id: 'dayMean', label: 'Day Mean', color: '#10b981' },
-      { id: 'sum', label: 'Sum', color: '#10b981' },
-      { id: 'count', label: 'Count', color: '#f59e0b' },
-      { id: 'min', label: 'Min', color: '#ef4444' },
-      { id: 'q1', label: 'Q1', color: '#8b5cf6' },
-      { id: 'median', label: 'Median', color: '#ec4899' },
-      { id: 'q3', label: 'Q3', color: '#06b6d4' },
-      { id: 'max', label: 'Max', color: '#1e293b' },
-      { id: 'first', label: 'First', color: '#6366f1' },
-      { id: 'last', label: 'Last', color: '#6366f1' }
-    ];
-    this.chartConfigCollapsed = true;
-    this.isDark = document.documentElement.classList.contains('dark');
-  }
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
 
-  static get observedAttributes() {
-    return ['series-id'];
-  }
+const METRICS = [
+  { id: 'mean',    label: 'Mean',    color: '#4f46e5' },
+  { id: 'dayMean', label: 'Day Mean', color: '#10b981' },
+  { id: 'sum',     label: 'Sum',     color: '#10b981' },
+  { id: 'count',   label: 'Count',   color: '#f59e0b' },
+  { id: 'min',     label: 'Min',     color: '#ef4444' },
+  { id: 'q1',      label: 'Q1',      color: '#8b5cf6' },
+  { id: 'median',  label: 'Median',  color: '#ec4899' },
+  { id: 'q3',      label: 'Q3',      color: '#06b6d4' },
+  { id: 'max',     label: 'Max',     color: '#1e293b' },
+  { id: 'first',   label: 'First',   color: '#6366f1' },
+  { id: 'last',    label: 'Last',    color: '#6366f1' },
+];
 
-  async connectedCallback() {
-    this.seriesId = this.getAttribute('series-id');
-    if (this.seriesId) {
-      await this.loadData();
-      this.render();
-      this.updateChart();
-    }
+const DEFAULT_CHART_SETTINGS = {
+  period: 'none',
+  logScale: false,
+  runningMetric: '',
+  window: 7,
+  range: 'all',
+  customDays: 30,
+  compareSeriesIds: [],
+};
 
-    // Listen for theme changes
-    this.themeObserver = new MutationObserver(() => {
-      const wasDark = this.isDark;
-      this.isDark = document.documentElement.classList.contains('dark');
-      if (wasDark !== this.isDark) {
-        this.updateChart();
-      }
-    });
-    this.themeObserver.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class']
-    });
-  }
+const RANGE_DAYS = { day: 1, week: 7, month: 30, quarter: 90, year: 365 };
+const COMPARISON_COLORS = ['#ec4899', '#10b981', '#f59e0b', '#06b6d4', '#8b5cf6', '#14b8a6', '#f97316'];
 
-  disconnectedCallback() {
-    if (this.themeObserver) {
-      this.themeObserver.disconnect();
-    }
-  }
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
-  async attributeChangedCallback(name, oldValue, newValue) {
-    if (name === 'series-id' && newValue !== oldValue && newValue) {
-      this.seriesId = newValue;
-      await this.loadData();
-      this.render();
-      this.updateChart();
-    }
-  }
+function isDarkMode() {
+  return document.documentElement.classList.contains('dark');
+}
 
-  async loadData() {
+// ---------------------------------------------------------------------------
+// SeriesChart  –  attrs: { seriesId }
+// ---------------------------------------------------------------------------
+
+const SeriesChart = () => {
+  // ── state ─────────────────────────────────────────────────────────────────
+  let series            = null;
+  let entries           = [];
+  let allSeries         = [];
+  let chartSettings     = { ...DEFAULT_CHART_SETTINGS };
+  let analysisSelection = ['mean', 'dayMean', 'count'];
+  let collapsed         = true;
+  let isDark            = isDarkMode();
+  let loadedSeriesId    = null;
+  let themeObserver     = null;
+  let chartEl           = null; // reference to the <chronos-chart> DOM node
+
+  // ── data ──────────────────────────────────────────────────────────────────
+
+  async function loadData(seriesId) {
     try {
-      this.series = await chronosDB.getSeries(parseInt(this.seriesId));
-      this.entries = await chronosDB.getEntriesForSeries(parseInt(this.seriesId));
-      this.entries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-      this.allSeries = await chronosDB.getAllSeries();
+      series    = await chronosDB.getSeries(parseInt(seriesId));
+      entries   = await chronosDB.getEntriesForSeries(parseInt(seriesId));
+      entries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      allSeries = await chronosDB.getAllSeries();
 
-      // Load saved settings
-      if (this.series.config) {
-        if (this.series.config.analysisSelection) {
-          this.analysisSelection = [...this.series.config.analysisSelection];
+      if (series.config) {
+        if (series.config.analysisSelection) {
+          analysisSelection = [...series.config.analysisSelection];
         }
-        if (this.series.config.chartSettings) {
-          this.chartSettings = { ...this.chartSettings, ...this.series.config.chartSettings };
-          if (!this.chartSettings.compareSeriesIds) {
-            this.chartSettings.compareSeriesIds = [];
-          }
+        if (series.config.chartSettings) {
+          chartSettings = {
+            ...DEFAULT_CHART_SETTINGS,
+            ...series.config.chartSettings,
+            compareSeriesIds: series.config.chartSettings.compareSeriesIds ?? [],
+          };
         }
       }
     } catch (err) {
       console.error('Failed to load series data:', err);
     }
+    m.redraw();
   }
 
-  toggleCollapsed() {
-    this.chartConfigCollapsed = !this.chartConfigCollapsed;
-    const panel = this.querySelector('#configPanel');
-    const chartContainer = this.querySelector('.transition-all');
-    const toggleBtn = this.querySelector('[data-action="toggle-collapsed"] span');
+  // ── chart update ──────────────────────────────────────────────────────────
 
-    if (panel) panel.classList.toggle('hidden');
-    if (toggleBtn) toggleBtn.textContent = this.chartConfigCollapsed ? 'Statistics' : 'Hide';
-  }
+  async function updateChart() {
+    if (!chartEl || !entries.length) return;
 
-  handleScaleClick() {
-    this.chartSettings.logScale = !this.chartSettings.logScale;
-    this.updateChart();
-  }
-
-  handleConfigUpdated(event) {
-    // Update local state when config changes
-    const updatedSeries = event.detail.series;
-    if (updatedSeries.config) {
-      if (updatedSeries.config.analysisSelection) {
-        this.analysisSelection = [...updatedSeries.config.analysisSelection];
-      }
-      if (updatedSeries.config.chartSettings) {
-        this.chartSettings = { ...this.chartSettings, ...updatedSeries.config.chartSettings };
-      }
-    }
-    this.updateChart();
-  }
-
-  render() {
-    if (!this.series) {
-      this.innerHTML = '<div class="p-4 text-slate-500">Loading...</div>';
-      return;
-    }
-
-    this.innerHTML = `
-      <div class="wa-stack dark:bg-slate-800 overflow-hidden">
-          <chronos-chart
-            id="seriesChart"
-            style="width: 100%; height: 100%;">
-          </chronos-chart>
-
-          <div class="px-4 py-0 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
-            <button 
-              data-action="toggle-collapsed"
-              class="text-xs font-medium text-indigo-600 hover:text-indigo-700 transition-colors dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center space-x-1"
-            >
-              <i class="fa-solid ${this.chartConfigCollapsed ? 'fa-chevron-down' : 'fa-chevron-up'}"></i>
-              <span>${this.chartConfigCollapsed ? 'Statistics' : 'Hide'}</span>
-            </button>
-          </div>
-
-          <series-chart-config 
-            id="configPanel"
-            series-id="${this.seriesId}"
-            class="${this.chartConfigCollapsed ? 'hidden' : ''}">
-          </series-chart-config>
-      </div>
-    `;
-
-    this.attachEventListeners();
-  }
-
-  attachEventListeners() {
-    // Toggle collapsed
-    const toggleBtn = this.querySelector('[data-action="toggle-collapsed"]');
-    if (toggleBtn) {
-      toggleBtn.addEventListener('click', () => this.toggleCollapsed());
-    }
-
-    // Chart scale click
-    const chartElement = this.querySelector('#seriesChart');
-    if (chartElement) {
-      chartElement.addEventListener('scale-click', () => this.handleScaleClick());
-    }
-
-    // Config updates from SeriesChartConfig
-    const configElement = this.querySelector('series-chart-config');
-    if (configElement) {
-      configElement.addEventListener('config-updated', (e) => this.handleConfigUpdated(e));
-    }
-  }
-
-  async updateChart() {
-    const chartElement = this.querySelector('#seriesChart');
-    if (!chartElement || !this.entries.length) return;
-
+    // Compute viewDays
     let viewDays = 0;
-    const rangeConfig = { 'day': 1, 'week': 7, 'month': 30, 'quarter': 90, 'year': 365 };
-
-    if (this.chartSettings.range !== 'all') {
-      if (this.chartSettings.range === 'custom' && this.chartSettings.customDays) {
-        viewDays = this.chartSettings.customDays;
-      } else if (rangeConfig[this.chartSettings.range]) {
-        viewDays = rangeConfig[this.chartSettings.range];
+    if (chartSettings.range !== 'all') {
+      if (chartSettings.range === 'custom' && chartSettings.customDays) {
+        viewDays = chartSettings.customDays;
+      } else {
+        viewDays = RANGE_DAYS[chartSettings.range] ?? 0;
       }
-    } else {
-      if (this.entries.length > 0) {
-        const firstDate = new Date(this.entries[0].timestamp);
-        const lastDate = new Date(this.entries[this.entries.length - 1].timestamp);
-        viewDays = Math.ceil((lastDate - firstDate) / (1000 * 60 * 60 * 24));
-        if (viewDays < 1) viewDays = 1;
-      }
+    } else if (entries.length > 0) {
+      const first = new Date(entries[0].timestamp);
+      const last  = new Date(entries[entries.length - 1].timestamp);
+      viewDays = Math.max(1, Math.ceil((last - first) / 864e5));
     }
 
     const datasets = [];
-    const rId = this.chartSettings.runningMetric;
-    const win = this.chartSettings.window;
+    const rId = chartSettings.runningMetric;
+    const win = chartSettings.window;
 
-    const addSeriesToDatasets = (entries, label, color, isComparison = false) => {
-      if (this.chartSettings.period === 'none') {
-        const rawPoints = entries.map(e => ({
-          x: e.timestamp,
-          y: e.value
-        }));
-
+    function addSeries(seriesEntries, label, color, isComparison = false) {
+      if (chartSettings.period === 'none') {
         datasets.push({
-          label: label,
-          data: rawPoints,
+          label,
+          data: seriesEntries.map(e => ({ x: e.timestamp, y: e.value })),
           borderColor: color,
           borderWidth: isComparison ? 1.5 : 2,
           tension: 0.2,
-          borderDash: isComparison ? [10, 2] : []
+          borderDash: isComparison ? [10, 2] : [],
         });
 
-        if (!isComparison && rId && win >= 2 && entries.length >= win) {
+        if (!isComparison && rId && win >= 2 && seriesEntries.length >= win) {
           const runningPoints = [];
-          for (let i = 0; i <= entries.length - win; i++) {
-            const slice = entries.slice(i, i + win);
-            const vals = slice.map(e => e.value).sort((a, b) => a - b);
-            const stats = calculateStats(vals, [], slice);
+          for (let i = 0; i <= seriesEntries.length - win; i++) {
+            const slice  = seriesEntries.slice(i, i + win);
+            const vals   = slice.map(e => e.value).sort((a, b) => a - b);
+            const stats  = calculateStats(vals, [], slice);
             const midIdx = Math.floor(i + (win - 1) / 2);
-
-            runningPoints.push({
-              x: entries[midIdx].timestamp,
-              y: stats[rId]
-            });
+            runningPoints.push({ x: seriesEntries[midIdx].timestamp, y: stats[rId] });
           }
-
           if (runningPoints.length > 0) {
             datasets.push({
-              label: `Rolling ${this.metrics.find(m => m.id === rId)?.label || rId}`,
+              label: `Rolling ${METRICS.find(m => m.id === rId)?.label ?? rId}`,
               data: runningPoints,
               borderColor: '#f59e0b',
               borderDash: [10, 2],
               borderWidth: 1.5,
               pointRadius: 0,
-              hidePoints: true
+              hidePoints: true,
             });
           }
         }
       } else {
-        const agg = getPeriodData(entries, this.chartSettings.period);
+        const agg    = getPeriodData(seriesEntries, chartSettings.period);
+        const suffix = chartSettings.period === 'day' ? '' : ' 12:00:00.000Z';
 
         if (isComparison) {
-          const metricToUse = 'mean';
-          const points = agg.labels.map((k, i) => ({
-            x: k + (this.chartSettings.period === 'day' ? '' : ' 12:00:00.000Z'),
-            y: agg.datasets[metricToUse][i]
-          })).filter(point => point.y !== null);
-
+          const points = agg.labels
+            .map((k, i) => ({ x: k + suffix, y: agg.datasets['mean'][i] }))
+            .filter(p => p.y !== null);
           if (points.length > 0) {
             datasets.push({
-              label: `${label} (${metricToUse})`,
+              label: `${label} (mean)`,
               data: points,
               borderColor: color,
               borderWidth: 1.5,
               borderDash: [10, 2],
-              tension: 0.2
+              tension: 0.2,
             });
           }
         } else {
-          this.analysisSelection.forEach(mId => {
-            const m = this.metrics.find(x => x.id === mId);
-            const points = agg.labels.map((k, i) => ({
-              x: k + (this.chartSettings.period === 'day' ? '' : ' 12:00:00.000Z'),
-              y: agg.datasets[mId][i]
-            })).filter(point => point.y !== null);
+          analysisSelection.forEach(mId => {
+            const metric = METRICS.find(x => x.id === mId);
+            const points = agg.labels
+              .map((k, i) => ({ x: k + suffix, y: agg.datasets[mId][i] }))
+              .filter(p => p.y !== null);
 
             if (points.length > 0) {
               datasets.push({
-                label: m.label,
+                label: metric.label,
                 data: points,
-                borderColor: m.color,
+                borderColor: metric.color,
                 borderWidth: 2,
-                tension: 0.2
+                tension: 0.2,
               });
             }
 
             if (rId && win >= 2 && agg.labels.length >= win) {
               const runningPoints = [];
-              const baseSource = agg.datasets[mId];
-
-              for (let i = 0; i <= baseSource.length - win; i++) {
-                const slice = baseSource.slice(i, i + win).filter(v => v !== null);
-                if (slice.length === 0) continue;
-
-                const sortedSlice = [...slice].sort((a, b) => a - b);
-                const stats = calculateStats(sortedSlice);
-                const midIdx = Math.floor(i + (win - 1) / 2);
-
+              const base = agg.datasets[mId];
+              for (let i = 0; i <= base.length - win; i++) {
+                const slice      = base.slice(i, i + win).filter(v => v !== null);
+                if (!slice.length) continue;
+                const stats      = calculateStats([...slice].sort((a, b) => a - b));
+                const midIdx     = Math.floor(i + (win - 1) / 2);
                 if (stats[rId] !== undefined) {
-                  runningPoints.push({
-                    x: agg.labels[midIdx] + (this.chartSettings.period === 'day' ? '' : ' 12:00:00.000Z'),
-                    y: stats[rId]
-                  });
+                  runningPoints.push({ x: agg.labels[midIdx] + suffix, y: stats[rId] });
                 }
               }
-
               if (runningPoints.length > 0) {
                 datasets.push({
-                  label: `Rolling ${m.label} (${rId})`,
+                  label: `Rolling ${metric.label} (${rId})`,
                   data: runningPoints,
-                  borderColor: m.color,
+                  borderColor: metric.color,
                   borderDash: [8, 4],
                   borderWidth: 1.5,
                   pointRadius: 0,
-                  hidePoints: true
+                  hidePoints: true,
                 });
               }
             }
           });
         }
       }
-    };
+    }
 
-    // Add primary series
-    addSeriesToDatasets(this.entries, this.series.name, '#4f46e5', false);
+    // Primary series
+    addSeries(entries, series.name, '#4f46e5', false);
 
-    // Add comparison series
-    if (this.chartSettings.compareSeriesIds?.length) {
-      const comparisonColors = ['#ec4899', '#10b981', '#f59e0b', '#06b6d4', '#8b5cf6', '#14b8a6', '#f97316'];
+    // Comparison series
+    if (chartSettings.compareSeriesIds?.length) {
       let colorIndex = 0;
+      for (const compareId of chartSettings.compareSeriesIds) {
+        const compareSeries = allSeries.find(s => s.id === compareId);
+        if (!compareSeries) continue;
 
-      for (const compareId of this.chartSettings.compareSeriesIds) {
-        const compareSeries = this.allSeries.find(s => s.id === compareId);
-        if (compareSeries) {
-          const compareEntries = await chronosDB.getEntriesForSeries(compareId);
-          if (compareEntries.length > 0) {
-            const allGroups = await chronosDB.getAllGroups();
-            const compareGroup = allGroups.find(g => g.name === compareSeries.group);
-            const color = compareGroup ? compareGroup.color : comparisonColors[colorIndex % comparisonColors.length];
+        const compareEntries = await chronosDB.getEntriesForSeries(compareId);
+        if (!compareEntries.length) continue;
 
-            addSeriesToDatasets(compareEntries, compareSeries.name, color, true);
-            colorIndex++;
-          }
-        }
+        const allGroups    = await chronosDB.getAllGroups();
+        const compareGroup = allGroups.find(g => g.name === compareSeries.group);
+        const color        = compareGroup
+          ? compareGroup.color
+          : COMPARISON_COLORS[colorIndex % COMPARISON_COLORS.length];
+
+        addSeries(compareEntries, compareSeries.name, color, true);
+        colorIndex++;
       }
     }
 
-    const chartData = { datasets };
+    if (!chartEl) return;
 
-    chartElement.options = {
-      ...chartElement.options,
-      logScale: this.chartSettings.logScale,
-      darkMode: this.isDark,
-      viewDays: viewDays,
+    chartEl.options = {
+      ...chartEl.options,
+      logScale: chartSettings.logScale,
+      darkMode: isDark,
+      viewDays,
       grid: {
         show: true,
-        color: this.isDark ? '#334155' : '#e5e7eb'
+        color: isDark ? '#334155' : '#e5e7eb',
       },
       axis: {
         show: true,
-        color: this.isDark ? '#cbd5e1' : '#6b7280',
-        fontSize: 11
+        color: isDark ? '#cbd5e1' : '#6b7280',
+        fontSize: 11,
       },
-      valueFormatter: (value) => {
-        if (this.series?.type === 'time') {
-          return formatDuration(value, true);
-        }
-        return Number(value).toLocaleString(undefined, {
-          maximumFractionDigits: 2
-        });
-      }
+      valueFormatter: value => {
+        if (series?.type === 'time') return formatDuration(value, true);
+        return Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 });
+      },
     };
 
-    chartElement.data = chartData;
+    if (!chartEl) return;
+    chartEl.data = { datasets };
   }
-}
 
-customElements.define('series-chart', SeriesChart);
+  // ── event handlers ────────────────────────────────────────────────────────
+
+  function handleToggleCollapsed() {
+    collapsed = !collapsed;
+    m.redraw();
+  }
+
+  function handleScaleClick() {
+    chartSettings.logScale = !chartSettings.logScale;
+    updateChart();
+  }
+
+  function handleConfigUpdated({ series: updatedSeries }) {
+    if (updatedSeries.config) {
+      if (updatedSeries.config.analysisSelection) {
+        analysisSelection = [...updatedSeries.config.analysisSelection];
+      }
+      if (updatedSeries.config.chartSettings) {
+        chartSettings = { ...chartSettings, ...updatedSeries.config.chartSettings };
+      }
+    }
+    updateChart();
+  }
+
+  // ── lifecycle ─────────────────────────────────────────────────────────────
+
+  return {
+    oninit({ attrs }) {
+      if (attrs.seriesId) {
+        loadedSeriesId = attrs.seriesId;
+        loadData(attrs.seriesId);
+      }
+    },
+
+    onbeforeupdate({ attrs }) {
+      if (attrs.seriesId && attrs.seriesId !== loadedSeriesId) {
+        loadedSeriesId = attrs.seriesId;
+        loadData(attrs.seriesId);
+      }
+    },
+
+    oncreate() {
+      themeObserver = new MutationObserver(() => {
+        const wasDark = isDark;
+        isDark = isDarkMode();
+        if (wasDark !== isDark) updateChart();
+      });
+      themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class'],
+      });
+    },
+
+    onremove() {
+      themeObserver?.disconnect();
+    },
+
+    view({ attrs }) {
+      if (!series) {
+        return m('.flex.items-center.justify-center.gap-2.p-4.text-color-neutral-subtle',
+          m('wa-spinner'),
+          m('span', 'Loading…')
+        );
+      }
+
+      return m('.wa-stack.gap-0.dark:bg-slate-800.overflow-hidden.h-full',
+
+        // ── Chart ──────────────────────────────────────────────────────────
+        m('chronos-chart#seriesChart', {
+          style: 'width:100%;height:100%',
+          oncreate(vnode) {
+            chartEl = vnode.dom;
+            chartEl.addEventListener('scale-click', handleScaleClick);
+            updateChart();
+          },
+          onupdate(vnode) {
+            chartEl = vnode.dom;
+            updateChart();
+          },
+          onremove() {
+            chartEl?.removeEventListener('scale-click', handleScaleClick);
+            chartEl = null;
+          },
+        }),
+
+        // ── Toolbar ────────────────────────────────────────────────────────
+        m('.px-4.py-0.border-b.border-slate-100.dark:border-slate-700.flex.justify-between.items-center',
+          m('wa-button[appearance=plain][size=small]', {
+            onclick: handleToggleCollapsed,
+          },
+            m(`wa-icon[slot=start][name=${collapsed ? 'chevron-down' : 'chevron-up'}]`),
+            collapsed ? 'Statistics' : 'Hide'
+          )
+        ),
+
+        // ── Config panel ───────────────────────────────────────────────────
+        collapsed
+          ? null
+          : m(SeriesChartConfig, {
+              seriesId: attrs.seriesId,
+              onConfigUpdated: handleConfigUpdated,
+            })
+      );
+    },
+  };
+};
+
+export default SeriesChart;

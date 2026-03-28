@@ -93,7 +93,7 @@
     <script type="module" src="./analytics.js"></script>
     <script type="module" src="./utils.js"></script>
     <script type="module" src="./chronos-chart.js"></script>
-    <script type="module" src="./series-chart.js"></script>
+
     <script type="module" src="./series-history.js"></script>
     <script type="module" src="./dashboard.js"></script>
     <script type="module" src="./theme-utils.js"></script>
@@ -157,6 +157,7 @@
         import EntryModal from './entry-modal.js';
         import DurationPickerModal from './duration-picker-modal.js';
         import SeriesConfiguration from './seriesConfig.js';
+        import SeriesChart from './series-chart.js';
         import { getFormattedISO } from './utils.js';
         import chronosDB from './db.js';
 
@@ -188,7 +189,7 @@
                         ),
 
                         m("wa-tab-panel[name=chart]",
-                            State.currentSeries ? m("series-chart", { "series-id": State.currentSeries.id}) : null
+                            State.currentSeries ? m(SeriesChart, { seriesId: State.currentSeries.id}) : null
                         ),
                         m("wa-tab-panel[name=calendar]",
                             m("chronos-calendar", {
