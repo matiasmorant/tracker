@@ -1,153 +1,125 @@
 import { formatDuration } from './utils.js';
 import DurationPickerModal from './duration-picker-modal.js';
 
-class SeriesHistory extends HTMLElement {
-    constructor() {
-        super();
-        this._series = null;
-        this._entries = [];
-        this.table = null;
+const tableStyles = `
+    #table-container .tabulator-row .tabulator-cell:first-child {
+        border-left: none !important;
     }
-
-    static get observedAttributes() {
-        return ['series', 'entries'];
+    .dark #table-container .tabulator {
+        background-color: transparent;
+        border: none;
     }
-
-    attributeChangedCallback(name, oldValue, newValue) {
-        if (name === 'series') {
-            this._series = newValue ? JSON.parse(newValue) : null;
-        } else if (name === 'entries') {
-            this._entries = newValue ? JSON.parse(newValue).slice().reverse() : [];
-        }
-        this.render();
+    .tabulator-header {
+        font-size: 1em !important;
     }
+`;
 
-    render() {
-        if (!this._series) return;
-
-        this.innerHTML = `
-            <style>
-                #table-container .tabulator-row .tabulator-cell:first-child {
-                    border-left: none !important;
-                }
-                .dark #table-container .tabulator {
-                    background-color: transparent;
-                    border: none;
-                }
-                .tabulator-header {
-                    font-size: 1em !important;
-                }
-            </style>
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden dark:bg-slate-800 dark:border-slate-700">
-                <div class="p-6 border-b border-slate-100 flex justify-between items-center dark:border-slate-700">
-                    <h3 class="text-lg font-semibold dark:text-slate-100">Data History</h3>
-                    <button id="addEntryBtn" class="text-sm bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 transition-colors dark:bg-indigo-700 dark:hover:bg-indigo-600">
-                        + Add Entry
-                    </button>
-                </div>
-                <div id="table-container" class="w-full"></div>
-            </div>
-        `;
-
-        this.initTable();
-
-        this.querySelector('#addEntryBtn').onclick = () => {
-            this.dispatchEvent(new CustomEvent('add-entry-click', { detail: { series: this._series } }));
-        };
-    }
-
-    initTable() {
-        const container = this.querySelector('#table-container');
-        const isTime = this._series.type === 'time';
-        
-        this.table = new Tabulator(container, {
-            data: this._entries,
-            layout: "fitColumns",
-            responsiveLayout: false, 
-            resizableColumns: false,
-            resizableColumnFit: false,
-            placeholder: "No historical data available.",
-            columns: [
-                { 
-                    title: "Date", 
-                    field: "timestamp", 
-                    sorter: "string", 
-                    hozAlign: "left",
-                    width: 180,
-                    resizable: false,
-                    editor: "input"
-                },
-                { 
-                    title: "Value", 
-                    field: "value", 
-                    hozAlign: "right",
-                    width: 100,
-                    resizable: false,
-                    editor: isTime ? false : "number",
-                    formatter: (cell) => {
-                        const val = cell.getValue();
-                        return isTime ? formatDuration(val) : val;
-                    },
-                    cellClick: (e, cell) => {
-                        if (isTime) {
-                            e.stopPropagation();
-                            this.openDurationPicker(cell);
-                        }
-                    }
-                },
-                { 
-                    title: "Notes", 
-                    field: "notes", 
-                    editor: "textarea", 
-                    resizable: false,
-                    formatter: (cell) => cell.getValue() || "-" 
-                },
-                {
-                    title: "",
-                    field: "id",
-                    headerSort: false,
-                    hozAlign: "right",
-                    width: 20,
-                    resizable: false,
-                    formatter: () => `<button class="text-slate-400 hover:text-red-600 dark:text-slate-500 dark:hover:text-red-400 transition-colors"><i class="fas fa-trash-alt"></i></button>`,
-                    cellClick: (e, cell) => {
-                        const entry = cell.getData();
-                        this.dispatchEvent(new CustomEvent('delete-entry-click', { 
-                            detail: { entry, id: entry.id } 
-                        }));
-                    }
-                }
-            ],
-        });
-
-        this.table.on("cellEdited", (cell) => {
-            const updatedEntry = cell.getData();
-            this.dispatchEvent(new CustomEvent('entry-updated', { 
-                detail: { entry: updatedEntry } 
-            }));
-        });
-    }
-
-    async openDurationPicker(cell) {
-        try {
-            const currentValue = cell.getValue();
-            const newValue = await DurationPickerModal.open(currentValue);
-            
-            // Update the cell value
-            cell.setValue(newValue);
-            
-            // Get the updated row data and dispatch event
-            const row = cell.getRow();
-            const updatedEntry = row.getData();
-            this.dispatchEvent(new CustomEvent('entry-updated', { 
-                detail: { entry: updatedEntry } 
-            }));
-            
-        } catch (error) {
-            // User cancelled or modal closed
-            console.log('Duration selection cancelled');
-        }
+async function openDurationPicker(cell, onEntryUpdated) {
+    try {
+        const newValue = await DurationPickerModal.open(cell.getValue());
+        cell.setValue(newValue);
+        onEntryUpdated?.({ entry: cell.getRow().getData() });
+    } catch {
+        console.log('Duration selection cancelled');
     }
 }
 
-customElements.define('series-history', SeriesHistory);
+function buildColumns(isTime, vnode) {
+    return [
+        {
+            title: 'Date', field: 'timestamp', sorter: 'string',
+            hozAlign: 'left', width: 180, resizable: false, editor: 'input'
+        },
+        {
+            title: 'Value', field: 'value', hozAlign: 'right',
+            width: 100, resizable: false,
+            editor: isTime ? false : 'number',
+            formatter: cell => isTime ? formatDuration(cell.getValue()) : cell.getValue(),
+            cellClick: (e, cell) => {
+                if (isTime) {
+                    e.stopPropagation();
+                    openDurationPicker(cell, vnode.attrs.onEntryUpdated);
+                }
+            }
+        },
+        {
+            title: 'Notes', field: 'notes', editor: 'textarea',
+            resizable: false,
+            formatter: cell => cell.getValue() || '-'
+        },
+        {
+            title: '', field: 'id', headerSort: false,
+            hozAlign: 'right', width: 20, resizable: false,
+            formatter: () => `<wa-button appearance="plain" variant="danger" size="small"><wa-icon name="trash-alt" label="Delete entry"></wa-icon></wa-button>`,
+            cellClick: (e, cell) => {
+                const entry = cell.getData();
+                vnode.attrs.onDeleteEntryClick?.({ entry, id: entry.id });
+            }
+        }
+    ];
+}
+
+function initTable(vnode) {
+    const { series, entries = [] } = vnode.attrs;
+    if (!series) return;
+
+    const isTime = series.type === 'time';
+    vnode.state.seriesId = series.id;
+
+    vnode.state.table = new Tabulator(vnode.dom.querySelector('#table-container'), {
+        data: [...entries].reverse(),
+        layout: 'fitColumns',
+        responsiveLayout: false,
+        resizableColumns: false,
+        resizableColumnFit: false,
+        placeholder: 'No historical data available.',
+        columns: buildColumns(isTime, vnode),
+    });
+
+    vnode.state.table.on('cellEdited', cell => {
+        vnode.attrs.onEntryUpdated?.({ entry: cell.getData() });
+    });
+}
+
+const SeriesHistory = {
+    oncreate(vnode) {
+        initTable(vnode);
+    },
+
+    onupdate(vnode) {
+        if (!vnode.state.table) return;
+        const { series, entries = [] } = vnode.attrs;
+
+        if (series?.id !== vnode.state.seriesId) {
+            vnode.state.table.destroy();
+            initTable(vnode);
+        } else {
+            vnode.state.table.replaceData([...entries].reverse());
+        }
+    },
+
+    onremove(vnode) {
+        if (vnode.state.table) vnode.state.table.destroy();
+    },
+
+    view(vnode) {
+        const { series, onAddEntryClick } = vnode.attrs;
+        if (!series) return null;
+
+        return m('.bg-white.rounded-2xl.shadow-sm.border.overflow-hidden.border-slate-200.dark:bg-slate-800.dark:border-slate-700', [
+            m('style', tableStyles),
+            m('.p-6.border-b.flex.justify-between.items-center.border-slate-100.dark:border-slate-700', [
+                m('h3.text-lg.font-semibold.dark:text-slate-100', 'Data History'),
+                m('wa-button[variant=brand][size=small]', {
+                    onclick: () => onAddEntryClick?.({ series })
+                }, [
+                    m('wa-icon[slot=start][name=plus]'),
+                    'Add Entry'
+                ])
+            ]),
+            m('#table-container.w-full')
+        ]);
+    }
+};
+
+export default SeriesHistory;
