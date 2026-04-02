@@ -88,7 +88,6 @@
     <script src="./mithril-super.js"></script>
     <script src="./native-elements.js"></script>
     <script type="module" src="./multiselect.js"></script>
-    <script type="module" src="./calendar.js"></script>
     <script type="module" src="./db.js"></script>
     <script type="module" src="./analytics.js"></script>
     <script type="module" src="./utils.js"></script>
@@ -158,6 +157,7 @@
         import DurationPickerModal from './duration-picker-modal.js';
         import SeriesConfiguration from './seriesConfig.js';
         import SeriesChart from './series-chart.js';
+        import Calendar from './calendar.js';
         import { getFormattedISO } from './utils.js';
         import chronosDB from './db.js';
 
@@ -192,11 +192,11 @@
                             State.currentSeries ? m(SeriesChart, { seriesId: State.currentSeries.id}) : null
                         ),
                         m("wa-tab-panel[name=calendar]",
-                            m("chronos-calendar", {
+                            m(Calendar, {
                                 series: State.currentSeries,
                                 entries: State.currentSeriesEntries,
-                                'onday-click': (e) => {
-                                    const targetDate = new Date(e.detail.date);
+                                onDayClick: (dayInfo) => {
+                                    const targetDate = new Date(dayInfo.date);
                                     const now = new Date();
                                     targetDate.setHours(now.getHours(), now.getMinutes());
                                     EntryModal.openForEdit({ timestamp: getFormattedISO(targetDate), value: 0, notes: '', dhms: { d:0, h:0, m:0, s:0 } }, State.currentSeries);
