@@ -145,13 +145,13 @@ const Calendar = {
                 m('.wa-split.items-center',
                     m('h3.text-lg.font-bold.text-normal', monthName),
                     m('wa-button-group',
-                        m('wa-button[variant=brand][size=small]',
+                        m([button, '.brand.small'],
                             { onclick: () => { state.calendarDate = prevMonth(state.calendarDate); }, },
-                            m('wa-icon[name=chevron-left]')
+                            m(icon`chevron-left`)
                         ),
-                        m('wa-button[variant=brand][size=small]',
+                        m([button, '.brand.small'],
                             { onclick: () => { state.calendarDate = nextMonth(state.calendarDate); }, },
-                            m('wa-icon[name=chevron-right]')
+                            m(icon`chevron-right`)
                         )
                     )
                 )

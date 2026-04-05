@@ -113,9 +113,9 @@ function SeriesConfiguration() {
                 },
             }),
 
-            m('wa-button[appearance=plain][size=small][variant=danger]', {
+            m([button,'.plain.small.danger'], {
                 onclick: () => _removeSummary(index),
-            }, m('wa-icon[name=trash][label=delete]')),
+            }, m(icon`trash`+'[label=delete]')),
         ];
     }
 
@@ -141,7 +141,7 @@ function SeriesConfiguration() {
                 : [{ period: 'all', operation: 'mean' }];
             const previews  = getSummaryPreviews(series, entries);
 
-            return m('div', {
+            return m('', {
                 oncreate: v => { _dom = v.dom; },
             }, [
                 loading
@@ -171,21 +171,21 @@ function SeriesConfiguration() {
 
                             m('wa-card', [
                                 m('.wa-cluster[slot=header]', 
-                                    m('wa-icon[name=calculator].text-brand'),
+                                    m(icon`calculator`+'.text-brand'),
                                     m(h3, 'Dashboard Summary'),
                                 ),
 
                                 m('.grid.grid-cols-3-auto.gap-2.py-2',
                                     summaries.flatMap((s, i) => _viewSummaryRow(s, i, summaries.length))
                                 ),
-                                m('wa-button[appearance=plain][variant=brand][size=small]', 
-                                    { onclick: () => _addSummary(), }, 
-                                    m('wa-icon[slot=start][name=plus]'),
+                                m([button, '.plain.brand.small'], 
+                                    { onclick: _addSummary, }, 
+                                    m(icon`plus`),
                                     'Add Summary',
                                 ),
 
-                                m('wa-callout[variant=brand][appearance=filled]', [
-                                    m('span[slot=icon]', m('wa-icon[name=eye]')),
+                                m([callout, '.brand.filled'], [
+                                    m(icon`eye`),
                                     previews.length
                                         ? previews.map(p => m('.text-sm.font-black.truncate', p))
                                         : m('.text-sm.italic', 'No Data'),
@@ -195,7 +195,7 @@ function SeriesConfiguration() {
                             m('wa-card', [
 
                                 m('.wa-cluster[slot=header]', 
-                                    m('wa-icon[name=bolt].text-brand'),
+                                    m(icon`bolt`+'.text-brand'),
                                     m(h3, 'Quick Add (+) Action'),
                                 ),
 
@@ -215,7 +215,7 @@ function SeriesConfiguration() {
                                     ],
                                 ]),
 
-                                m('wa-callout[variant=neutral][appearance=filled]', 
+                                m([callout, '.neutral.filled'], 
                                     m('p.text-xs.font-bold.text-slate-500.uppercase.mb-1', 'How it works'),
                                     m('p.text-xs.text-slate-500.italic.leading-relaxed', 
                                         'Sets the action triggered by the ',

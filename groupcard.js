@@ -76,10 +76,8 @@ const GroupCard = () => {
                             )
                         ]),
                         // Action Button
-                        m("wa-button[appearance=plain].transition-colors", {
-                        // isRunning ?'[variant=danger].animate-pulse':'[variant=brand]'
-                            class: (isRunning ? 'animate-pulse' : ''),
-                            variant: (isRunning ? 'danger' : 'brand'),
+                        m([button, '.plain.transition-colors'], {
+                            class: (isRunning ? 'danger animate-pulse' : 'brand'),
                             onclick: (e) => {
                                 e.stopPropagation();
                                 handleQuickAdd(series, vnode);
@@ -93,13 +91,13 @@ const GroupCard = () => {
 };
 
 const getButtonIcon = (series, isRunning) => {
-    if (isRunning) return m("wa-icon[name=circle-stop]");
+    if (isRunning) return m(icon`circle-stop`);
     const action = series.config?.quickAddAction || 'manual';
     switch(action) {
         case 'increment': return m("span.text-sm.font-black", "+1");
-        case 'chronometer': return m("wa-icon[name=play]");
-        case 'currentTime': return m("wa-icon[name=clock]");
-        default: return m("wa-icon[name=plus]");
+        case 'chronometer': return m(icon`play`);
+        case 'currentTime': return m(icon`clock`);
+        default: return m(icon`plus`);
     }
 };
 

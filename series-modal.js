@@ -112,14 +112,12 @@ const SeriesModal = {
       ]),
 
       m('div.wa-cluster.wa-justify-content-end', { slot: 'footer'}, [
-        m('wa-button', {
+        m([button, '.outlined'], {
           'data-dialog':"close",
-          appearance: 'outlined',
         }, 'Cancel'),
 
-        m('wa-button', {
+        m([button, '.brand'], {
           'data-dialog':"close",
-          variant: 'brand',
           disabled: !this.form.name.trim() || undefined,
           onclick: () => this.save(vnode),
         }, isEditing ? 'Save Changes' : 'Save Series'),

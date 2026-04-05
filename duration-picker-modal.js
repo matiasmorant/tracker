@@ -62,8 +62,8 @@ const DurationPickerModal = {
       [
         dhmsField(state),
         m(".wa-cluster.wa-justify-content-end", { slot: "footer"}, [
-          m("wa-button", { appearance: "outlined", onclick: cancel  }, "Cancel"),
-          m("wa-button", { variant: "brand",       onclick: confirm }, "OK"),
+          m([button, ".outlined"], { onclick: cancel  }, "Cancel"),
+          m([button, ".brand"],    { onclick: confirm }, "OK"),
         ]),
       ]
     );
