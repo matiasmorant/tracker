@@ -26,15 +26,15 @@ const DetailHeader = {
         };
 
         return m(".wa-cluster", [
-            m('wa-button[appearance=plain]', {onclick: ()=>{ State.view = 'list'; }},
-                m("wa-icon[name=chevron-left]")),
+            m([button, '.plain'], {onclick: ()=>{ State.view = 'list'; }},
+                m(icon`chevron-left`)),
             m("wa-input.series-name-input.text-l[type=text]", {
                 value: vnode.state.nameValue,
                 oninput: (e) => { vnode.state.nameValue = e.target.value; },
                 onchange: commitName,
                 onkeydown: (e) => { if (e.key === "Enter") e.target.blur(); },
-            }, m("wa-icon[name=pen][slot=end]")),
-            m('wa-button[appearance=plain]',{
+            }, m(icon`pen`+'[slot=end]')),
+            m([button, '.plain'],{
                 onclick: async () => {
                     if (!confirm('Delete series and all data?')) return;
                     await chronosDB.deleteSeries(series.id);
@@ -42,7 +42,7 @@ const DetailHeader = {
                     State.view = 'list';
                     m.redraw();
                 },
-            },m("wa-icon[name=trash-can]")),
+            },m(icon`trash-can`)),
         ]);
     },
 };

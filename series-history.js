@@ -110,10 +110,10 @@ const SeriesHistory = {
             m('style', tableStyles),
             m('.p-6.border-b.flex.justify-between.items-center.border-slate-100.dark:border-slate-700', [
                 m('h3.text-lg.font-semibold.dark:text-slate-100', 'Data History'),
-                m('wa-button[variant=brand][size=small]', {
+                m([button, '.brand.small'], {
                     onclick: () => onAddEntryClick?.({ series })
                 }, [
-                    m('wa-icon[slot=start][name=plus]'),
+                    m(icon`plus`),
                     'Add Entry'
                 ])
             ]),

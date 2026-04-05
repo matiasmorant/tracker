@@ -342,10 +342,10 @@ const SeriesChart = () => {
 
         // ── Toolbar ────────────────────────────────────────────────────────
         m('.px-4.py-0.border-b.border-slate-100.dark:border-slate-700.flex.justify-between.items-center',
-          m('wa-button[appearance=plain][size=small]', {
+          m([button, '.plain.small'], {
             onclick: handleToggleCollapsed,
           },
-            m(`wa-icon[slot=start][name=${collapsed ? 'chevron-down' : 'chevron-up'}]`),
+            m(icon(collapsed ? 'chevron-down' : 'chevron-up')),
             collapsed ? 'Statistics' : 'Hide'
           )
         ),
