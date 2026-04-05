@@ -23,22 +23,22 @@ const ListHeader = {
 
         return m('div.wa-split', [
             m('div.wa-cluster', [
-                m('wa-icon[name=arrow-trend-up].size-12.rounded-lg.text-white.text-2xl[style=background-color:var(--wa-color-brand-fill-loud)]'),
+                m(icon`arrow-trend-up` + '.size-12.rounded-lg.text-white.text-2xl[style=background-color:var(--wa-color-brand-fill-loud)]'),
                 m('h1.text-xl.font-bold.tracking-tight', 'Chronos'),
             ]),
             m('div.wa-cluster', [
-                m('wa-button[appearance=filled]', { 'data-dialog': 'open group-dialog'  }, 'Groups'),
-                m('wa-button[variant=brand]'    , { 'data-dialog': 'open series-dialog' }, '+ New Series'),
+                m([button, '.filled'], { 'data-dialog': 'open group-dialog'  }, 'Groups'),
+                m([button, '.brand']    , { 'data-dialog': 'open series-dialog' }, '+ New Series'),
                 m('wa-dropdown', [
-                    m('wa-button[appearance=plain][slot=trigger]', m('wa-icon[name=ellipsis-vertical]')),
+                    m([button, '.plain[slot=trigger]'], m(icon`ellipsis-vertical`)),
                     m('wa-dropdown-item[disabled]',
                         m('span.text-xs.font-bold.uppercase.tracking-widest', 'Transfer')
                     ),
                     m('wa-dropdown-item', { onclick: Actions.exportData }, [
-                        m('wa-icon[name=download][slot=icon]'), 'Export JSON',
+                        m(icon`download`+'[slot=icon]'), 'Export JSON',
                     ]),
                     m('wa-dropdown-item', [
-                        m('wa-icon[name=upload][slot=icon]'),
+                        m(icon`upload`+'[slot=icon]'),
                         m('label.cursor-pointer',[
                             'Import JSON',
                             m('input.hidden[type=file][accept=.json]', {onchange: (e) => handleFile(e, 'json') })
@@ -46,10 +46,10 @@ const ListHeader = {
                     ]),
                     m('wa-divider'),
                     m('wa-dropdown-item', { onclick: Actions.exportCSV }, [
-                        m('wa-icon[slot=icon][name=file-csv]'), 'Export CSV',
+                        m(icon`file-csv`+'[slot=icon]'), 'Export CSV',
                     ]),
                     m('wa-dropdown-item', [
-                        m('wa-icon[slot=icon][name=file-arrow-up]'),
+                        m(icon`file-arrow-up`+'[slot=icon]'),
                         m('label.cursor-pointer',[
                             'Import CSV',
                             m('input.hidden[type=file][accept=.csv]', {onchange: (e) => handleFile(e, 'csv') })
@@ -57,7 +57,7 @@ const ListHeader = {
                     ]),
                     m('wa-divider'),
                     m('wa-dropdown-item', { onclick: () => Actions.updateTheme(themeManager.toggleTheme()),}, [
-                        m('wa-icon[slot=icon]', { name: isLight ? 'moon' : 'sun' }),
+                        m(icon(isLight ? 'moon' : 'sun')+'[slot=icon]'),
                         isLight ? 'Dark Theme' : 'Light Theme',
                     ]),
                 ]),

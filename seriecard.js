@@ -5,13 +5,13 @@ import chronosDB from './db.js';
 const Summary = ".wa-cluster.wa-gap-0.items-baseline.*:first:(text-xs font-black).*:last:(text-2xs font-bold uppercase ml-1)";
 
 const getButtonIcon = (series, isRunning) => {
-    if (isRunning) return m("wa-icon[name=circle-stop]");
+    if (isRunning) return m(icon`circle-stop`);
     const action = series.config?.quickAddAction || 'manual';
     switch (action) {
         case 'increment':   return m("span.text-sm.font-black", "+1");
-        case 'chronometer': return m("wa-icon[name=play]");
-        case 'currentTime': return m("wa-icon[name=clock]");
-        default:            return m("wa-icon[name=plus]");
+        case 'chronometer': return m(icon`play`);
+        case 'currentTime': return m(icon`clock`);
+        default:            return m(icon`plus`);
     }
 };
 
@@ -138,9 +138,8 @@ const SerieCard = () => {
                                     : m("span.text-[10px].text-slate-300.italic.dark:text-slate-600", "No data")
                         ])
                     ]),
-                    m("wa-button[appearance=plain].absolute.bottom-2.right-2.transition-colors", {
-                        class: isRunning ? 'animate-pulse' : '',
-                        variant: isRunning ? 'danger' : 'brand',
+                    m([button, '.plain.absolute.bottom-2.right-2.transition-colors'], {
+                        class: isRunning ? 'danger animate-pulse' : 'brand',
                         onclick: (e) => {
                             e.stopPropagation();
                             handleQuickAdd(series, vnode);

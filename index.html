@@ -185,7 +185,7 @@
                         {panel: 'calendar', name: 'calendar-days'},
                         {panel: 'history', name: 'table-list'},
                         {panel: 'config', name: 'gear'}].map(({panel,name}) =>
-                            m("wa-tab[slot=nav]", {panel}, m("wa-icon",{name}))
+                            m("wa-tab[slot=nav]", {panel}, m(icon(name)) )
                         ),
 
                         m("wa-tab-panel[name=chart]",

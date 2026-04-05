@@ -131,15 +131,11 @@ const GroupManager = {
 
       [
 
-        // Header — only show "Add New" button when form is not open
         !state.showForm && m('.wa-justify-content-end',
-          m('wa-button', {
-            appearance: 'plain',
-            variant: 'brand',
-            size: 'small',
+          m([button, '.plain.brand.small'], {
             onclick() { GroupManager.openAddForm(state); },
           }, [
-            m('wa-icon', { slot: 'start', name: 'plus' }),
+            m(icon`plus`),
             'Add New',
           ])
         ),
@@ -166,8 +162,7 @@ const GroupManager = {
             // Color swatches
             m('.grid.wa-gap-2xs', {style: 'grid-template-columns: repeat(6, 1fr);'},
               COLORS.map(color =>
-                m('wa-icon', {
-                  name: 'square',
+                m(icon`square`, {
                   style: [
                     `color: ${color}`,
                     'font-size: 3em',
@@ -186,16 +181,12 @@ const GroupManager = {
               )
             ),
 
-            // Buttons
             m('div.wa-cluster.wa-justify-content-end', [
-              m('wa-button', {
-                appearance: 'outlined',
+              m([button, '.outlined'], {
                 onclick() { GroupManager.cancelForm(state); },
               }, 'Cancel'),
 
-              m('wa-button', {
-                variant: 'brand',
-                appearance: 'filled',
+              m([button, '.brand.filled'], {
                 loading: state.saving || undefined,
                 onclick() { GroupManager.saveGroup(vnode, true); },
               }, 'Save Group'),
@@ -209,27 +200,24 @@ const GroupManager = {
           ? m('p', {
               style: 'color: var(--wa-color-neutral-500); font-size: var(--wa-font-size-s); text-align: center; padding: var(--wa-space-m) 0; margin: 0',
             }, 'No groups yet.')
-          : state.groups.map(group =>
+            : state.groups.map(group =>
               m('div.wa-split', {
                 key: group.id,
                 onclick() { GroupManager.openEditForm(state, group); },
               }, [
                 m('div.wa-cluster', [
-                  m('wa-icon', { name: 'circle', style:`color: ${group.color || DEFAULT_COLOR};`}),
+                  m(icon`circle`, { style:`color: ${group.color || DEFAULT_COLOR};`}),
                   m('span', group.name),
                 ]),
 
-                m('wa-button', {
-                  appearance: 'plain',
-                  variant: 'danger',
-                  size: 'small',
+                m([button, '.plain.danger.small'], {
                   title: 'Delete group',
                   onclick(e) {
                     e.stopPropagation();
                     GroupManager.deleteGroup(vnode, group.id);
                   },
                 },
-                  m('wa-icon', { name: 'trash', slot: 'start' })
+                  m(icon`trash`)
                 ),
               ])
             )

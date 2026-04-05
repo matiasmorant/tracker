@@ -170,13 +170,11 @@ const EntryModal = {
       ),
 
       m('.wa-cluster.wa-justify-content-end[slot=footer]', [
-        m('wa-button', {
-          appearance: 'outlined',
+        m([button, '.outlined'], {
           onclick: close,
           'data-dialog':"close"
         }, 'Cancel'),
-        m('wa-button', {
-          variant: 'brand',
+        m([button, '.brand'], {
           onclick: handleSave,
           'data-dialog':"close"
         }, 'Save Entry'),
