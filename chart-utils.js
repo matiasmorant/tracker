@@ -1,11 +1,124 @@
+import { 
+  format, 
+  startOfMonth,
+  startOfYear,
+  startOfDay,
+  addDays,
+  subDays,
+  addMonths,
+  addYears,
+  differenceInDays,
+  min as dateFnsMin,
+  max as dateFnsMax,
+} from 'https://cdn.jsdelivr.net/npm/date-fns@4.1.0/+esm';
+
+// Returns a Date object. Single conversion point from raw data.
 export function parseDate(dateValue) {
-  if (typeof dateValue === 'number') return dateValue;
+  if (dateValue instanceof Date) return dateValue;
+  if (typeof dateValue === 'number') return new Date(dateValue);
   if (typeof dateValue === 'string') {
-    const parsed = Date.parse(dateValue);
+    const parsed = new Date(dateValue);
     if (!isNaN(parsed)) return parsed;
   }
-  if (dateValue instanceof Date) return dateValue.getTime();
-  return Date.now();
+  return new Date();
+}
+
+export function getXMode(days) {
+  const [low, high]        = [1.1,  10];
+  const [day, month, year] = [1, 365/12, 365];
+
+  if (days > year  * high) return 'tick-year';
+  if (days > year  * low ) return 'shade-year';
+  if (days > month * high) return 'tick-month';
+  if (days > month * low ) return 'shade-month';
+  if (days > day   * high) return 'tick-day';
+  if (days > day   * low ) return 'shade-day';
+  return 'hour';
+}
+
+export function getUnitFns(unit) {
+  if (unit === 'year')  return { startOf: startOfYear,  addFn: addYears };
+  if (unit === 'month') return { startOf: startOfMonth, addFn: addMonths };
+  return                       { startOf: startOfDay,   addFn: addDays };
+}
+
+export function generateTickDates(unit, minDate, maxDate, step = 1) {
+  const { startOf, addFn } = getUnitFns(unit);
+  const dates = [];
+  for (let cur = startOf(minDate); cur <= maxDate; cur = addFn(cur, step)) {
+    dates.push(cur);
+  }
+  return dates;
+}
+
+export function formatXLabel(date, mode) {
+  if (mode === 'shade-year' || mode === 'tick-year')   return format(date, 'yyyy');
+  if (mode === 'shade-month' || mode === 'tick-month') return format(date, 'MMM');
+  if (mode === 'shade-day' || mode === 'tick-day')     return format(date, 'd MMM');
+  return format(date, 'HH:mm'); // hour
+}
+
+export function dateRange(count, [minDate, maxDate]) {
+  const totalMs = maxDate - minDate;
+  const result = [];
+  for (let i = 0; i < count; i++) {
+    result.push(new Date(minDate.getTime() + (i / (count - 1)) * totalMs));
+  }
+  return result;
+}
+
+export function getPointsDateRange(points) {
+  if (!points || points.length === 0) return [new Date(), new Date()];
+  const dates = points.map(p => parseDate(p.x));
+  return [dateFnsMin(dates), dateFnsMax(dates)];
+}
+
+export function getPeriodBands(unit, [minDate, maxDate], globalMin) {
+  const { startOf, addFn } = getUnitFns(unit);
+  const getIndex = unit === 'year'  ? (d) => d.getFullYear() : 
+                   unit === 'month' ? (d) => (d.getMonth() + (d.getFullYear() * 12)) : 
+                   (d) => Math.floor(d.getTime() / (24 * 60 * 60 * 1000));
+  
+  const firstIndex = getIndex(startOf(globalMin));
+  const bands      = [];
+  
+  for (let cur = startOf(minDate); cur <= maxDate; cur = addFn(cur, 1)) {
+    const start = cur;
+    const end   = addFn(start, 1);
+    bands.push({
+      start, end,
+      isEven: (getIndex(start) - firstIndex) % 2 === 0
+    });
+  }
+  return bands;
+}
+
+export function getXAxisConfig(points, viewDays, panOffset) {
+  const [minDate, maxDate] = getVisibleDateRange(points, viewDays, panOffset);
+  const [globalMin]        = getPointsDateRange(points);
+  const mode               = getXMode(differenceInDays(maxDate, minDate));
+  
+  let items = [];
+  if (mode.startsWith('shade-')) {
+    items = getPeriodBands(mode.split('-')[1], [minDate, maxDate], globalMin)
+      .map(b => {
+        b.start = dateFnsMax([b.start , minDate]);
+        b.end   = dateFnsMin([b.end   , maxDate]);
+        const label = {
+          pos: new Date(b.start.getTime() + (b.end.getTime() - b.start.getTime()) / 2),
+          text: formatXLabel(b.start, mode)
+        };
+        return { ...b, type: 'shade', label };
+      });
+  } else if (mode.startsWith('tick-')) {
+    items = generateTickDates(mode.split('-')[1], minDate, maxDate, 3)
+      .map(date => ({ date, type: 'tick', label: { pos: date, text: formatXLabel(date, mode) } }));
+  } else {
+    items = dateRange(8, [minDate, maxDate])
+      .map(date => ({ date, type: 'tick', label: { pos: date, text: formatXLabel(date, mode) } }));
+  }
+  
+  return { minDate, maxDate, mode, items };
 }
 
 export function formatValue(value, customFormatter = null) {
@@ -27,26 +140,10 @@ export function formatValue(value, customFormatter = null) {
 }
 
 export function formatDate(date, minDate, maxDate) {
-  if (!(date instanceof Date)) date = new Date(date);
-  
-  const dateRangeDays = (maxDate - minDate) / (24 * 60 * 60 * 1000);
-  const isFirstOfMonth = date.getDate() === 1;
-  
-  if (dateRangeDays <= 7) {
-    return date.toLocaleDateString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' });
-  } else if (dateRangeDays <= 30) {
-    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-  } else if (dateRangeDays <= 90) {
-    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-  } else if (dateRangeDays <= 365) {
-    if (isFirstOfMonth) {
-      return date.toLocaleDateString([], { month: 'short', year: 'numeric' });
-    } else {
-      return date.toLocaleDateString([], { month: 'short' });
-    }
-  } else {
-    return date.toLocaleDateString([], { month: 'short', year: 'numeric' });
-  }
+  date = parseDate(date);
+  const dRange = differenceInDays(maxDate, minDate);
+  const mode   = getXMode(dRange);
+  return formatXLabel(date, mode);
 }
 
 export function generateYValues(values, count = 6, logScale = false) {
@@ -103,82 +200,24 @@ export function generateYValues(values, count = 6, logScale = false) {
   return result;
 }
 
-export function generateXLabels(points, count = 8, viewDays = 0, panOffset = 0) {
-  if (points.length === 0) return Array(count).fill('');
+// Returns Date[]
+export function getVisibleDateRange(points, viewDays = 0, panOffset = 0) {
+  const [minDate, maxDate] = getPointsDateRange(points);
   
-  const dates = points.map(p => parseDate(p.x));
-  let minDate = Math.min(...dates);
-  let maxDate = Math.max(...dates);
+  if (viewDays <= 0) return [minDate, maxDate];
+
+  let vMax = subDays(maxDate, panOffset);
+  let vMin = dateFnsMax([minDate, subDays(vMax, viewDays)]);
   
-  if (viewDays > 0 && panOffset) {
-    const visibleRangeMs = viewDays * 24 * 60 * 60 * 1000;
-    const panOffsetMs = panOffset * 24 * 60 * 60 * 1000;
-    maxDate = Math.max(...dates) - panOffsetMs;
-    minDate = Math.max(Math.min(...dates), maxDate - visibleRangeMs);
-  } else if (viewDays > 0) {
-    maxDate = Math.max(...dates);
-    minDate = maxDate - (viewDays * 24 * 60 * 60 * 1000);
+  if (vMin <= minDate) {
+    vMin = minDate;
+    vMax = dateFnsMin([maxDate, addDays(vMin, viewDays)]);
   }
   
-  const dateRangeDays = (maxDate - minDate) / (24 * 60 * 60 * 1000);
-  
-  if (dateRangeDays > 90 && dateRangeDays <= 365) {
-    return generateMonthlyTicks(minDate, maxDate);
-  }
-  
-  const labels = [];
-  for (let i = 0; i < count; i++) {
-    const date = new Date(minDate + (i / (count - 1)) * (maxDate - minDate));
-    labels.push(formatDate(date, minDate, maxDate));
-  }
-  
-  return labels;
+  return [vMin, vMax];
 }
 
-export function getMonthIndex(timestamp) {
-  const date = new Date(timestamp);
-  return date.getMonth() + (date.getFullYear() * 12);
-}
 
-export function generateMonthlyTicks(startDateMs, endDateMs) {
-  const startDate = new Date(startDateMs);
-  const endDate = new Date(endDateMs);
-  const firstDate = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
-  
-  const monthlyDates = [];
-  let currentDate = new Date(firstDate);
-  
-  while (currentDate <= endDate) {
-    monthlyDates.push(new Date(currentDate));
-    currentDate.setMonth(currentDate.getMonth() + 1);
-    currentDate.setDate(1);
-  }
-  
-  const filteredDates = monthlyDates.filter(date => {
-    const dateMs = date.getTime();
-    return dateMs >= startDateMs - (30 * 24 * 60 * 60 * 1000) && 
-           dateMs <= endDateMs + (30 * 24 * 60 * 60 * 1000);
-  });
-  
-  return filteredDates.map(date => formatDate(date, startDateMs, endDateMs));
-}
-
-export function generateMonthlyTickDates(minDate, maxDate) {
-  const startDate = new Date(minDate);
-  const endDate = new Date(maxDate);
-  const firstDate = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
-  
-  let tickDates = [];
-  let currentDate = new Date(firstDate);
-  
-  while (currentDate <= endDate) {
-    tickDates.push(currentDate.getTime());
-    currentDate.setMonth(currentDate.getMonth() + 1);
-    currentDate.setDate(1);
-  }
-  
-  return tickDates;
-}
 
 export function getTotalDataDays(chartData) {
   if (!chartData?.datasets?.length) return 0;
@@ -187,54 +226,16 @@ export function getTotalDataDays(chartData) {
     dataset.data?.filter(p => p.x) || []
   );
   
-  if (allPoints.length === 0) return 0;
-  
-  const dates = allPoints.map(p => parseDate(p.x));
-  const minDate = Math.min(...dates);
-  const maxDate = Math.max(...dates);
-  
-  return (maxDate - minDate) / (24 * 60 * 60 * 1000);
+  const [minDate, maxDate] = getPointsDateRange(allPoints);
+  return differenceInDays(maxDate, minDate);
 }
 
 export function createXScale(points, chartWidth, viewDays = 0, panOffset = 0) {
-  const xValues = points.map(p => parseDate(p.x));
-  const minX = Math.min(...xValues);
-  const maxX = Math.max(...xValues);
-  
-  let visibleMinX = minX;
-  let visibleMaxX = maxX;
-  
-  if (viewDays > 0) {
-    const visibleRangeMs = viewDays * 24 * 60 * 60 * 1000;
-    const panOffsetMs = panOffset * 24 * 60 * 60 * 1000;
-    
-    visibleMaxX = maxX - panOffsetMs;
-    visibleMinX = Math.max(minX, visibleMaxX - visibleRangeMs);
-    
-    if (visibleMinX < minX) {
-      visibleMinX = minX;
-      visibleMaxX = Math.min(maxX, visibleMinX + visibleRangeMs);
-    }
-  }
-  
-  const dateRangeDays = (visibleMaxX - visibleMinX) / (24 * 60 * 60 * 1000);
-  let tickDates = [];
-  
-  if (dateRangeDays > 90 && dateRangeDays <= 365) {
-    tickDates = generateMonthlyTickDates(visibleMinX, visibleMaxX);
-  }
-  
-  return (date) => {
-    let x = parseDate(date);
-    
-    if (tickDates.length > 0) {
-      const tolerance = 2 * 24 * 60 * 60 * 1000;
-      const matchingTick = tickDates.find(tick => Math.abs(tick - x) < tolerance);
-      if (matchingTick) x = matchingTick;
-    }
-    
-    return ((x - visibleMinX) / (visibleMaxX - visibleMinX)) * chartWidth;
-  };
+  const [minDate, maxDate] = getVisibleDateRange(points, viewDays, panOffset);
+  const visibleMinMs = minDate.getTime();
+  const visibleRangeMs = Math.max(1, maxDate.getTime() - visibleMinMs);
+
+  return (date) => ((parseDate(date).getTime() - visibleMinMs) / visibleRangeMs) * chartWidth;
 }
 
 export function createYScale(points, chartHeight, logScale = false) {
@@ -258,39 +259,25 @@ export function createYScale(points, chartHeight, logScale = false) {
   return (y) => chartHeight - ((y - minY) / (maxY - minY)) * chartHeight;
 }
 
-export function getVisibleDateRange(points, viewDays = 0, panOffset = 0) {
-  const dates = points.map(p => parseDate(p.x));
-  let minDate = Math.min(...dates);
-  let maxDate = Math.max(...dates);
-  
-  if (viewDays > 0 && panOffset) {
-    const visibleRangeMs = viewDays * 24 * 60 * 60 * 1000;
-    const panOffsetMs = panOffset * 24 * 60 * 60 * 1000;
-    maxDate = Math.max(...dates) - panOffsetMs;
-    minDate = Math.max(Math.min(...dates), maxDate - visibleRangeMs);
-  } else if (viewDays > 0) {
-    maxDate = Math.max(...dates);
-    minDate = maxDate - (viewDays * 24 * 60 * 60 * 1000);
-  }
-  
-  return { minDate, maxDate };
-}
-
 export function generateSmoothPath(points, xScale, yScale, paddingLeft, paddingTop, tension = 0.2) {
   if (points.length < 2) return '';
   
-  let pathData = `M ${paddingLeft + xScale(points[0].x)} ${paddingTop + yScale(points[0].y)}`;
+  const getX = (p) => paddingLeft + xScale(p.x);
+  const getY = (p) => paddingTop  + yScale(p.y);
+
+  let pathData = `M ${getX(points[0])} ${getY(points[0])}`;
   
   if (tension > 0 && points.length > 2) {
     for (let i = 1; i < points.length; i++) {
-      const x0 = paddingLeft + xScale(points[Math.max(0, i - 2)].x);
-      const y0 = paddingTop + yScale(points[Math.max(0, i - 2)].y);
-      const x1 = paddingLeft + xScale(points[i - 1].x);
-      const y1 = paddingTop + yScale(points[i - 1].y);
-      const x2 = paddingLeft + xScale(points[i].x);
-      const y2 = paddingTop + yScale(points[i].y);
-      const x3 = paddingLeft + xScale(points[Math.min(points.length - 1, i + 1)].x);
-      const y3 = paddingTop + yScale(points[Math.min(points.length - 1, i + 1)].y);
+      const p0 = points[Math.max(0, i - 2)];
+      const p1 = points[i - 1];
+      const p2 = points[i];
+      const p3 = points[Math.min(points.length - 1, i + 1)];
+      
+      const x0 = getX(p0), y0 = getY(p0);
+      const x1 = getX(p1), y1 = getY(p1);
+      const x2 = getX(p2), y2 = getY(p2);
+      const x3 = getX(p3), y3 = getY(p3);
       
       const cp1x = x1 + (x2 - x0) / 6 * tension;
       const cp1y = y1 + (y2 - y0) / 6 * tension;
@@ -301,25 +288,9 @@ export function generateSmoothPath(points, xScale, yScale, paddingLeft, paddingT
     }
   } else {
     for (let i = 1; i < points.length; i++) {
-      pathData += ` L ${paddingLeft + xScale(points[i].x)} ${paddingTop + yScale(points[i].y)}`;
+      pathData += ` L ${getX(points[i])} ${getY(points[i])}`;
     }
   }
   
   return pathData;
 }
-
-export default {
-  parseDate,
-  formatValue,
-  formatDate,
-  getMonthIndex,
-  generateYValues,
-  generateXLabels,
-  generateMonthlyTicks,
-  generateMonthlyTickDates,
-  getTotalDataDays,
-  createXScale,
-  createYScale,
-  getVisibleDateRange,
-  generateSmoothPath
-};

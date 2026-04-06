@@ -2,15 +2,13 @@ import {
   parseDate, 
   formatValue, 
   formatDate,
-  getMonthIndex,
   generateYValues, 
-  generateXLabels,
-  generateMonthlyTickDates,
   getTotalDataDays,
   createXScale,
   createYScale,
   getVisibleDateRange,
-  generateSmoothPath 
+  generateSmoothPath,
+  getXAxisConfig,
 } from './chart-utils.js';
 
 export class ChronosChart extends HTMLElement {
@@ -51,7 +49,6 @@ export class ChronosChart extends HTMLElement {
     this.setupResizeObserver();
     this.setupThemeObserver();
     this.setupPanningEvents();
-    this.setupLogScaleButton();
   }
 
   disconnectedCallback() {
@@ -97,14 +94,11 @@ export class ChronosChart extends HTMLElement {
   get options() { return this._options || this._defaultOptions; }
 
   setupEventHandlers() {
-    // Unified pointer event handlers
     this.handlePointerDown = this.handlePointerDown.bind(this);
     this.handlePointerMove = this.handlePointerMove.bind(this);
     this.handlePointerUp = this.handlePointerUp.bind(this);
     this.handlePointerEnter = this.handlePointerEnter.bind(this);
     this.handlePointerLeave = this.handlePointerLeave.bind(this);
-    
-    // Log scale button handler
     this.toggleLogScale = this.toggleLogScale.bind(this);
   }
 
@@ -131,40 +125,29 @@ export class ChronosChart extends HTMLElement {
   }
 
   setupLogScaleButton() {
-    if (this.shadowRoot) {
-      const logScaleButton = this.shadowRoot.getElementById('log-scale-btn');
-      if (logScaleButton) {
-        logScaleButton.addEventListener('click', this.toggleLogScale);
-      }
+    if (this.logScaleBtn) {
+      this.logScaleBtn.addEventListener('click', this.toggleLogScale);
     }
   }
 
   removeLogScaleButtonEvents() {
-    if (this.shadowRoot) {
-      const logScaleButton = this.shadowRoot.getElementById('log-scale-btn');
-      if (logScaleButton) {
-        logScaleButton.removeEventListener('click', this.toggleLogScale);
-      }
+    if (this.logScaleBtn) {
+      this.logScaleBtn.removeEventListener('click', this.toggleLogScale);
     }
   }
 
   toggleLogScale(event) {
-    // Prevent default to avoid any native button behavior
     if (event) {
       event.preventDefault();
       event.stopPropagation();
     }
     
-    // Toggle the log scale state
     this._options.logScale = !this._options.logScale;
     
-    // Update button text
-    const logScaleButton = this.shadowRoot.getElementById('log-scale-btn');
-    if (logScaleButton) {
-      logScaleButton.textContent = this._options.logScale?'LOG':'LINEAR';
+    if (this.logScaleBtn) {
+      this.logScaleBtn.textContent = this._options.logScale ? 'LOG' : 'LINEAR';
     }
     
-    // Dispatch custom event for Alpine.js or other frameworks
     this.dispatchEvent(new CustomEvent('scale-click', {
       bubbles: true,
       composed: true,
@@ -175,7 +158,6 @@ export class ChronosChart extends HTMLElement {
       }
     }));
     
-    // Update the chart
     this.updateChart();
   }
 
@@ -188,15 +170,12 @@ export class ChronosChart extends HTMLElement {
                          .chart-container.pan-ready:hover { cursor: grab !important; }`;
     this.shadowRoot.appendChild(style);
     
-    // Unified pointer events (works for mouse, touch, pen)
     this.svg.addEventListener('pointerenter', this.handlePointerEnter);
     this.svg.addEventListener('pointerleave', this.handlePointerLeave);
     this.svg.addEventListener('pointerdown', this.handlePointerDown);
     this.svg.addEventListener('pointermove', this.handlePointerMove);
     this.svg.addEventListener('pointerup', this.handlePointerUp);
     this.svg.addEventListener('pointercancel', this.handlePointerUp);
-    
-    // Prevent context menu on touch devices for better UX
     this.svg.addEventListener('contextmenu', (e) => e.preventDefault());
   }
 
@@ -213,36 +192,29 @@ export class ChronosChart extends HTMLElement {
 
   handlePointerEnter(event) {
     if (this._options.viewDays > 0) {
-      this.shadowRoot.querySelector('.chart-container').classList.add('pan-ready');
+      this.container.classList.add('pan-ready');
     }
   }
 
   handlePointerLeave(event) {
-    this.shadowRoot.querySelector('.chart-container').classList.remove('pan-ready', 'panning');
+    this.container.classList.remove('pan-ready', 'panning');
   }
 
   handlePointerDown(event) {
     if (this._options.viewDays <= 0 || event.button !== 0) return;
-    
-    // Prevent default to avoid text selection and improve touch behavior
     event.preventDefault();
-    
-    // Set pointer capture for consistent behavior across devices
     event.target.setPointerCapture(event.pointerId);
-    
     this.startPan(event.clientX);
   }
 
   handlePointerMove(event) {
     if (!this._isPanning || this._options.viewDays <= 0) return;
-    
     event.preventDefault();
     this.updatePan(event.clientX);
   }
 
   handlePointerUp(event) {
     if (!this._isPanning) return;
-    
     event.preventDefault();
     this.endPan();
   }
@@ -252,41 +224,55 @@ export class ChronosChart extends HTMLElement {
     this._panStartX = clientX;
     this._panStartOffset = this._panOffset || 0;
     
-    const container = this.shadowRoot.querySelector('.chart-container');
-    container.classList.remove('pan-ready');
-    container.classList.add('panning');
+    const totalDays = getTotalDataDays(this._data);
+    this._maxPanOffset = Math.max(0, totalDays - this._originalViewDays);
+    
+    this.container.classList.remove('pan-ready');
+    this.container.classList.add('panning');
   }
 
   updatePan(clientX) {
     const deltaX = clientX - this._panStartX;
-    const container = this.shadowRoot.querySelector('.chart-container');
-    const chartWidth = container.clientWidth - this._options.padding.left - this._options.padding.right;
-    
-    const totalDays = this.getTotalDataDays();
-    const visibleDays = this._originalViewDays;
-    this._maxPanOffset = Math.max(0, totalDays - visibleDays);
+    const chartWidth = this.container.clientWidth - this._options.padding.left - this._options.padding.right;
     
     const daysPerPixel = this._maxPanOffset / chartWidth;
+    
     let newOffset = this._panStartOffset + (deltaX * daysPerPixel);
     newOffset = Math.max(0, Math.min(this._maxPanOffset, newOffset));
     
     this._panOffset = newOffset;
-    this._options.viewDays = visibleDays;
+    this._options.viewDays = this._originalViewDays;
     this.updateChart();
   }
 
   endPan() {
     this._isPanning = false;
     
-    const container = this.shadowRoot.querySelector('.chart-container');
-    container.classList.remove('panning');
+    this.container.classList.remove('panning');
     if (this._options.viewDays > 0) {
-      container.classList.add('pan-ready');
+      this.container.classList.add('pan-ready');
     }
   }
 
-  getTotalDataDays() {
-    return getTotalDataDays(this._data);
+
+  drawShadingRect(gridGroup, band, minDate, maxDate, xScale, padding, chartWidth, chartHeight) {
+    const visibleStart = band.start < minDate ? minDate : band.start;
+    const visibleEnd   = band.end   > maxDate ? maxDate : band.end;
+    
+    const xStart = padding.left + xScale(visibleStart);
+    const xEnd   = padding.left + xScale(visibleEnd);
+    const w = xEnd - xStart;
+    
+    if (w <= 0 || xStart > padding.left + chartWidth || xEnd < padding.left) return;
+    
+    gridGroup.appendChild(this.createElement('rect', {
+      x: Math.max(padding.left, xStart),
+      y: padding.top,
+      width: Math.min(chartWidth, w - Math.max(0, padding.left - xStart)),
+      height: chartHeight,
+      fill: 'currentColor',
+      'fill-opacity': '0.1',
+    }));
   }
 
   resetPanState() {
@@ -294,8 +280,7 @@ export class ChronosChart extends HTMLElement {
     this._isPanning = false;
     this._originalViewDays = this._options.viewDays;
     
-    const container = this.shadowRoot.querySelector('.chart-container');
-    if (container) container.classList.remove('panning', 'pan-ready');
+    if (this.container) this.container.classList.remove('panning', 'pan-ready');
   }
 
   render() {
@@ -318,17 +303,16 @@ export class ChronosChart extends HTMLElement {
           color: var(--no-data-color, #9ca3af); font-size: 14px; text-align: center; display: none; }
         .chart-clip { clip-path: url(#chartClip); }
         
-        /* Log scale button styles - matching Tailwind: text-[10px] text-indigo-600 dark:text-indigo-400 font-black ring-1 ring-indigo-600/20 px-1 rounded */
         .log-scale-container { position: absolute; bottom: 5px; left: 10px; z-index: 10; }
         .log-scale-btn { 
           font-size: 10px;
-          color: #4f46e5; /* text-indigo-600 */
-          font-weight: 900; /* font-black */
+          color: #4f46e5;
+          font-weight: 900;
           border: none;
-          outline: 1px solid rgba(79, 70, 229, 0.2); /* ring-1 ring-indigo-600/20 */
+          outline: 1px solid rgba(79, 70, 229, 0.2);
           outline-offset: 0;
-          padding: 2px 4px; /* px-1 */
-          border-radius: 4px; /* rounded */
+          padding: 2px 4px;
+          border-radius: 4px;
           cursor: pointer; 
           transition: all 0.2s ease;
           font-family: inherit;
@@ -341,15 +325,12 @@ export class ChronosChart extends HTMLElement {
           outline-color: rgba(79, 70, 229, 0.4);
           transform: translateY(-1px);
         }
-        .log-scale-btn:active { 
-          transform: translateY(0); 
-        }
+        .log-scale-btn:active { transform: translateY(0); }
         
-        /* Dark mode support for log scale button */
         :host-context(.dark) .log-scale-btn {
-          color: #818cf8; /* dark:text-indigo-400 */
+          color: #818cf8;
           background-color: rgba(0, 0, 0, 0.8);
-          outline-color: rgba(129, 140, 248, 0.2); /* ring-indigo-600/20 in dark mode */
+          outline-color: rgba(129, 140, 248, 0.2);
         }
         :host-context(.dark) .log-scale-btn:hover {
           background-color: rgba(79, 70, 229, 0.1);
@@ -361,16 +342,17 @@ export class ChronosChart extends HTMLElement {
         <div class="tooltip" id="tooltip"></div>
         <div class="no-data" id="no-data">No data to display</div>
         <div class="log-scale-container">
-          <button class="log-scale-btn" id="log-scale-btn">${this._options.logScale?'LOG':'LINEAR'}</button>
+          <button class="log-scale-btn" id="log-scale-btn">${this._options.logScale ? 'LOG' : 'LINEAR'}</button>
         </div>
       </div>
     `;
     
+    this.container = this.shadowRoot.querySelector('.chart-container');
     this.svg = this.shadowRoot.getElementById('chart-svg');
     this.tooltip = this.shadowRoot.getElementById('tooltip');
     this.noData = this.shadowRoot.getElementById('no-data');
+    this.logScaleBtn = this.shadowRoot.getElementById('log-scale-btn');
     
-    // Setup log scale button events
     this.setupLogScaleButton();
   }
 
@@ -386,9 +368,8 @@ export class ChronosChart extends HTMLElement {
     
     this.noData.style.display = 'none';
     
-    const container = this.shadowRoot.querySelector('.chart-container');
-    const width = container.clientWidth || parseInt(this.getAttribute('width')) || 600;
-    const height = container.clientHeight || parseInt(this.getAttribute('height')) || 400;
+    const width      = this.container.clientWidth  || parseInt(this.getAttribute('width'))  || 600;
+    const height     = this.container.clientHeight || parseInt(this.getAttribute('height')) || 400;
     const padding = this._options.padding;
     const chartWidth = Math.max(0, width - padding.left - padding.right);
     const chartHeight = Math.max(0, height - padding.top - padding.bottom);
@@ -397,7 +378,7 @@ export class ChronosChart extends HTMLElement {
       dataset.data?.filter(p => p.x && p.y !== undefined) || []
     );
     
-    if (allPoints.length === 0) {
+    if (!allPoints.length) {
       this.noData.style.display = 'block';
       return;
     }
@@ -405,13 +386,14 @@ export class ChronosChart extends HTMLElement {
     const xScale = this.createXScale(allPoints, chartWidth);
     const yScale = this.createYScale(allPoints, chartHeight);
     
+    const dims    = { width, height, chartWidth, chartHeight, padding };
+
     this.createClipPath(padding, chartWidth, chartHeight);
     
-    if (this._options.grid.show) this.drawGrid(xScale, yScale, chartWidth, chartHeight, padding, allPoints);
-    if (this._options.axis.show) this.drawAxes(xScale, yScale, chartWidth, chartHeight, padding, allPoints);
+    if (this._options.grid.show || this._options.axis.show)
+      this.drawAxesGrid(xScale, yScale, chartWidth, chartHeight, padding, allPoints);
     
-    const chartContentGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    chartContentGroup.classList.add('chart-clip');
+    const chartContentGroup = this.createElement('g', { class: 'chart-clip' });
     this.svg.appendChild(chartContentGroup);
     
     this._data.datasets.forEach((dataset, index) => {
@@ -429,7 +411,7 @@ export class ChronosChart extends HTMLElement {
         }, chartContentGroup);
         
         if (this._options.showPoints && !dataset.hidePoints) {
-          this.drawPoints(points, xScale, yScale, padding, {
+          this.drawPoints(points, xScale, yScale, dims, {
             color,
             radius: dataset.pointRadius || this._options.pointRadius,
             datasetIndex: index,
@@ -439,22 +421,20 @@ export class ChronosChart extends HTMLElement {
       }
     });
     
-    // Update log scale button text
-    const logScaleButton = this.shadowRoot.getElementById('log-scale-btn');
-    if (logScaleButton) {
-      logScaleButton.textContent = this._options.logScale?'LOG':'LINEAR';
+    if (this.logScaleBtn) {
+      this.logScaleBtn.textContent = this._options.logScale ? 'LOG' : 'LINEAR';
     }
   }
 
   createClipPath(padding, chartWidth, chartHeight) {
-    const clipPath = document.createElementNS('http://www.w3.org/2000/svg', 'clipPath');
-    clipPath.setAttribute('id', 'chartClip');
+    const clipPath = this.createElement('clipPath', { id: 'chartClip' });
     
-    const clipRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-    clipRect.setAttribute('x', padding.left);
-    clipRect.setAttribute('y', padding.top);
-    clipRect.setAttribute('width', chartWidth);
-    clipRect.setAttribute('height', chartHeight);
+    const clipRect = this.createElement('rect', {
+      x: padding.left,
+      y: padding.top,
+      width: chartWidth,
+      height: chartHeight
+    });
     
     clipPath.appendChild(clipRect);
     this.svg.appendChild(clipPath);
@@ -468,365 +448,63 @@ export class ChronosChart extends HTMLElement {
     return createYScale(points, chartHeight, this._options.logScale);
   }
 
-  drawGrid(xScale, yScale, chartWidth, chartHeight, padding, allPoints) {
-    const gridGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    gridGroup.classList.add('grid-group');
-    
+  drawAxesGrid(xScale, yScale, chartWidth, chartHeight, padding, allPoints) {
+    const { minDate, maxDate, mode, items } = getXAxisConfig(allPoints, this._options.viewDays, this._panOffset);
     const yValues = generateYValues(allPoints.map(p => p.y), 6, this._options.logScale);
-    
-    const { minDate, maxDate } = getVisibleDateRange(allPoints, this._options.viewDays, this._panOffset);
-    const dateRangeDays = (maxDate - minDate) / (24 * 60 * 60 * 1000);
-    
-    // YEAR SHADING (for date ranges > 400 days)
-    if (dateRangeDays > 400) {
-      // Get the first year of the ENTIRE dataset for consistent shading
-      const allDates = this._data?.datasets?.flatMap(d => 
-        d.data?.map(p => parseDate(p.x)) || []
-      ) || [];
-      
-      const globalMinDate = allDates.length > 0 ? Math.min(...allDates) : minDate;
-      const globalMaxDate = allDates.length > 0 ? Math.max(...allDates) : maxDate;
-      
-      // Generate years from the global dataset range
-      const globalFirstYear = new Date(globalMinDate);
-      globalFirstYear.setMonth(0, 1); // January 1st
-      globalFirstYear.setHours(0, 0, 0, 0);
-      
-      const globalLastYear = new Date(globalMaxDate);
-      globalLastYear.setMonth(0, 1); // January 1st
-      globalLastYear.setHours(0, 0, 0, 0);
-      
-      // Create all year boundaries in the global range
-      const globalYearDates = [];
-      let currentYear = new Date(globalFirstYear);
-      
-      while (currentYear <= globalLastYear) {
-        globalYearDates.push(new Date(currentYear));
-        currentYear.setFullYear(currentYear.getFullYear() + 1);
-      }
-      
-      // Get the reference year index from the first year of global data
-      const firstYearDate = new Date(globalMinDate);
-      const firstYearValue = firstYearDate.getFullYear();
-      
-      // Find the year that starts before or at the visible minDate
-      let startYearIndex = 0;
-      for (let i = 0; i < globalYearDates.length; i++) {
-        if (globalYearDates[i].getTime() <= minDate) {
-          startYearIndex = i;
-        }
-      }
-      
-      // Draw shaded regions for all years that intersect the visible range
-      for (let i = startYearIndex; i < globalYearDates.length; i++) {
-        const currentYearStart = globalYearDates[i].getTime();
-        const nextYearStart = i < globalYearDates.length - 1 
-          ? globalYearDates[i + 1].getTime() 
-          : globalYearDates[i].getTime() + (365 * 24 * 60 * 60 * 1000); // Approximate if no next year
-        
-        // Only draw if this year intersects the visible range
-        if (currentYearStart <= maxDate && nextYearStart >= minDate) {
-          // Calculate visible portion of this year
-          const visibleStart = Math.max(currentYearStart, minDate);
-          const visibleEnd = Math.min(nextYearStart, maxDate);
-          
-          // Determine if this year should be shaded
-          const currentYear = new Date(currentYearStart);
-          const currentYearValue = currentYear.getFullYear();
-          const shouldShade = (currentYearValue - firstYearValue) % 2 === 0;
-          
-          if (shouldShade && visibleStart < visibleEnd) {
-            const xStart = padding.left + xScale(visibleStart);
-            const xEnd = padding.left + xScale(visibleEnd);
-            const width = xEnd - xStart;
-            
-            if (width > 0 && xStart <= padding.left + chartWidth && xEnd >= padding.left) {
-              const rect = this.createElement('rect', {
-                x: Math.max(padding.left, xStart),
-                y: padding.top,
-                width: Math.min(chartWidth, width - Math.max(0, padding.left - xStart)),
-                height: chartHeight,
-                fill: 'currentColor',
-                'fill-opacity': '0.08', // Slightly lighter than month shading
-              });
-              gridGroup.appendChild(rect);
-            }
+
+    const showGrid = this._options.grid.show;
+    const showAxis = this._options.axis.show;
+
+    const addLine = (group, cls, attrs) => group.appendChild(this.createElement('line', { ...attrs, class: cls }));
+
+    if (showGrid) {
+      const gridGroup = this.createElement('g', { class: 'grid-group' });
+
+      if (mode.startsWith('shade-')) {
+        items
+          .filter(band => band.isEven)
+          .forEach(band => this.drawShadingRect(gridGroup, band, minDate, maxDate, xScale, padding, chartWidth, chartHeight));
+      } else {
+        items.forEach(({ date }) => {
+          const x = padding.left + xScale(date);
+          if (x >= padding.left && x <= padding.left + chartWidth) {
+            addLine(gridGroup, 'grid-line', { x1: x, y1: padding.top, x2: x, y2: padding.top + chartHeight });
           }
-        }
-        
-        // Stop if we're past the visible range
-        if (currentYearStart > maxDate) break;
+        });
       }
-    }
-    // MONTH SHADING (for date ranges > 60 days and <= 310 days)
-    else if (dateRangeDays > 60 && dateRangeDays <= 310) {
-      // Get the first month of the ENTIRE dataset for consistent shading
-      const allDates = this._data?.datasets?.flatMap(d => 
-        d.data?.map(p => parseDate(p.x)) || []
-      ) || [];
-      
-      const globalMinDate = allDates.length > 0 ? Math.min(...allDates) : minDate;
-      const globalMaxDate = allDates.length > 0 ? Math.max(...allDates) : maxDate;
-      
-      // Generate months from the global dataset range
-      const globalFirstMonth = new Date(globalMinDate);
-      globalFirstMonth.setDate(1);
-      globalFirstMonth.setHours(0, 0, 0, 0);
-      
-      const globalLastMonth = new Date(globalMaxDate);
-      globalLastMonth.setDate(1);
-      globalLastMonth.setHours(0, 0, 0, 0);
-      
-      // Create all month boundaries in the global range
-      const globalMonthDates = [];
-      let currentMonth = new Date(globalFirstMonth);
-      
-      while (currentMonth <= globalLastMonth) {
-        globalMonthDates.push(new Date(currentMonth));
-        currentMonth.setMonth(currentMonth.getMonth() + 1);
-      }
-      
-      // Get the reference month index from the first month of global data
-      const firstMonthDate = new Date(globalMinDate);
-      const firstMonthIndex = firstMonthDate.getMonth() + (firstMonthDate.getFullYear() * 12);
-      
-      // Find the month that starts before or at the visible minDate
-      let startMonthIndex = 0;
-      for (let i = 0; i < globalMonthDates.length; i++) {
-        if (globalMonthDates[i].getTime() <= minDate) {
-          startMonthIndex = i;
-        }
-      }
-      
-      // Draw shaded regions for all months that intersect the visible range
-      for (let i = startMonthIndex; i < globalMonthDates.length; i++) {
-        const currentMonthStart = globalMonthDates[i].getTime();
-        const nextMonthStart = i < globalMonthDates.length - 1 
-          ? globalMonthDates[i + 1].getTime() 
-          : globalMonthDates[i].getTime() + (31 * 24 * 60 * 60 * 1000); // Approximate if no next month
-        
-        // Only draw if this month intersects the visible range
-        if (currentMonthStart <= maxDate && nextMonthStart >= minDate) {
-          // Calculate visible portion of this month
-          const visibleStart = Math.max(currentMonthStart, minDate);
-          const visibleEnd = Math.min(nextMonthStart, maxDate);
-          
-          // Determine if this month should be shaded
-          const currentDate = new Date(currentMonthStart);
-          const currentMonthIndex = currentDate.getMonth() + (currentDate.getFullYear() * 12);
-          const shouldShade = (currentMonthIndex - firstMonthIndex) % 2 === 0;
-          
-          if (shouldShade && visibleStart < visibleEnd) {
-            const xStart = padding.left + xScale(visibleStart);
-            const xEnd = padding.left + xScale(visibleEnd);
-            const width = xEnd - xStart;
-            
-            if (width > 0 && xStart <= padding.left + chartWidth && xEnd >= padding.left) {
-              const rect = this.createElement('rect', {
-                x: Math.max(padding.left, xStart),
-                y: padding.top,
-                width: Math.min(chartWidth, width - Math.max(0, padding.left - xStart)),
-                height: chartHeight,
-                fill: 'currentColor',
-                'fill-opacity': '0.1',
-              });
-              gridGroup.appendChild(rect);
-            }
-          }
-        }
-        
-        // Stop if we're past the visible range
-        if (currentMonthStart > maxDate) break;
-      }
-    }
-    // MONTH TICKS (for date ranges > 310 days and <= 365 days)
-    else if (dateRangeDays > 310 && dateRangeDays <= 365) {
-      const tickDates = generateMonthlyTickDates(minDate, maxDate);
-      
-      tickDates.forEach((tickDate) => {
-        const x = padding.left + xScale(tickDate);
-        
-        if (x >= padding.left && x <= padding.left + chartWidth) {
-          const line = this.createElement('line', {
-            x1: x, y1: padding.top, x2: x, y2: padding.top + chartHeight,
-            class: 'grid-line'
-          });
-          gridGroup.appendChild(line);
-        }
-      });
-    }
-    // WEEK TICKS (for shorter date ranges)
-    else {
-      // Original logic for other ranges
-      for (let i = 0; i < 8; i++) {
-        const tickDate = minDate + (i / 7) * (maxDate - minDate);
-        const x = padding.left + xScale(tickDate);
-        
-        if (x >= padding.left && x <= padding.left + chartWidth) {
-          const line = this.createElement('line', {
-            x1: x, y1: padding.top, x2: x, y2: padding.top + chartHeight,
-            class: 'grid-line'
-          });
-          gridGroup.appendChild(line);
-        }
-      }
-    }
-    
-    // Horizontal grid lines (unchanged)
-    yValues.forEach((yValue) => {
-      if (yValue !== undefined) {
+
+      yValues.forEach(yValue => {
         const y = padding.top + yScale(yValue);
-        const line = this.createElement('line', {
-          x1: padding.left, y1: y, x2: padding.left + chartWidth, y2: y,
-          class: 'grid-line'
-        });
-        gridGroup.appendChild(line);
-      }
-    });
-    
-    this.svg.appendChild(gridGroup);
-  }
+        addLine(gridGroup, 'grid-line', { x1: padding.left, y1: y, x2: padding.left + chartWidth, y2: y });
+      });
 
-  // In the drawAxes method, add year label handling:
+      this.svg.appendChild(gridGroup);
+    }
 
-  drawAxes(xScale, yScale, chartWidth, chartHeight, padding, points) {
-    const axisGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    axisGroup.classList.add('axis-group');
-    
-    const xAxis = this.createElement('line', {
-      x1: padding.left, y1: padding.top + chartHeight,
-      x2: padding.left + chartWidth, y2: padding.top + chartHeight,
-      class: 'axis-line'
-    });
-    
-    const yAxis = this.createElement('line', {
-      x1: padding.left, y1: padding.top,
-      x2: padding.left, y2: padding.top + chartHeight,
-      class: 'axis-line'
-    });
-    
-    axisGroup.appendChild(xAxis);
-    axisGroup.appendChild(yAxis);
-    
-    const { minDate, maxDate } = getVisibleDateRange(points, this._options.viewDays, this._panOffset);
-    const dateRangeDays = (maxDate - minDate) / (24 * 60 * 60 * 1000);
-    
-    // YEAR LABELS (for date ranges > 400 days)
-    if (dateRangeDays > 400) {
-      const yearTickDates = [];
-      const startYear = new Date(minDate);
-      startYear.setMonth(0, 1); // January 1st
-      startYear.setHours(0, 0, 0, 0);
-      
-      const endYear = new Date(maxDate);
-      endYear.setMonth(0, 1); // January 1st
-      endYear.setHours(0, 0, 0, 0);
-      
-      let currentYear = new Date(startYear);
-      while (currentYear <= endYear) {
-        yearTickDates.push(new Date(currentYear).getTime());
-        currentYear.setFullYear(currentYear.getFullYear() + 1);
-      }
-      
-      yearTickDates.forEach((yearTimestamp, index) => {
-        const currentYearStart = yearTimestamp;
-        const nextYearStart = yearTickDates[index + 1] || maxDate;
-        
-        // Calculate midpoint for centered label
-        const midTimestamp = currentYearStart + (nextYearStart - currentYearStart) / 2;
-        const x = padding.left + xScale(midTimestamp);
-        
-        // Only render if midpoint is within view
-        if (x >= padding.left && x <= padding.left + chartWidth) {
-          const date = new Date(currentYearStart);
-          const text = this.createElement('text', {
-            x, 
-            y: padding.top + chartHeight + 20,
-            'text-anchor': 'middle', 
-            class: 'axis-text'
-          });
-          
-          // Use year only for year-based shading
-          text.textContent = date.getFullYear().toString();
-          axisGroup.appendChild(text);
-        }
+    if (showAxis) {
+      const axisGroup = this.createElement('g', { class: 'axis-group' });
+      const addText   = (attrs, txt) => {
+        const el = this.createElement('text', { ...attrs, class: 'axis-text' });
+        el.textContent = txt;
+        return axisGroup.appendChild(el);
+      };
+
+      addLine(axisGroup, 'axis-line', { x1: padding.left, y1: padding.top + chartHeight, x2: padding.left + chartWidth, y2: padding.top + chartHeight });
+      addLine(axisGroup, 'axis-line', { x1: padding.left, y1: padding.top,               x2: padding.left,              y2: padding.top + chartHeight });
+
+      items.forEach(item => {
+        const x = padding.left + xScale(item.label.pos);
+        if (x < padding.left || x > padding.left + chartWidth) return;
+        addText({ x, y: padding.top + chartHeight + 20, 'text-anchor': 'middle' }, item.label.text);
       });
+
+      yValues.forEach(v => {
+        const y = padding.top + yScale(v);
+        addText({ x: padding.left + 20, y: y - 4, 'text-anchor': 'end' }, this.formatValue(v));
+      });
+
+      this.svg.appendChild(axisGroup);
     }
-    // MONTH SHADING PERIOD (60-310 days)
-    else if (dateRangeDays > 60 && dateRangeDays <= 310) {
-      const tickDates = generateMonthlyTickDates(minDate, maxDate);
-      
-      tickDates.forEach((dateTimestamp, index) => {
-        const currentMonthStart = dateTimestamp;
-        const nextMonthStart = tickDates[index + 1] || maxDate;
-        
-        // Calculate midpoint for centered label
-        const midTimestamp = currentMonthStart + (nextMonthStart - currentMonthStart) / 2;
-        const x = padding.left + xScale(midTimestamp);
-        
-        // Only render if midpoint is within view
-        if (x >= padding.left && x <= padding.left + chartWidth) {
-          const date = new Date(currentMonthStart);
-          const text = this.createElement('text', {
-            x, 
-            y: padding.top + chartHeight + 20,
-            'text-anchor': 'middle', 
-            class: 'axis-text'
-          });
-          
-          // Use short month name (e.g., "Jan", "Feb") for centered labels
-          text.textContent = date.toLocaleDateString(undefined, { month: 'short' });
-          axisGroup.appendChild(text);
-        }
-      });
-    }
-    // MONTH TICK PERIOD (310-365 days)
-    else if (dateRangeDays > 310 && dateRangeDays <= 365) {
-      const tickDates = generateMonthlyTickDates(minDate, maxDate);
-      
-      tickDates.forEach((dateTimestamp) => {
-        const date = new Date(dateTimestamp);
-        const x = padding.left + xScale(dateTimestamp);
-        
-        if (x >= padding.left && x <= padding.left + chartWidth) {
-          const text = this.createElement('text', {
-            x, y: padding.top + chartHeight + 20,
-            'text-anchor': 'middle', class: 'axis-text'
-          });
-          text.textContent = formatDate(date, minDate, maxDate);
-          axisGroup.appendChild(text);
-        }
-      });
-    }
-    // WEEK TICKS (for shorter date ranges)
-    else {
-      // Original logic for other ranges
-      const xLabels = generateXLabels(points, 8, this._options.viewDays, this._panOffset);
-      xLabels.forEach((label, i) => {
-        const tickDate = minDate + (i / (xLabels.length - 1)) * (maxDate - minDate);
-        const x = padding.left + xScale(tickDate);
-        const text = this.createElement('text', {
-          x, y: padding.top + chartHeight + 20,
-          'text-anchor': 'middle', class: 'axis-text'
-        });
-        text.textContent = label;
-        axisGroup.appendChild(text);
-      });
-    }
-    
-    // Y-axis labels (unchanged)
-    const yValues = generateYValues(points.map(p => p.y), 6, this._options.logScale);
-    yValues.forEach((yValue) => {
-      const y = padding.top + yScale(yValue);
-      const text = this.createElement('text', {
-        x: padding.left + 20, y: y - 4,
-        'text-anchor': 'end', class: 'axis-text'
-      });
-      text.textContent = this.formatValue(yValue);
-      axisGroup.appendChild(text);
-    });
-    
-    this.svg.appendChild(axisGroup);
   }
 
   createElement(type, attributes = {}) {
@@ -840,20 +518,16 @@ export class ChronosChart extends HTMLElement {
   }
 
   formatDate(date) {
-    const dates = this._data?.datasets?.flatMap(d => d.data?.map(p => parseDate(p.x)) || []) || [];
-    const { minDate, maxDate } = getVisibleDateRange(
+    const [minDate, maxDate] = getVisibleDateRange(
       this._data?.datasets?.flatMap(d => d.data || []) || [],
       this._options.viewDays,
       this._panOffset
     );
-    
     return formatDate(date, minDate, maxDate);
   }
 
   drawLine(points, xScale, yScale, padding, style, parentGroup) {
     if (points.length < 2) return;
-    
-    const pathGroup = this.createElement('g');
     
     const pathData = generateSmoothPath(
       points, 
@@ -870,29 +544,24 @@ export class ChronosChart extends HTMLElement {
       class: 'chart-line'
     });
     
-    pathGroup.appendChild(path);
-    parentGroup.appendChild(pathGroup);
+    parentGroup.appendChild(path);
   }
 
-  drawPoints(points, xScale, yScale, padding, style, parentGroup) {
+  drawPoints(points, xScale, yScale, dims, style, parentGroup) {
+    const { padding, chartWidth, chartHeight } = dims;
     const pointsGroup = this.createElement('g');
     
     points.forEach((point, index) => {
       const cx = padding.left + xScale(point.x);
-      const cy = padding.top + yScale(point.y);
+      const cy = padding.top  + yScale(point.y);
       
       const circle = this.createElement('circle', {
         cx, cy, r: style.radius, stroke: style.color, fill: 'white', class: 'chart-point'
       });
       
       circle.addEventListener('mouseenter', (e) => {
-        const padding = this._options.padding;
-        const container = this.shadowRoot.querySelector('.chart-container');
-        const chartWidth = container.clientWidth - padding.left - padding.right;
-        const chartHeight = container.clientHeight - padding.top - padding.bottom;
-        
         if (cx >= padding.left && cx <= padding.left + chartWidth &&
-            cy >= padding.top && cy <= padding.top + chartHeight) {
+            cy >= padding.top  && cy <= padding.top  + chartHeight) {
           this.showTooltip(e, point, style.label, index);
         }
       });
@@ -905,46 +574,44 @@ export class ChronosChart extends HTMLElement {
   }
 
   showTooltip(event, point, label, index) {
-    const formattedDate = new Date(parseDate(point.x)).toLocaleString();
     const formattedValue = this.formatValue(point.y);
     
     this.tooltip.innerHTML = `
       <div><strong>${label}</strong></div>
-      <div>Date: ${formattedDate}</div>
+      <div>Date: ${this.formatDate(point.x)}</div>
       <div>Value: ${formattedValue}</div>
     `;
     
     this.tooltip.style.opacity = '1';
     
-    const tooltipWidth = this.tooltip.offsetWidth;
+    const tooltipWidth  = this.tooltip.offsetWidth;
     const tooltipHeight = this.tooltip.offsetHeight;
-    const container = this.shadowRoot.querySelector('.chart-container');
-    const containerRect = container.getBoundingClientRect();
+    const containerRect = this.container.getBoundingClientRect();
     
     let left = event.clientX - containerRect.left + 10;
-    let top = event.clientY - containerRect.top + 10;
+    let top  = event.clientY - containerRect.top  + 10;
     
-    if (left + tooltipWidth > containerRect.width) left = event.clientX - containerRect.left - tooltipWidth - 10;
-    if (top + tooltipHeight > containerRect.height) top = event.clientY - containerRect.top - tooltipHeight - 10;
+    if (left + tooltipWidth  > containerRect.width)  left = event.clientX - containerRect.left - tooltipWidth  - 10;
+    if (top  + tooltipHeight > containerRect.height) top  = event.clientY - containerRect.top  - tooltipHeight - 10;
     
     this.tooltip.style.left = `${left}px`;
-    this.tooltip.style.top = `${top}px`;
+    this.tooltip.style.top  = `${top}px`;
   }
 
   hideTooltip() {
     this.tooltip.style.opacity = '0';
   }
 
-  // Public API methods
-  destroy() { this.disconnectedCallback(); }
-  resize(width, height) { this.setAttribute('width', width); this.setAttribute('height', height); }
-  updateData(newData) { this.data = newData; }
-  updateOptions(newOptions) { this.options = newOptions; }
-  clear() { this._data = { datasets: [] }; this.updateChart(); }
-  resetPan() { this.resetPanState(); this.updateChart(); }
+  // Public API
+  destroy()                  { this.disconnectedCallback(); }
+  resize(width, height)      { this.setAttribute('width', width); this.setAttribute('height', height); }
+  updateData(newData)        { this.data = newData; }
+  updateOptions(newOptions)  { this.options = newOptions; }
+  clear()                    { this._data = { datasets: [] }; this.updateChart(); }
+  resetPan()                 { this.resetPanState(); this.updateChart(); }
   panTo(offsetDays) {
     if (this._options.viewDays > 0) {
-      const totalDays = this.getTotalDataDays();
+      const totalDays = getTotalDataDays(this._data);
       const maxOffset = Math.max(0, totalDays - this._originalViewDays);
       this._panOffset = Math.max(0, Math.min(maxOffset, offsetDays));
       this.updateChart();

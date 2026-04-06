@@ -323,8 +323,7 @@ const SeriesChart = () => {
       return m('.wa-stack.gap-0.dark:bg-slate-800.overflow-hidden.h-full',
 
         // ── Chart ──────────────────────────────────────────────────────────
-        m('chronos-chart#seriesChart', {
-          style: 'width:100%;height:100%',
+        m('chronos-chart#seriesChart.w-full.h-full', {
           oncreate(vnode) {
             chartEl = vnode.dom;
             chartEl.addEventListener('scale-click', handleScaleClick);
