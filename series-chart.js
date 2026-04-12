@@ -1,5 +1,5 @@
 import { formatDuration } from './utils.js';
-import { calculateStats, getPeriodData } from './analytics.js';
+import { calculateStat, calculateRunningMetric } from './analytics.js';
 import chronosDB from './db.js';
 import SeriesChartConfig from './series-chart-config.js';
 
@@ -120,15 +120,13 @@ const SeriesChart = () => {
           borderDash: isComparison ? [10, 2] : [],
         });
 
-        if (!isComparison && rId && win >= 2 && seriesEntries.length >= win) {
-          const runningPoints = [];
-          for (let i = 0; i <= seriesEntries.length - win; i++) {
-            const slice  = seriesEntries.slice(i, i + win);
-            const vals   = slice.map(e => e.value).sort((a, b) => a - b);
-            const stats  = calculateStats(vals, [], slice);
-            const midIdx = Math.floor(i + (win - 1) / 2);
-            runningPoints.push({ x: seriesEntries[midIdx].timestamp, y: stats[rId] });
-          }
+        if (!isComparison && rId && win >= 2) {
+          const runningPoints = calculateRunningMetric(
+            seriesEntries,
+            rId,
+            win
+          ).map(p => ({ x: p.timestamp, y: p.value }));
+
           if (runningPoints.length > 0) {
             datasets.push({
               label: `Rolling ${METRICS.find(m => m.id === rId)?.label ?? rId}`,
@@ -142,13 +140,12 @@ const SeriesChart = () => {
           }
         }
       } else {
-        const agg    = getPeriodData(seriesEntries, chartSettings.period);
         const suffix = chartSettings.period === 'day' ? '' : ' 12:00:00.000Z';
 
         if (isComparison) {
-          const points = agg.labels
-            .map((k, i) => ({ x: k + suffix, y: agg.datasets['mean'][i] }))
-            .filter(p => p.y !== null);
+          const points = calculateStat(seriesEntries, 'mean', chartSettings.period)
+            .map(p => ({ x: p.timestamp + suffix, y: p.value }));
+
           if (points.length > 0) {
             datasets.push({
               label: `${label} (mean)`,
@@ -162,42 +159,36 @@ const SeriesChart = () => {
         } else {
           analysisSelection.forEach(mId => {
             const metric = METRICS.find(x => x.id === mId);
-            const points = agg.labels
-              .map((k, i) => ({ x: k + suffix, y: agg.datasets[mId][i] }))
-              .filter(p => p.y !== null);
+            const points = calculateStat(seriesEntries, mId, chartSettings.period);
+            const chartPoints = points.map(p => ({ x: p.timestamp + suffix, y: p.value }));
 
-            if (points.length > 0) {
+            if (chartPoints.length > 0) {
               datasets.push({
                 label: metric.label,
-                data: points,
+                data: chartPoints,
                 borderColor: metric.color,
                 borderWidth: 2,
                 tension: 0.2,
               });
-            }
 
-            if (rId && win >= 2 && agg.labels.length >= win) {
-              const runningPoints = [];
-              const base = agg.datasets[mId];
-              for (let i = 0; i <= base.length - win; i++) {
-                const slice      = base.slice(i, i + win).filter(v => v !== null);
-                if (!slice.length) continue;
-                const stats      = calculateStats([...slice].sort((a, b) => a - b));
-                const midIdx     = Math.floor(i + (win - 1) / 2);
-                if (stats[rId] !== undefined) {
-                  runningPoints.push({ x: agg.labels[midIdx] + suffix, y: stats[rId] });
+              if (rId && win >= 2) {
+                const runningPoints = calculateRunningMetric(
+                  points,
+                  rId,
+                  win
+                ).map(p => ({ x: p.timestamp + suffix, y: p.value }));
+
+                if (runningPoints.length > 0) {
+                  datasets.push({
+                    label: `Rolling ${metric.label} (${rId})`,
+                    data: runningPoints,
+                    borderColor: metric.color,
+                    borderDash: [8, 4],
+                    borderWidth: 1.5,
+                    pointRadius: 0,
+                    hidePoints: true,
+                  });
                 }
-              }
-              if (runningPoints.length > 0) {
-                datasets.push({
-                  label: `Rolling ${metric.label} (${rId})`,
-                  data: runningPoints,
-                  borderColor: metric.color,
-                  borderDash: [8, 4],
-                  borderWidth: 1.5,
-                  pointRadius: 0,
-                  hidePoints: true,
-                });
               }
             }
           });
