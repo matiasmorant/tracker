@@ -418,9 +418,10 @@ export class ChronosDB {
     
     async getSeriesWithEntries() {
         const [series, entries] = await Promise.all([this.getAllSeries(), this.getAllEntries()]);
-        return series.map(s => ({
+        const entriesBySeries = _.groupBy(entries, 'seriesId');
+        return _.map(series, s => ({
             ...s,
-            entries: entries.filter(e => e.seriesId === s.id)
+            entries: entriesBySeries[s.id] || []
         }));
     }
 }
