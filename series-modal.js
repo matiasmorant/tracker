@@ -1,4 +1,5 @@
 import db from './db.js';
+import ModalForm from './modal-form.js';
 
 // SeriesModal
 //
@@ -73,54 +74,40 @@ const SeriesModal = {
     const isEditing = Boolean(series);
     const label = isEditing ? 'Edit Series' : 'Create New Series';
 
-    return m('wa-dialog#series-dialog', {
-        label,
-        'light-dismiss': true,
+    return m(ModalForm, {
+      id: 'series-dialog',
+      label,
+      onAccept: () => this.save(vnode),
+      acceptLabel: isEditing ? 'Save Changes' : 'Save Series',
+      disabled: !this.form.name.trim()
+    }, [
+      
+      m('wa-input', {
+        label: 'Name',
+        placeholder: 'Series name',
+        value: this.form.name,
+        autofocus: true,
+        oninput: e => { this.form.name = e.target.value; },
+      }),
+
+      m('wa-select', {
+        label: 'Type',
+        value: this.form.type,
+        onchange: e => { this.form.type = e.target.value; },
       }, [
-
-      // Body
-      m('.wa-stack', [
-
-        m('wa-input', {
-          label: 'Name',
-          placeholder: 'Series name',
-          value: this.form.name,
-          autofocus: true,
-          oninput: e => { this.form.name = e.target.value; },
-        }),
-
-        m('wa-select', {
-          label: 'Type',
-          value: this.form.type,
-          onchange: e => { this.form.type = e.target.value; },
-        }, [
-          m('wa-option', { value: 'number' }, 'Number'),
-          m('wa-option', { value: 'time' }, 'Time'),
-        ]),
-
-        m('wa-select', {
-          label: 'Group',
-          value: this.form.group || '',
-          onchange: e => { this.form.group = e.target.value; },
-        }, [
-          m('wa-option', { value: '' }, ''),
-          ...this.groups.map(g =>
-            m('wa-option', { value: g.name }, g.name)
-          ),
-        ]),
-
+        m('wa-option', { value: 'number' }, 'Number'),
+        m('wa-option', { value: 'time' }, 'Time'),
       ]),
 
-      m('div.wa-cluster.wa-justify-content-end', { slot: 'footer'}, [
-        m([button, '.outlined'], {
-          'data-dialog':"close",
-        }, 'Cancel'),
-
-        m([button, '.brand'], {
-          'data-dialog':"close",
-          disabled: !this.form.name.trim() || undefined,
-          onclick: () => this.save(vnode),
-        }, isEditing ? 'Save Changes' : 'Save Series'),
+      m('wa-select', {
+        label: 'Group',
+        value: this.form.group || '',
+        onchange: e => { this.form.group = e.target.value; },
+      }, [
+        m('wa-option', { value: '' }, ''),
+        ...this.groups.map(g =>
+          m('wa-option', { value: g.name }, g.name)
+        ),
       ]),
 
     ]);
