@@ -415,6 +415,15 @@ export class ChronosDB {
             await this.saveSeries(series);
         }
     }
+
+    async updateSeriesGroupNames(oldName, newName) {
+        const allSeries = await this.getAllSeries();
+        const targets = allSeries.filter(s => s.group === oldName);
+        for (const series of targets) {
+            series.group = newName;
+            await this.saveSeries(series);
+        }
+    }
     
     async getSeriesWithEntries() {
         const [series, entries] = await Promise.all([this.getAllSeries(), this.getAllEntries()]);

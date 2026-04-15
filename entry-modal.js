@@ -3,6 +3,7 @@ import { calculateSeriesSummary } from './analytics.js';
 import { State, Actions } from './mithril-state-actions.js';
 import dhmsField from './dhmsField.js'
 import db from './db.js';
+import ModalForm from './modal-form.js';
 
 // Internal form state — lives outside the component so it survives redraws
 // while the dialog is open, and is reset on open.
@@ -51,8 +52,8 @@ async function saveEntry(dispatch) {
   if (activeSeries.type === 'time') {
     const { d, h, m, s } = form.dhms;
     finalVal =
-      (parseInt(d || 0) * 86400) +
-      (parseInt(h || 0) * 3600) +
+      (parseInt(d || 0) * 60*60*24) +
+      (parseInt(h || 0) * 60*60) +
       (parseInt(m || 0) * 60) +
       parseInt(s || 0);
   } else {
@@ -131,14 +132,15 @@ const EntryModal = {
       }
     };
 
-    return m('wa-dialog#entry-modal', {
+    return m(ModalForm, {
+        id: 'entry-modal',
         label: isEditing ? 'Edit Entry' : 'Add New Entry',
-        'light-dismiss': true,
-        'onwa-after-hide': () => { resetForm(); m.redraw();},
+        onHide: () => { resetForm(); m.redraw();},
+        onCancel: close,
+        onAccept: handleSave,
+        acceptLabel: 'Save Entry'
       },
-
-      m('.wa-stack',
-
+      [
         m('wa-input', {
           label: 'Date & Time',
           placeholder: 'yyyy-MM-dd HH:mm:ss',
@@ -157,7 +159,7 @@ const EntryModal = {
         }),
 
         // Value — time (d/h/m/s)
-        isTimeType && m('div', [
+        isTimeType && m('', [
           m('label', 'Value'),
           dhmsField(form.dhms)
         ]),
@@ -167,18 +169,7 @@ const EntryModal = {
           value: form.notes,
           oninput(e) { form.notes = e.target.value; },
         }),
-      ),
-
-      m('.wa-cluster.wa-justify-content-end[slot=footer]', [
-        m([button, '.outlined'], {
-          onclick: close,
-          'data-dialog':"close"
-        }, 'Cancel'),
-        m([button, '.brand'], {
-          onclick: handleSave,
-          'data-dialog':"close"
-        }, 'Save Entry'),
-      ]),
+      ]
     );
   },
 };

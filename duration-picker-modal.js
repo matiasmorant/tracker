@@ -1,4 +1,5 @@
 import dhmsField from './dhmsField.js'
+import ModalForm from './modal-form.js'
 
 // DurationPickerModal
 //
@@ -15,8 +16,8 @@ const state = {
 
 function fromTotalSeconds(totalSeconds) {
   const secs = parseInt(totalSeconds) || 0;
-  state.d    = Math.floor(secs / 86400);
-  state.h   = Math.floor((secs % 86400) / 3600);
+  state.d = Math.floor(secs / 86400);
+  state.h = Math.floor((secs % 86400) / 3600);
   state.m = Math.floor((secs % 3600) / 60);
   state.s = secs % 60;
 }
@@ -53,19 +54,16 @@ const DurationPickerModal = {
   },
 
   view() {
-    return m("wa-dialog#durationPickerModal",{
+    return m(ModalForm, {
+        id: "durationPickerModal",
         label: "Edit Duration",
-        open: state.open || undefined,
-        "light-dismiss": true,
-        onwa_after_hide() { if (_reject) cancel(); },
+        open: state.open,
+        onHide() { if (_reject) cancel(); },
+        onCancel: cancel,
+        onAccept: confirm,
+        closeOnAccept: false // the function 'confirm' handles closing
       },
-      [
-        dhmsField(state),
-        m(".wa-cluster.wa-justify-content-end", { slot: "footer"}, [
-          m([button, ".outlined"], { onclick: cancel  }, "Cancel"),
-          m([button, ".brand"],    { onclick: confirm }, "OK"),
-        ]),
-      ]
+      dhmsField(state)
     );
   },
 };
