@@ -1,13 +1,6 @@
 import db from './db.js';
 import { State, Actions } from './mithril-state-actions.js';
-
-const COLORS = [
-  '#6366f1', '#ec4899', '#f43f5e', '#f59e0b',
-  '#10b981', '#06b6d4', '#8b5cf6', '#475569',
-  '#94a3b8', '#14b8a6', '#f97316', '#ef4444',
-];
-
-const DEFAULT_COLOR = '#6366f1';
+import { ColorPicker, DEFAULT_COLOR } from './color-picker.js';
 
 const GroupManager = {
   oninit(vnode) {
@@ -120,9 +113,8 @@ const GroupManager = {
     const isEditing = !!state.editingGroup;
     const dialogLabel = isEditing ? 'Edit Group' : 'Manage Groups';
 
-    return m('wa-dialog#group-dialog', {
+    return m('wa-dialog#group-dialog[light-dismiss]', {
         label: dialogLabel,
-        'light-dismiss': true,
         'onwa-after-hide': () => {
           GroupManager.cancelForm(state);
           m.redraw();
@@ -130,7 +122,6 @@ const GroupManager = {
       },
 
       [
-
         !state.showForm && m('.wa-justify-content-end',
           m([button, '.plain.brand.small'], {
             onclick() { GroupManager.openAddForm(state); },
@@ -140,72 +131,18 @@ const GroupManager = {
           ])
         ),
 
-        // Add / Edit form
-        state.showForm && m('wa-card', [
-          m('.wa-stack', [
-
-            // Name input — use oncreate to focus/select since autofocus only fires once
-            m('wa-input', {
-              placeholder: 'Group Name',
-              value: state.form.name,
-              oncreate({dom}) { setTimeout(() => { // What about using input autofocus?
-                dom.focus();
-                if (isEditing) dom.select();
-              }, 200); },
-              oninput(e) { state.form.name = e.target.value; },
-              onkeydown(e) {
-                if (e.key === 'Enter') GroupManager.saveGroup(vnode, true);
-                if (e.key === 'Escape') GroupManager.cancelForm(state);
-              },
-            }),
-
-            // Color swatches
-            m('.grid.wa-gap-2xs', {style: 'grid-template-columns: repeat(6, 1fr);'},
-              COLORS.map(color =>
-                m(icon`square`, {
-                  style: [
-                    `color: ${color}`,
-                    'font-size: 3em',
-                    color === state.form.color
-                      ? `box-shadow: 0 0 0 2px var(--wa-color-surface-default), 0 0 0 4px ${color}`
-                      : '',
-                  ].filter(Boolean).join('; '),
-                  onclick() {
-                    state.form.color = color;
-                    // Auto-save color change when editing, without closing the form
-                    if (state.editingGroup && !state.saving) {
-                      GroupManager.saveGroup(vnode, false);
-                    }
-                  },
-                })
-              )
-            ),
-
-            m('div.wa-cluster.wa-justify-content-end', [
-              m([button, '.outlined'], {
-                onclick() { GroupManager.cancelForm(state); },
-              }, 'Cancel'),
-
-              m([button, '.brand.filled'], {
-                loading: state.saving || undefined,
-                onclick() { GroupManager.saveGroup(vnode, true); },
-              }, 'Save Group'),
-            ]),
-          ]),
-        ]),
-
         // Group list
-        m('wa-scroller', { style: 'max-height: 16rem' },
+        !state.showForm && m('wa-scroller.max-h-64',
           state.groups.length === 0
           ? m('p', {
               style: 'color: var(--wa-color-neutral-500); font-size: var(--wa-font-size-s); text-align: center; padding: var(--wa-space-m) 0; margin: 0',
             }, 'No groups yet.')
             : state.groups.map(group =>
-              m('div.wa-split', {
+              m('.wa-split', {
                 key: group.id,
                 onclick() { GroupManager.openEditForm(state, group); },
               }, [
-                m('div.wa-cluster', [
+                m('.wa-cluster', [
                   m(icon`circle`, { style:`color: ${group.color || DEFAULT_COLOR};`}),
                   m('span', group.name),
                 ]),
@@ -222,6 +159,44 @@ const GroupManager = {
               ])
             )
         ),
+
+        // Add / Edit form
+        state.showForm && m('.wa-stack', [
+          m('wa-input', {
+            placeholder: 'Group Name',
+            value: state.form.name,
+            oncreate({dom}) { setTimeout(() => { // What about using input autofocus?
+              dom.focus();
+              if (isEditing) dom.select();
+            }, 200); },
+            oninput(e) { state.form.name = e.target.value; },
+            onkeydown(e) {
+              if (e.key === 'Enter') GroupManager.saveGroup(vnode, true);
+              if (e.key === 'Escape') GroupManager.cancelForm(state);
+            },
+          }),
+          m(ColorPicker, {
+            selectedColor: state.form.color,
+            onSelect(color) {
+              state.form.color = color;
+              // Auto-save color change when editing, without closing the form
+              if (state.editingGroup && !state.saving) {
+                GroupManager.saveGroup(vnode, false);
+              }
+            },
+          }),
+
+          m('.wa-cluster.wa-justify-content-end', [
+            m([button, '.outlined'], {
+              onclick() { GroupManager.cancelForm(state); },
+            }, 'Cancel'),
+
+            m([button, '.brand.filled'], {
+              loading: state.saving || undefined,
+              onclick() { GroupManager.saveGroup(vnode, true); },
+            }, 'Save Group'),
+          ]),
+        ]),
       ]
     );
   },
