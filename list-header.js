@@ -21,14 +21,14 @@ const ListHeader = {
             e.target.value = '';
         };
 
-        return m('div.wa-split', [
-            m('div.wa-cluster', [
+        return m('.wa-split', [
+            m('.wa-cluster', [
                 m(icon`arrow-trend-up` + '.size-12.rounded-lg.text-white.text-2xl[style=background-color:var(--wa-color-brand-fill-loud)]'),
                 m('h1.text-xl.font-bold.tracking-tight', 'Chronos'),
             ]),
-            m('div.wa-cluster', [
+            m('.wa-cluster', [
                 m([button, '.filled'], { 'data-dialog': 'open group-dialog'  }, 'Groups'),
-                m([button, '.brand']    , { 'data-dialog': 'open series-dialog' }, '+ New Series'),
+                m([button, '.brand.accent'], { 'data-dialog': 'open series-dialog' }, '+ New Series'),
                 m('wa-dropdown', [
                     m([button, '.plain[slot=trigger]'], m(icon`ellipsis-vertical`)),
                     m('wa-dropdown-item[disabled]',
