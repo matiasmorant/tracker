@@ -53,7 +53,7 @@ function buildColumns(isTime, vnode) {
             formatter: () => `<wa-button appearance="plain" variant="danger" size="small"><wa-icon name="trash-alt" label="Delete entry"></wa-icon></wa-button>`,
             cellClick: (e, cell) => {
                 const entry = cell.getData();
-                vnode.attrs.onDeleteEntryClick?.({ entry, id: entry.id });
+                vnode.attrs.onDeleteEntryClick?.(entry);
             }
         }
     ];
