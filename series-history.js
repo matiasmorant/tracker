@@ -28,16 +28,16 @@ function buildColumns(isTime, vnode) {
             cellClick: (e, cell) => {
                 if (isTime) {
                     e.stopPropagation();
-                    DurationPickerModal.fromTotalSeconds(cell.getValue());
+                    DurationPickerModal.state.duration.fromTotalSeconds(cell.getValue());
                     // DurationPickerModal.state.onAccept = (...args)=>{
-                    //     const value = DurationPickerModal.toTotalSeconds();
+                    //     const value = DurationPickerModal.state.duration.toTotalSeconds();
                     //     console.log(cell.getData());
                     //     cell.getTable()
                     //     .updateData([{...cell.getData(), value}])
                     //     .then(()=>{ vnode.attrs.onEntryUpdated?.({ entry: cell.getData() }); })
                     // }
                     DurationPickerModal.state.onAccept = (...args)=>{
-                        const value = DurationPickerModal.toTotalSeconds();
+                        const value = DurationPickerModal.state.duration.toTotalSeconds();
                         vnode.attrs.onEntryUpdated?.({ entry: {...cell.getData(), value} });
                     }
                     document.querySelector('#durationPickerModal').open=true;

@@ -1,4 +1,4 @@
-import { formatDuration, secondsToDHMS, getFormattedISO, getRunningTime, elapsedSeconds } from './utils.js';
+import { formatDuration, getFormattedISO, getRunningTime, elapsedSeconds } from './utils.js';
 import { format, parseISO } from 'https://cdn.jsdelivr.net/npm/date-fns@4.1.0/+esm';
 
 export class ChronosDB {

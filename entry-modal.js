@@ -1,4 +1,4 @@
-import { formatDuration, secondsToDHMS, getFormattedISO } from './utils.js';
+import { formatDuration, getFormattedISO, Duration } from './utils.js';
 import { calculateSeriesSummary } from './analytics.js';
 import { State, Actions } from './mithril-state-actions.js';
 import dhmsField from './dhmsField.js'
@@ -11,7 +11,7 @@ let form = {
   timestamp: '',
   value: '',
   notes: '',
-  dhms: { d: 0, h: 0, m: 0, s: 0 },
+  dhms: new Duration(),
 };
 
 let editingEntry = null;
@@ -20,7 +20,7 @@ let activeSeries = null;
 function resetForm() {
   editingEntry = null;
   activeSeries = null;
-  form = { timestamp: '', value: '', notes: '', dhms: { d: 0, h: 0, m: 0, s: 0 } };
+  form = { timestamp: '', value: '', notes: '', dhms: new Duration() };
 }
 
 function openForNew(series) {
@@ -30,7 +30,7 @@ function openForNew(series) {
     timestamp: getFormattedISO(),
     value: '',
     notes: '',
-    dhms: { d: 0, h: 0, m: 0, s: 0 },
+    dhms: new Duration(),
   };
 }
 
@@ -41,7 +41,7 @@ function openForEdit(entry, series) {
     timestamp: entry.timestamp,
     value: entry.value,
     notes: entry.notes || '',
-    dhms: series.type === 'time' ? secondsToDHMS(entry.value) : { d: 0, h: 0, m: 0, s: 0 },
+    dhms: new Duration(series.type === 'time' ? entry.value : 0),
   };
 }
 
@@ -50,12 +50,7 @@ async function saveEntry(dispatch) {
 
   let finalVal;
   if (activeSeries.type === 'time') {
-    const { d, h, m, s } = form.dhms;
-    finalVal =
-      (parseInt(d || 0) * 60*60*24) +
-      (parseInt(h || 0) * 60*60) +
-      (parseInt(m || 0) * 60) +
-      parseInt(s || 0);
+    finalVal = form.dhms.toTotalSeconds();
   } else {
     finalVal = parseFloat(form.value);
   }
@@ -161,7 +156,7 @@ const EntryModal = {
         // Value — time (d/h/m/s)
         isTimeType && m('', [
           m('label', 'Value'),
-          dhmsField(form.dhms)
+          m(dhmsField, { dhms: form.dhms })
         ]),
 
         m('wa-input', {
