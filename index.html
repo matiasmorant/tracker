@@ -82,8 +82,8 @@
     <script src="https://unpkg.com/mithril/mithril.js"></script>
     <script src="https://unpkg.com/papaparse@latest/papaparse.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link href="https://unpkg.com/tabulator-tables@5.6.1/dist/css/tabulator_modern.min.css" rel="stylesheet">
-    <script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.6.1/dist/js/tabulator.min.js"></script>
+    <link href="https://unpkg.com/tabulator-tables@6.4.0/dist/css/tabulator_modern.min.css" rel="stylesheet">
+    <script type="text/javascript" src="https://unpkg.com/tabulator-tables@6.4.0/dist/js/tabulator.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
 
     <script type="module" src="./mithril-super.js"></script>
@@ -210,7 +210,7 @@
                                 entries: State.currentSeriesEntries,
                                 onAddEntryClick: () => EntryModal.openForNew(State.currentSeries),
                                 onDeleteEntryClick: ({ id }) => Actions.deleteEntry(id),
-                                onEntryUpdated: ({ entry }) => Actions.loadEntries(State.currentSeries?.id)
+                                onEntryUpdated: ({ entry }) => Actions.updateEntry(entry)
                             })
                         ),
                         m("wa-tab-panel[name=config]", 

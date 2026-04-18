@@ -14,16 +14,6 @@ const tableStyles = `
     }
 `;
 
-async function openDurationPicker(cell, onEntryUpdated) {
-    try {
-        const newValue = await DurationPickerModal.open(cell.getValue());
-        cell.setValue(newValue);
-        onEntryUpdated?.({ entry: cell.getRow().getData() });
-    } catch {
-        console.log('Duration selection cancelled');
-    }
-}
-
 function buildColumns(isTime, vnode) {
     return [
         {
@@ -38,7 +28,20 @@ function buildColumns(isTime, vnode) {
             cellClick: (e, cell) => {
                 if (isTime) {
                     e.stopPropagation();
-                    openDurationPicker(cell, vnode.attrs.onEntryUpdated);
+                    DurationPickerModal.fromTotalSeconds(cell.getValue());
+                    // DurationPickerModal.state.onAccept = (...args)=>{
+                    //     const value = DurationPickerModal.toTotalSeconds();
+                    //     console.log(cell.getData());
+                    //     cell.getTable()
+                    //     .updateData([{...cell.getData(), value}])
+                    //     .then(()=>{ vnode.attrs.onEntryUpdated?.({ entry: cell.getData() }); })
+                    // }
+                    DurationPickerModal.state.onAccept = (...args)=>{
+                        const value = DurationPickerModal.toTotalSeconds();
+                        vnode.attrs.onEntryUpdated?.({ entry: {...cell.getData(), value} });
+                    }
+                    document.querySelector('#durationPickerModal').open=true;
+                    m.redraw();
                 }
             }
         },
