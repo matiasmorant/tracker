@@ -2,8 +2,6 @@ import db from './db.js';
 import { ColorPicker, DEFAULT_COLOR } from './color-picker.js';
 import ModalForm from './modal-form.js';
 
-const open = (id)=>document.querySelector(id).open=true;
-
 const GroupEditor = () => {
   let saving = false;
   let form = { name: '', color: DEFAULT_COLOR };
