@@ -1,4 +1,4 @@
-import { formatDuration, getFormattedISO, Duration } from './utils.js';
+import { formatDuration, getFormattedISO, Duration, toggleModal } from './utils.js';
 import { calculateSeriesSummary } from './analytics.js';
 import { State, Actions } from './mithril-state-actions.js';
 import dhmsField from './dhmsField.js'
@@ -7,12 +7,7 @@ import ModalForm from './modal-form.js';
 
 // Internal form state — lives outside the component so it survives redraws
 // while the dialog is open, and is reset on open.
-let form = {
-  timestamp: '',
-  value: '',
-  notes: '',
-  dhms: new Duration(),
-};
+let form = { timestamp: '', value: '', notes: '', dhms: new Duration(), };
 
 let editingEntry = null;
 let activeSeries = null;
@@ -94,14 +89,12 @@ const EntryModal = {
 
   openForNew(series) {
     openForNew(series);
-    document.querySelector('#entry-modal').toggleAttribute('open')
-    m.redraw();
+    toggleModal('entry-modal');
   },
 
   openForEdit(entry, series) {
     openForEdit(entry, series);
-    document.querySelector('#entry-modal').toggleAttribute('open')
-    m.redraw();
+    toggleModal('entry-modal');
   },
 
 
@@ -110,22 +103,11 @@ const EntryModal = {
     const isEditing = !!editingEntry;
 
     const dispatch = (name, detail) => {
-      const el = document.querySelector('#entry-modal');
-      if (el) el.dispatchEvent(new CustomEvent(name, { detail, bubbles: true }));
+      document.querySelector('#entry-modal')?.dispatchEvent(new CustomEvent(name, { detail, bubbles: true }));
     };
 
-    const close = () => {
-      resetForm();
-      m.redraw();
-    };
-
-    const handleSave = async () => {
-      await saveEntry(dispatch);
-      close();
-      if (attrs['onentry-saved']) {
-        // already fired via CustomEvent above; noop here
-      }
-    };
+    const close = () => { resetForm(); m.redraw(); };
+    const handleSave = async () => { await saveEntry(dispatch); close(); };
 
     return m(ModalForm, {
         id: 'entry-modal',
@@ -139,17 +121,16 @@ const EntryModal = {
         m('wa-input', {
           label: 'Date & Time',
           placeholder: 'yyyy-MM-dd HH:mm:ss',
-          value: form.timestamp,
           autofocus: true,
+          value: form.timestamp,
           oninput(e) { form.timestamp = e.target.value; },
-          onkeydown(e) { if (e.key === 'Enter') handleSave(); },
         }),
 
         // Value — number
         !isTimeType && m('wa-number-input', {
           label: 'Value',
-          value: form.value,
           step: 1,
+          value: form.value,
           oninput(e) { form.value = e.target.value; },
         }),
 
