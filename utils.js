@@ -22,15 +22,6 @@ export function formatDuration(seconds, isTick = false) {
     return res.join(' ');
 }
 
-export function secondsToDHMS(seconds) {
-    const duration = intervalToDuration({ start: 0, end: seconds * 1000 });
-    return {
-        d: duration.days || 0,
-        h: duration.hours || 0,
-        m: duration.minutes || 0,
-        s: duration.seconds || 0
-    };
-}
 
 export function formatMonth(d) { return format(d, 'MMMM yyyy'); }
 export function getFormattedISO(d = new Date()) { return format(d, 'yyyy-MM-dd HH:mm:ss'); }
@@ -44,3 +35,30 @@ export function getRunningTime(s) { return formatDuration(elapsedSeconds(s)); }
 
 export function prevMonth(date) { return subMonths(date, 1);}
 export function nextMonth(date) { return addMonths(date, 1);}
+
+export class Duration {
+  constructor(totalSeconds = 0) {
+    this.d = 0;
+    this.h = 0;
+    this.m = 0;
+    this.s = 0;
+    if (totalSeconds > 0) {
+      this.fromTotalSeconds(totalSeconds);
+    }
+  }
+
+  toTotalSeconds() {
+    return (parseInt(this.d) || 0) * 86400 +
+           (parseInt(this.h) || 0) * 3600 +
+           (parseInt(this.m) || 0) * 60 +
+           (parseInt(this.s) || 0);
+  }
+
+  fromTotalSeconds(totalSeconds) {
+    const secs = parseInt(totalSeconds) || 0;
+    this.d = Math.floor(secs / 86400);
+    this.h = Math.floor((secs % 86400) / 3600);
+    this.m = Math.floor((secs % 3600) / 60);
+    this.s = secs % 60;
+  }
+}
