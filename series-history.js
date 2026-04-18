@@ -1,4 +1,4 @@
-import { formatDuration } from './utils.js';
+import { formatDuration, toggleModal } from './utils.js';
 import DurationPickerModal from './duration-picker-modal.js';
 
 const tableStyles = `
@@ -40,8 +40,7 @@ function buildColumns(isTime, vnode) {
                         const value = DurationPickerModal.state.duration.toTotalSeconds();
                         vnode.attrs.onEntryUpdated?.({ entry: {...cell.getData(), value} });
                     }
-                    document.querySelector('#durationPickerModal').open=true;
-                    m.redraw();
+                    toggleModal('durationPickerModal');
                 }
             }
         },

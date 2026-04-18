@@ -36,6 +36,8 @@ export function getRunningTime(s) { return formatDuration(elapsedSeconds(s)); }
 export function prevMonth(date) { return subMonths(date, 1);}
 export function nextMonth(date) { return addMonths(date, 1);}
 
+export const toggleModal = (id)=>{document.getElementById(id).toggleAttribute('open'); m.redraw();}
+
 export class Duration {
   constructor(totalSeconds = 0) {
     this.d = 0;
