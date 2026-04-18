@@ -50,6 +50,11 @@ export const Actions = {
         }, 0);
         m.redraw();
     },
+    async updateEntry(entry) {
+        await chronosDB.saveEntry(entry);
+        await Actions.loadEntries(State.currentSeries.id);
+        await Actions.loadSeries();
+    },
     async deleteEntry(id) {
         if (confirm('Delete entry?')) {
             await chronosDB.deleteEntry(id);
