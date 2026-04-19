@@ -66,3 +66,6 @@ window.callout = {
     return m('wa-callout', waAttrs, kids);
   }
 };
+
+window.DateTimeInput = 'wa-input[placeholder="yyyy-MM-dd HH:mm:ss"]'
+window.NumberInput = 'wa-number-input[step=1]'
