@@ -1,4 +1,4 @@
-import { formatDuration, getRunningTime, elapsedSeconds } from './utils.js';
+import { format, getRunningTime, elapsedSeconds } from './utils.js';
 import { calculateSeriesSummary } from './analytics.js';
 import chronosDB from './db.js';
 
@@ -38,7 +38,7 @@ const SerieCard = () => {
             : [undefined];
 
         summaries = configs
-            .map(cfg => calculateSeriesSummary(series, entries, formatDuration, cfg))
+            .map(cfg => calculateSeriesSummary(series, entries, format.duration, cfg))
             .filter(s => s && s.trim() !== '');
     };
 

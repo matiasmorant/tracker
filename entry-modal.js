@@ -1,4 +1,4 @@
-import { formatDuration, getFormattedISO, Duration, toggleModal } from './utils.js';
+import { format, Duration, toggleModal } from './utils.js';
 import { calculateSeriesSummary } from './analytics.js';
 import { State, Actions } from './mithril-state-actions.js';
 import dhmsField from './dhmsField.js'
@@ -22,7 +22,7 @@ function openForNew(series) {
   editingEntry = null;
   activeSeries = series;
   form = {
-    timestamp: getFormattedISO(),
+    timestamp: format.dateTime(new Date()),
     value: '',
     notes: '',
     dhms: new Duration(),
@@ -68,7 +68,7 @@ async function saveEntry(dispatch) {
 
     const allEntries = await db.getEntriesForSeries(activeSeries.id);
     const tempSeries = JSON.parse(JSON.stringify(activeSeries));
-    tempSeries.summaryDisplay = calculateSeriesSummary(tempSeries, allEntries, formatDuration);
+    tempSeries.summaryDisplay = calculateSeriesSummary(tempSeries, allEntries, format.duration);
     await db.saveSeries(tempSeries);
 
     dispatch('entry-saved', { entry: entryData, series: activeSeries, isNew: !editingEntry });

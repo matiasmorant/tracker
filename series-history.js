@@ -1,4 +1,4 @@
-import { formatDuration, toggleModal } from './utils.js';
+import { format, toggleModal } from './utils.js';
 import DurationPickerModal from './duration-picker-modal.js';
 
 const tableStyles = `
@@ -24,7 +24,7 @@ function buildColumns(isTime, vnode) {
             title: 'Value', field: 'value', hozAlign: 'right',
             width: 100, resizable: false,
             editor: isTime ? false : 'number',
-            formatter: cell => isTime ? formatDuration(cell.getValue()) : cell.getValue(),
+            formatter: cell => isTime ? format.duration(cell.getValue()) : cell.getValue(),
             cellClick: (e, cell) => {
                 if (isTime) {
                     e.stopPropagation();
