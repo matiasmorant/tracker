@@ -176,7 +176,7 @@
                     State.view === 'list'
                     ? m("dashboard-view.overflow-y-auto", {
                         'onseries-click': (e) => Actions.openSeriesDetail(e.detail.series),
-                        'onadd-entry-click': (e) => EntryModal.openForNew(e.detail.series),
+                        'onadd-entry-click': (e) => EntryModal.open({series: e.detail.series}),
                         'onseries-updated': Actions.loadSeries,
                         'onentry-created': () => Actions.loadSeries()
                     })
@@ -202,7 +202,7 @@
                                     const targetDate = new Date(dayInfo.date);
                                     const now = new Date();
                                     targetDate.setHours(now.getHours(), now.getMinutes());
-                                    EntryModal.openForEdit({ timestamp: format.dateTime(targetDate), value: 0, notes: '', dhms: { d:0, h:0, m:0, s:0 } }, State.currentSeries);
+                                    EntryModal.open({series: State.currentSeries, entry: { timestamp: format.dateTime(targetDate), value: 0, notes: '' }});
                                 }
                             })
                         ),
@@ -210,7 +210,7 @@
                             m(SeriesHistory, {
                                 series: State.currentSeries,
                                 entries: State.currentSeriesEntries,
-                                onAddEntryClick: () => EntryModal.openForNew(State.currentSeries),
+                                onAddEntryClick: () => EntryModal.open({series: State.currentSeries}),
                                 onDeleteEntryClick: ({ id }) => Actions.deleteEntry(id),
                                 onEntryUpdated: ({ entry }) => Actions.updateEntry(entry)
                             })
@@ -224,18 +224,9 @@
 
                     m(GroupManager, { onGroupsUpdated: Actions.loadSeries }),
 
-                    m(SeriesModal, {
-                        series: State.editingSeries ?? null,  // null = create new
-                        onSave: Actions.loadSeries,
-                    }),
+                    m(SeriesModal),
 
-                    m(EntryModal, {
-                      'onentry-saved': (e) => {
-                        Actions.loadSeries();
-                        if (State.currentSeries?.id === e.detail.series.id)
-                          Actions.loadEntries(State.currentSeries.id);
-                      },
-                    }),
+                    m(EntryModal),
 
                     m(DurationPickerModal),
 
