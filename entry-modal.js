@@ -118,18 +118,16 @@ const EntryModal = {
         acceptLabel: 'Save Entry'
       },
       [
-        m('wa-input', {
-          label: 'Date & Time',
-          placeholder: 'yyyy-MM-dd HH:mm:ss',
+        m(DateTimeInput, {
           autofocus: true,
+          label: 'Date & Time',
           value: form.timestamp,
           oninput(e) { form.timestamp = e.target.value; },
         }),
 
         // Value — number
-        !isTimeType && m('wa-number-input', {
+        !isTimeType && m(NumberInput, {
           label: 'Value',
-          step: 1,
           value: form.value,
           oninput(e) { form.value = e.target.value; },
         }),
