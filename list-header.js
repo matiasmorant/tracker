@@ -1,5 +1,6 @@
 import { themeManager } from './theme-utils.js';
 import { Actions } from './mithril-state-actions.js';
+import SeriesModal from './series-modal.js';
 import chronosDB from './db.js';
 
 const ListHeader = {
@@ -28,7 +29,7 @@ const ListHeader = {
             ]),
             m('.wa-cluster', [
                 m([button, '.filled'], { 'data-dialog': 'open group-dialog'  }, 'Groups'),
-                m([button, '.brand.accent'], { 'data-dialog': 'open series-dialog' }, '+ New Series'),
+                m([button, '.brand.accent'], { onclick: () => SeriesModal.open({}) }, '+ New Series'),
                 m('wa-dropdown', [
                     m([button, '.plain[slot=trigger]'], m(icon`ellipsis-vertical`)),
                     m('wa-dropdown-item[disabled]',

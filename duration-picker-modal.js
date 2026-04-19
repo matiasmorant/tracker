@@ -1,26 +1,17 @@
-import dhmsField from './dhmsField.js'
-import ModalForm from './modal-form.js'
-import { Duration } from './utils.js'
+import { makeModal } from './modal-form.js';
 
-const state = {
-  open: false,
-  duration: new Duration()
-};
-
-const DurationPickerModal = {
-  state,
-  view() {
-    return m(ModalForm, {
-        id: "durationPickerModal",
-        label: "Edit Duration",
-        open: state.open,
-        onHide: state.onCancel,
-        onCancel: state.onCancel,
-        onAccept: state.onAccept,
-      },
-      m(dhmsField, { dhms: state.duration })
-    );
-  },
-};
+const DurationPickerModal = makeModal({
+  id: 'durationPickerModal',
+  initState: () => ({ form:   { duration: 0 }, onAccept: null, }),
+  onOpen: ({ duration, onAccept }) => ({ form: { duration }, onAccept }),
+  label: 'Edit Duration',
+  prepareData: (state) => state.form.duration,
+  save: (state, data) => data,
+  onSave: (state, result) => state.onAccept?.(result),
+  onCancel: (state) => { state.onAccept = null; },
+  fields: [
+    { id: 'duration', label: 'Value', type: 'dhms' },
+  ],
+});
 
 export default DurationPickerModal;
