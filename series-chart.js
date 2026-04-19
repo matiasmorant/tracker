@@ -1,4 +1,4 @@
-import { formatDuration } from './utils.js';
+import { format } from './utils.js';
 import { calculateStat, calculateRunningMetric } from './analytics.js';
 import chronosDB from './db.js';
 import SeriesChartConfig from './series-chart-config.js';
@@ -237,7 +237,7 @@ const SeriesChart = () => {
         fontSize: 11,
       },
       valueFormatter: value => {
-        if (series?.type === 'time') return formatDuration(value, true);
+        if (series?.type === 'time') return format.duration(value, true);
         return Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 });
       },
     };

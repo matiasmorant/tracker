@@ -1,4 +1,4 @@
-import { formatDuration, getFormattedISO } from './utils.js';
+import { format } from './utils.js';
 import { calculateSeriesSummary } from './analytics.js';
 import chronosDB from './db.js';
 
@@ -37,8 +37,8 @@ export const Actions = {
         if (!State.currentSeries || !State.currentSeriesEntries.length || !State.currentSeries.config) return;
         const config = State.currentSeries.config;
         State.currentSeries.summaryDisplay = (config.summaries && Array.isArray(config.summaries)) 
-            ? config.summaries.map(s => calculateSeriesSummary(State.currentSeries, State.currentSeriesEntries, formatDuration, s)).filter(s => s && s.trim() !== '')
-            : calculateSeriesSummary(State.currentSeries, State.currentSeriesEntries, formatDuration);
+            ? config.summaries.map(s => calculateSeriesSummary(State.currentSeries, State.currentSeriesEntries, format.duration, s)).filter(s => s && s.trim() !== '')
+            : calculateSeriesSummary(State.currentSeries, State.currentSeriesEntries, format.duration);
     },
     async openSeriesDetail(s) {
         State.currentSeries = s;

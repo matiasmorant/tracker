@@ -1,5 +1,5 @@
 import chronosDB from './db.js';
-import { formatDuration } from './utils.js';
+import { format } from './utils.js';
 import { calculateSeriesSummary } from './analytics.js';
 import {PeriodSelector, StatSelect} from './period-selector.js'
 
@@ -10,7 +10,7 @@ function getSummaryPreviews(series, entries) {
 
     if (Array.isArray(summaries) && summaries.length > 0) {
         return summaries.map(cfg =>
-            calculateSeriesSummary(series, entries, formatDuration, cfg) || 'No Data'
+            calculateSeriesSummary(series, entries, format.duration, cfg) || 'No Data'
         );
     }
 
@@ -19,7 +19,7 @@ function getSummaryPreviews(series, entries) {
         period: 'all',
         operation: series.config?.stat || 'mean',
     };
-    return [calculateSeriesSummary(series, entries, formatDuration, legacyCfg) || 'No Data'];
+    return [calculateSeriesSummary(series, entries, format.duration, legacyCfg) || 'No Data'];
 }
 
 function SeriesConfiguration() {
