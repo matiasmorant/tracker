@@ -50,17 +50,10 @@ const SeriesChartConfig = () => {
   // ── data ──────────────────────────────────────────────────────────────────
 
   async function loadData(seriesId) {
-    try {
-      series    = await chronosDB.getSeries(parseInt(seriesId));
-      allSeries = await chronosDB.getAllSeries();
-      /* allGroups not used in the view, but loaded for parity with the original */
-      await chronosDB.getAllGroups();
-
-      chartSettings     = series.config?.chartSettings     ?? {};
-      analysisSelection = series.config?.analysisSelection ?? [];
-    } catch (err) {
-      console.error('Failed to load series config data:', err);
-    }
+    series    = await chronosDB.getSeries(parseInt(seriesId));
+    allSeries = await chronosDB.getAllSeries();
+    chartSettings     = series.config?.chartSettings     ?? {};
+    analysisSelection = series.config?.analysisSelection ?? [];
     m.redraw();
   }
 

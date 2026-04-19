@@ -140,7 +140,7 @@ export class ChronosDB {
     
     async save(storeName, data) {
         return new Promise((resolve, reject) => {
-            const cleanData = JSON.parse(JSON.stringify(data));
+            const cleanData = structuredClone(data);
             const tx = this.db.transaction(storeName, 'readwrite');
             const store = tx.objectStore(storeName);
             const request = cleanData.id ? store.put(cleanData) : store.add(cleanData);
