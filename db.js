@@ -1,6 +1,7 @@
 import { openDB } from 'https://cdn.jsdelivr.net/npm/idb@8/+esm';
 import { format, getRunningTime, elapsedSeconds } from './utils.js';
 import { parseISO } from 'https://cdn.jsdelivr.net/npm/date-fns@4.1.0/+esm';
+import { calculateSeriesSummary } from './analytics.js';
 
 export class ChronosDB {
     constructor() {
@@ -61,7 +62,22 @@ export class ChronosDB {
     }
 
     async getAllEntries() { return this.getAll('entries'); }
-    async saveEntry(entryData) { return this.save('entries', entryData); }
+    async saveEntry(entryData, updateSummaries = false) {
+        const id = await this.save('entries', entryData);
+        if (id) entryData.id = id;
+
+        if (updateSummaries) {
+            const series     = await this.getSeries(entryData.seriesId);
+            const allEntries = await this.getEntriesForSeries(entryData.seriesId);
+            
+            series.summaryDisplay = calculateSeriesSummary(series, allEntries, format.duration);
+            await this.saveSeries(series);
+            
+            return { entry: entryData, series };
+        }
+
+        return id;
+    }
     async deleteEntry(id) { return this.delete('entries', id); }
 
     // --- Group Methods ---

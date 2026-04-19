@@ -66,3 +66,5 @@ export class Duration {
     this.s = secs % 60;
   }
 }
+
+export const withDefaults = (obj, defaults) => _.defaultsDeep(_.pick(obj || {}, _.keys(defaults)), defaults);

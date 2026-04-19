@@ -1,4 +1,4 @@
-import { format, toggleModal } from './utils.js';
+import { format } from './utils.js';
 import DurationPickerModal from './duration-picker-modal.js';
 
 const tableStyles = `
@@ -28,19 +28,12 @@ function buildColumns(isTime, vnode) {
             cellClick: (e, cell) => {
                 if (isTime) {
                     e.stopPropagation();
-                    DurationPickerModal.state.duration.fromTotalSeconds(cell.getValue());
-                    // DurationPickerModal.state.onAccept = (...args)=>{
-                    //     const value = DurationPickerModal.state.duration.toTotalSeconds();
-                    //     console.log(cell.getData());
-                    //     cell.getTable()
-                    //     .updateData([{...cell.getData(), value}])
-                    //     .then(()=>{ vnode.attrs.onEntryUpdated?.({ entry: cell.getData() }); })
-                    // }
-                    DurationPickerModal.state.onAccept = (...args)=>{
-                        const value = DurationPickerModal.state.duration.toTotalSeconds();
-                        vnode.attrs.onEntryUpdated?.({ entry: {...cell.getData(), value} });
-                    }
-                    toggleModal('durationPickerModal');
+                    DurationPickerModal.open({
+                        duration: cell.getValue(),
+                        onAccept: (value) => {
+                            vnode.attrs.onEntryUpdated?.({ entry: { ...cell.getData(), value } });
+                        },
+                    });
                 }
             }
         },
