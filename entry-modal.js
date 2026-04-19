@@ -67,7 +67,7 @@ async function saveEntry(dispatch) {
     await db.saveEntry(entryData);
 
     const allEntries = await db.getEntriesForSeries(activeSeries.id);
-    const tempSeries = JSON.parse(JSON.stringify(activeSeries));
+    const tempSeries = structuredClone(activeSeries);
     tempSeries.summaryDisplay = calculateSeriesSummary(tempSeries, allEntries, format.duration);
     await db.saveSeries(tempSeries);
 
