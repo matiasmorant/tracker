@@ -1,12 +1,12 @@
-import { formatMonth, formatDuration, prevMonth, nextMonth, getFormattedISO } from './utils.js';
-import { format, startOfMonth, endOfMonth, getDate, getDay, getDaysInMonth, subDays, addDays, isToday as dateFnsIsToday } from 'https://cdn.jsdelivr.net/npm/date-fns@4.1.0/+esm';
+import { format } from './utils.js';
+import { startOfMonth, endOfMonth, getDate, getDay, getDaysInMonth, subDays, addDays, subMonths, addMonths, isToday as dateFnsIsToday } from 'https://cdn.jsdelivr.net/npm/date-fns@4.1.0/+esm';
 
 // ---------------------------------------------------------------------------
 // Pure helpers
 // ---------------------------------------------------------------------------
 
 function createDayObj(date, isCurrentMonth, entries) {
-    const dateString = format(date, 'yyyy-MM-dd');
+    const dateString = format.day(date);
     return {
         date,
         dateString,
@@ -56,7 +56,7 @@ const DayEntries = {
 
         if (day.entries.length === 1) {
             const displayValue = isTimeSeries
-                ? formatDuration(day.entries[0].value)
+                ? format.duration(day.entries[0].value)
                 : day.entries[0].value;
             return m('.flex-1.flex.items-center.justify-center.text-brand.font-black.text-lg.hover:surface-lowered.rounded-lg.transition-colors',
                 displayValue
@@ -65,7 +65,7 @@ const DayEntries = {
 
         return m('.space-y-1.overflow-y-auto.max-h-20.custom-scrollbar',
             day.entries.map(entry => {
-                const displayValue = isTimeSeries ? formatDuration(entry.value) : entry.value;
+                const displayValue = isTimeSeries ? format.duration(entry.value) : entry.value;
                 return m('wa-badge[variant=brand][appearance=outlined].w-full',
                     { 
                         style: 'font-size: 10px; cursor: pointer; --wa-border-radius-small: 4px;',
@@ -127,14 +127,14 @@ const Calendar = {
         const onDayClick    = attrs.onDayClick;
 
         const days      = buildCalendarDays(state.calendarDate, entries);
-        const monthName = formatMonth(state.calendarDate);
+        const monthName = format.month(state.calendarDate);
 
         const handleDayClick = (day) => {
             onDayClick?.({
                 date:          day.date,
                 dateString:    day.dateString,
                 entries:       day.entries,
-                formattedDate: getFormattedISO(day.date),
+                formattedDate: format.dateTime(day.date),
             });
         };
 
@@ -146,11 +146,11 @@ const Calendar = {
                     m('h3.text-lg.font-bold.text-normal', monthName),
                     m('wa-button-group',
                         m([button, '.brand.small'],
-                            { onclick: () => { state.calendarDate = prevMonth(state.calendarDate); }, },
+                            { onclick: () => { state.calendarDate = subMonths(state.calendarDate, 1); }, },
                             m(icon`chevron-left`)
                         ),
                         m([button, '.brand.small'],
-                            { onclick: () => { state.calendarDate = nextMonth(state.calendarDate); }, },
+                            { onclick: () => { state.calendarDate = addMonths(state.calendarDate, 1); }, },
                             m(icon`chevron-right`)
                         )
                     )

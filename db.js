@@ -1,5 +1,5 @@
-import { formatDuration, getFormattedISO, getRunningTime, elapsedSeconds } from './utils.js';
-import { format, parseISO } from 'https://cdn.jsdelivr.net/npm/date-fns@4.1.0/+esm';
+import { format, getRunningTime, elapsedSeconds } from './utils.js';
+import { parseISO } from 'https://cdn.jsdelivr.net/npm/date-fns@4.1.0/+esm';
 
 export class ChronosDB {
     constructor() {
@@ -182,7 +182,7 @@ export class ChronosDB {
         chrono.startTime = null;
         await this.saveSeries(chrono);
         return await this.saveEntry({
-            timestamp: getFormattedISO(new Date()),
+            timestamp: format.dateTime(new Date()),
             value: elapsed,
             notes: '',
             seriesId: chrono.id
@@ -199,7 +199,7 @@ export class ChronosDB {
         const secondsSinceMidnight = (now.getHours() * 3600) + (now.getMinutes() * 60) + now.getSeconds();
         
         await this.saveEntry({
-            timestamp: getFormattedISO(now),
+            timestamp: format.dateTime(now),
             value: secondsSinceMidnight,
             notes: '',
             seriesId: series.id
@@ -207,7 +207,7 @@ export class ChronosDB {
     }
 
     async quickIncrement(series) {
-        const todayStr = format(new Date(), 'yyyy-MM-dd');
+        const todayStr = format.day(new Date());
         const entries = await this.getEntriesForSeries(series.id);
         const todayEntry = entries.find(x=>x.timestamp.startsWith(todayStr));
         
@@ -216,7 +216,7 @@ export class ChronosDB {
             await this.saveEntry(todayEntry);
         } else {
             await this.saveEntry({
-                timestamp: getFormattedISO(new Date()),
+                timestamp: format.dateTime(new Date()),
                 value: 1,
                 notes: '',
                 seriesId: series.id
@@ -241,7 +241,7 @@ export class ChronosDB {
             
             return {
                 appName: "Chronos",
-                timestamp: getFormattedISO(new Date()),
+                timestamp: format.dateTime(new Date()),
                 data: { series, groups, entries }
             };
         } catch (err) {
@@ -308,7 +308,7 @@ export class ChronosDB {
                 for (const entry of seriesEntries) {
                     delete entry.id;
                     entry.seriesId = newSeriesId;
-                    if (entry.timestamp) entry.timestamp = format(parseISO(entry.timestamp), 'yyyy-MM-dd HH:mm:ss');
+                    if (entry.timestamp) entry.timestamp = format.dateTime(parseISO(entry.timestamp));
                     await this.saveEntry(entry);
                 }
             }
@@ -365,7 +365,7 @@ export class ChronosDB {
                             if (firstCell === "" && row[1]) {
                                 let rawVal = parseFloat(row[2]);
                                 currentEntries.push({
-                                    timestamp: format(parseISO(row[1]), 'yyyy-MM-dd HH:mm:ss'),
+                                    timestamp: format.dateTime(parseISO(row[1])),
                                     value: currentSeriesType === 'time' ? rawVal / 1000 : rawVal,
                                     notes: row[3] || ''
                                 });

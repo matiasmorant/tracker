@@ -1,6 +1,6 @@
-import { format, subMonths, addMonths, differenceInSeconds, intervalToDuration } from 'https://cdn.jsdelivr.net/npm/date-fns@4.1.0/+esm';
+import { format as formatFn, differenceInSeconds, intervalToDuration } from 'https://cdn.jsdelivr.net/npm/date-fns@4.1.0/+esm';
 
-export function formatDuration(seconds, isTick = false) {
+function formatDuration(seconds, isTick = false) {
     if (seconds === 0) return '0s';
 
     const duration = intervalToDuration({ start: 0, end: seconds * 1000 });    
@@ -22,19 +22,21 @@ export function formatDuration(seconds, isTick = false) {
     return res.join(' ');
 }
 
+export const format = {
+    month    : (d) => formatFn(d, 'MMMM yyyy'),
+    day      : (d) => formatFn(d, 'yyyy-MM-dd'),
+    dateTime : (d) => formatFn(d, 'yyyy-MM-dd HH:mm:ss'),
+    duration : formatDuration
+};
 
-export function formatMonth(d) { return format(d, 'MMMM yyyy'); }
-export function getFormattedISO(d = new Date()) { return format(d, 'yyyy-MM-dd HH:mm:ss'); }
 
 export function elapsedSeconds(s) {
     if (!s.startTime) return 0;
     const elapsedSeconds = differenceInSeconds(new Date(), new Date(s.startTime));
     return Math.max(0, elapsedSeconds);
 }
-export function getRunningTime(s) { return formatDuration(elapsedSeconds(s)); }
+export function getRunningTime(s) { return format.duration(elapsedSeconds(s)); }
 
-export function prevMonth(date) { return subMonths(date, 1);}
-export function nextMonth(date) { return addMonths(date, 1);}
 
 export const toggleModal = (id)=>{document.getElementById(id).toggleAttribute('open'); m.redraw();}
 

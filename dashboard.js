@@ -1,5 +1,5 @@
 import m from 'https://esm.sh/mithril';
-import { formatDuration } from './utils.js';
+import { format } from './utils.js';
 import { calculateSeriesSummary } from './analytics.js';
 import chronosDB from './db.js';
 import GroupCard from './groupcard.js';
@@ -18,7 +18,7 @@ const Dashboard = () => {
             const entries = await chronosDB.getEntriesForSeries(seriesObj.id);
             const configs = seriesObj.config?.summaries || [null];
             seriesObj.summaries = configs.map(config => 
-                calculateSeriesSummary(seriesObj, entries, formatDuration, config)
+                calculateSeriesSummary(seriesObj, entries, format.duration, config)
             ).filter(s => s && s.trim() !== '');
         }
         return seriesList;

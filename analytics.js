@@ -1,7 +1,5 @@
-import {format,subDays,subMonths,subYears,startOfDay,startOfWeek,startOfMonth,startOfQuarter,startOfYear,isWithinInterval,parseISO,differenceInDays } from 'https://cdn.jsdelivr.net/npm/date-fns@4.1.0/+esm';
-import { formatDuration } from './utils.js';
-
-function formatDay(date) { return format(date, 'yyyy-MM-dd'); }
+import { subDays,subMonths,subYears,startOfDay,startOfWeek,startOfMonth,startOfQuarter,startOfYear,isWithinInterval,parseISO,differenceInDays } from 'https://cdn.jsdelivr.net/npm/date-fns@4.1.0/+esm';
+import { format } from './utils.js';
 
 function periodKey(period, date) {
     if (period === 'day'     ) { return startOfDay     (date); }
@@ -45,7 +43,7 @@ export function calculateStat(entries, stat, period = 'none') {
             .groupBy(e => {
                 const date = parseISO(e.timestamp);
                 const key  = periodKey(period, date);
-                return key && formatDay(key);
+                return key && format.day(key);
             })
             .map((g, timestamp) => ({
                 timestamp,
@@ -61,7 +59,7 @@ export function calculateStat(entries, stat, period = 'none') {
         case 'mean':    return _.mean(values);
         case 'dayMean': {
             const uniqueDays = _(entries)
-                .map(e => e.timestamp ? formatDay(parseISO(e.timestamp)) : '')
+                .map(e => e.timestamp ? format.day(parseISO(e.timestamp)) : '')
                 .uniq()
                 .size();
             const sum = _.sum(values);
