@@ -120,14 +120,14 @@ function SeriesConfiguration() {
     }
 
     return {
-        oninit(vnode) {
-            seriesId = vnode.attrs['series-id'];
+        oninit({attrs}) {
+            seriesId = attrs['series-id'];
             _load();
         },
 
-        onupdate(vnode) {
-            if (vnode.attrs['series-id'] !== seriesId) {
-                seriesId = vnode.attrs['series-id'];
+        onupdate({attrs}) {
+            if (attrs['series-id'] !== seriesId) {
+                seriesId = attrs['series-id'];
                 _load();
             }
         },

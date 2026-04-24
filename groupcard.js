@@ -13,14 +13,14 @@ const Summary = ".wa-cluster.wa-gap-0.items-baseline.*:first:(text-xs font-black
 const GroupCard = () => {
     let updateInterval = null;
 
-    const handleQuickAdd = async (series, vnode) => {
+    const handleQuickAdd = async (series, {dom}) => {
         await chronosDB.quickAction(series);
         const action = series.config?.quickAddAction || 'manual';
 
         if (action === 'manual') {
-            vnode.dom.dispatchEvent(new CustomEvent('add-entry-click', { detail: { series }, bubbles: true }));
+            dom.dispatchEvent(new CustomEvent('add-entry-click', { detail: { series }, bubbles: true }));
         } else {
-            vnode.dom.dispatchEvent(new CustomEvent('series-updated', { detail: { series }, bubbles: true }));
+            dom.dispatchEvent(new CustomEvent('series-updated', { detail: { series }, bubbles: true }));
         }
     };
 
@@ -35,8 +35,8 @@ const GroupCard = () => {
     };
 
     return {
-        onupdate: (vnode) => {
-            const hasActive = vnode.attrs.seriesList?.some(s => chronosDB.isChrono(s) && chronosDB.isRunning(s));
+        onupdate: ({attrs}) => {
+            const hasActive = attrs.seriesList?.some(s => chronosDB.isChrono(s) && chronosDB.isRunning(s));
             hasActive ? startTimer() : stopTimer();
         },
         onremove: () => stopTimer(),

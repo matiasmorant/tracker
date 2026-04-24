@@ -17,9 +17,7 @@ export const ColorPicker = {
               ? `box-shadow: 0 0 0 2px var(--wa-color-surface-default), 0 0 0 4px ${color}`
               : '',
           ].filter(Boolean).join('; '),
-          onclick() {
-            oninput({ target: { id, value: color } });
-          },
+          onclick() { oninput({ target: { id, value: color } }); },
         })
       )
     );

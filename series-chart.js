@@ -3,10 +3,6 @@ import { calculateStat, calculateRunningMetric } from './analytics.js';
 import chronosDB from './db.js';
 import SeriesChartConfig from './series-chart-config.js';
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
 const METRICS = [
   { id: 'mean',    label: 'Mean',    color: '#4f46e5' },
   { id: 'dayMean', label: 'Day Mean', color: '#10b981' },
@@ -34,17 +30,9 @@ const DEFAULT_CHART_SETTINGS = {
 const RANGE_DAYS = { day: 1, week: 7, month: 30, quarter: 90, year: 365 };
 const COMPARISON_COLORS = ['#ec4899', '#10b981', '#f59e0b', '#06b6d4', '#8b5cf6', '#14b8a6', '#f97316'];
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
 function isDarkMode() {
   return document.documentElement.classList.contains('dark');
 }
-
-// ---------------------------------------------------------------------------
-// SeriesChart  –  attrs: { seriesId }
-// ---------------------------------------------------------------------------
 
 const SeriesChart = () => {
   // ── state ─────────────────────────────────────────────────────────────────
@@ -62,31 +50,25 @@ const SeriesChart = () => {
   // ── data ──────────────────────────────────────────────────────────────────
 
   async function loadData(seriesId) {
-    try {
-      series    = await chronosDB.getSeries(parseInt(seriesId));
-      entries   = await chronosDB.getEntriesForSeries(parseInt(seriesId));
-      entries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-      allSeries = await chronosDB.getAllSeries();
+    series    = await chronosDB.getSeries(parseInt(seriesId));
+    entries   = await chronosDB.getEntriesForSeries(parseInt(seriesId));
+    entries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    allSeries = await chronosDB.getAllSeries();
 
-      if (series.config) {
-        if (series.config.analysisSelection) {
-          analysisSelection = [...series.config.analysisSelection];
-        }
-        if (series.config.chartSettings) {
-          chartSettings = {
-            ...DEFAULT_CHART_SETTINGS,
-            ...series.config.chartSettings,
-            compareSeriesIds: series.config.chartSettings.compareSeriesIds ?? [],
-          };
-        }
+    if (series.config) {
+      if (series.config.analysisSelection) {
+        analysisSelection = [...series.config.analysisSelection];
       }
-    } catch (err) {
-      console.error('Failed to load series data:', err);
+      if (series.config.chartSettings) {
+        chartSettings = {
+          ...DEFAULT_CHART_SETTINGS,
+          ...series.config.chartSettings,
+          compareSeriesIds: series.config.chartSettings.compareSeriesIds ?? [],
+        };
+      }
     }
     m.redraw();
   }
-
-  // ── chart update ──────────────────────────────────────────────────────────
 
   async function updateChart() {
     if (!chartEl || !entries.length) return;
@@ -94,11 +76,9 @@ const SeriesChart = () => {
     // Compute viewDays
     let viewDays = 0;
     if (chartSettings.range !== 'all') {
-      if (chartSettings.range === 'custom' && chartSettings.customDays) {
-        viewDays = chartSettings.customDays;
-      } else {
-        viewDays = RANGE_DAYS[chartSettings.range] ?? 0;
-      }
+      viewDays = (chartSettings.range === 'custom' && chartSettings.customDays)
+        ? chartSettings.customDays
+        : ( RANGE_DAYS[chartSettings.range] ?? 0 );
     } else if (entries.length > 0) {
       const first = new Date(entries[0].timestamp);
       const last  = new Date(entries[entries.length - 1].timestamp);
@@ -122,9 +102,7 @@ const SeriesChart = () => {
 
         if (!isComparison && rId && win >= 2) {
           const runningPoints = calculateRunningMetric(
-            seriesEntries,
-            rId,
-            win
+            seriesEntries, rId, win
           ).map(p => ({ x: p.timestamp, y: p.value }));
 
           if (runningPoints.length > 0) {
@@ -173,9 +151,7 @@ const SeriesChart = () => {
 
               if (rId && win >= 2) {
                 const runningPoints = calculateRunningMetric(
-                  points,
-                  rId,
-                  win
+                  points, rId, win
                 ).map(p => ({ x: p.timestamp + suffix, y: p.value }));
 
                 if (runningPoints.length > 0) {
@@ -332,9 +308,7 @@ const SeriesChart = () => {
 
         // ── Toolbar ────────────────────────────────────────────────────────
         m('.px-4.py-0.border-b.border-slate-100.dark:border-slate-700.flex.justify-between.items-center',
-          m([button, '.plain.small'], {
-            onclick: handleToggleCollapsed,
-          },
+          m([button, '.plain.small'], { onclick: handleToggleCollapsed, },
             m(icon(collapsed ? 'chevron-down' : 'chevron-up')),
             collapsed ? 'Statistics' : 'Hide'
           )

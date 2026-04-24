@@ -2,24 +2,24 @@ import { State, Actions } from './mithril-state-actions.js';
 import chronosDB from './db.js';
 
 const DetailHeader = {
-    oninit(vnode) {
-        vnode.state.nameValue = State.currentSeries?.name ?? "";
-        vnode.state.prevSeries = State.currentSeries;
+    oninit({state}) {
+        state.nameValue = State.currentSeries?.name ?? "";
+        state.prevSeries = State.currentSeries;
     },
 
-    onupdate(vnode) {
-        if (State.currentSeries !== vnode.state.prevSeries) {
-            vnode.state.prevSeries = State.currentSeries;
-            vnode.state.nameValue = State.currentSeries?.name ?? "";
+    onupdate({state}) {
+        if (State.currentSeries !== state.prevSeries) {
+            state.prevSeries = State.currentSeries;
+            state.nameValue = State.currentSeries?.name ?? "";
         }
     },
 
-    view(vnode) {
+    view({state}) {
         const series = State.currentSeries;
         if (!series) return null;
 
         const commitName = async () => {
-            const trimmed = vnode.state.nameValue.trim();
+            const trimmed = state.nameValue.trim();
             if (!trimmed) return;
             await chronosDB.saveSeries({ ...series, name: trimmed });
             await Actions.loadSeries();
@@ -29,8 +29,8 @@ const DetailHeader = {
             m([button, '.plain'], {onclick: ()=>{ State.view = 'list'; }},
                 m(icon`chevron-left`)),
             m("wa-input.series-name-input.text-l[type=text]", {
-                value: vnode.state.nameValue,
-                oninput: (e) => { vnode.state.nameValue = e.target.value; },
+                value: state.nameValue,
+                oninput: (e) => { state.nameValue = e.target.value; },
                 onchange: commitName,
                 onkeydown: (e) => { if (e.key === "Enter") e.target.blur(); },
             }, m(icon`pen`+'[slot=end]')),
