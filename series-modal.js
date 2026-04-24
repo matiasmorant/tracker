@@ -1,9 +1,9 @@
 import { Actions } from './mithril-state-actions.js';
 import db from './db.js';
 import { withDefaults } from './utils.js';
-import { makeModal } from './modal-form.js';
+import { ModalForm } from './modal-form.js';
 
-const SeriesModal = makeModal({
+const SeriesModal = ModalForm({
   id: 'series-dialog',
   initState: () => ({
     groups:     [],

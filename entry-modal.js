@@ -1,11 +1,11 @@
 import { State, Actions } from './mithril-state-actions.js';
 import { format } from './utils.js';
 import db from './db.js';
-import { makeModal } from './modal-form.js';
+import { ModalForm } from './modal-form.js';
 
 const newForm = () => ({ timestamp: format.dateTime(new Date()), value: 0, notes: '' });
 
-const EntryModal = makeModal({
+const EntryModal = ModalForm({
   id: 'entry-modal',
   initState: () => ({
     form:         newForm(),
