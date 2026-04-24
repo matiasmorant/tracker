@@ -39,26 +39,22 @@ function makeModal(config) {
 
           if (index === 0) extra.autofocus = true;
 
-          const value   = state.form[fieldId];
-          const oninput = (e) => { state.form[fieldId] = e.target.value; };
+          const value = state.form[fieldId];
 
           switch (type) {
-            case 'datetime': return m(DateTimeInput, { label: fieldLabel, value, oninput, ...extra });
-            case 'number':   return m(NumberInput,   { label: fieldLabel, value, oninput, ...extra });
-            case 'text':     return m('wa-input',    { label: fieldLabel, value, oninput, ...extra });
-            case 'dhms':     return m(dhmsField,     { label: fieldLabel, value, oninput, ...extra });
-            case 'select':   return m('wa-select',   { label: fieldLabel, value, onchange: oninput, ...extra },
+            case 'datetime': return m(DateTimeInput, { label: fieldLabel, value, ...extra });
+            case 'number':   return m(NumberInput,   { label: fieldLabel, value, ...extra });
+            case 'text':     return m('wa-input',    { label: fieldLabel, value, ...extra });
+            case 'dhms':     return m(dhmsField,     { label: fieldLabel, value, ...extra });
+            case 'select':   return m('wa-select',   { label: fieldLabel, value, ...extra },
               (options ?? []).map(opt =>
                 m('wa-option', { value: opt.value }, opt.label ?? opt.value)
               ));
-            case 'color':
-              return m(ColorPicker, {
-                selectedColor: value,
-                onSelect: color => { state.form[fieldId] = color; },
-                ...extra
-              });
+            case 'color':     return m(ColorPicker,  { label: fieldLabel, value, ...extra });
           }
         });
+
+        const handleInput = (e) => { state.form[e.target.id] = e.target.value; };
 
         return m('wa-dialog[light-dismiss]', {
           id,
@@ -67,7 +63,7 @@ function makeModal(config) {
           onwa_submit:     e => e.preventDefault(),
           ...currentExtraAttrs,
         }, [
-          m('form.wa-stack', { onsubmit(e) { e.preventDefault(); onAccept(); } }, children),
+          m('form.wa-stack', { onsubmit(e) { e.preventDefault(); onAccept(); }, oninput: handleInput }, children),
 
           m('.wa-cluster.wa-justify-content-end[slot=footer]', [
             m([button, '.outlined[data-dialog=close]'], {
