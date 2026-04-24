@@ -1,8 +1,8 @@
 import db from './db.js';
 import { ColorPicker, DEFAULT_COLOR } from './color-picker.js';
-import { makeModal } from './modal-form.js';
+import { ModalForm } from './modal-form.js';
 
-const GroupEditor = makeModal({
+const GroupEditor = ModalForm({
   id: 'group-editor-dialog',
   initState: () => ({
     form:   { name: '', color: DEFAULT_COLOR },

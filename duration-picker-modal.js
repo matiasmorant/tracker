@@ -1,6 +1,6 @@
-import { makeModal } from './modal-form.js';
+import { ModalForm } from './modal-form.js';
 
-const DurationPickerModal = makeModal({
+const DurationPickerModal = ModalForm({
   id: 'durationPickerModal',
   initState: () => ({ form:   { duration: 0 }, onAccept: null, }),
   onOpen: ({ duration, onAccept }) => ({ form: { duration }, onAccept }),
