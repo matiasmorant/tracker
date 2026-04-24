@@ -1,7 +1,7 @@
 import { Duration } from './utils.js';
 
-export default function dhmsField(vnode) {
-  const duration = new Duration(vnode.attrs.value || 0);
+export default function dhmsField({ attrs: {value} }) {
+  const duration = new Duration(value || 0);
 
   return {
     onbeforeupdate(vnode, old) {
@@ -11,9 +11,7 @@ export default function dhmsField(vnode) {
         duration.fromTotalSeconds(value || 0);
       }
     },
-    view({ attrs }) {
-      const { label: fieldLabel, oninput } = attrs;
-
+    view({ attrs: { label: fieldLabel, oninput } }) {
       const update = (key, val) => {
         duration[key] = parseInt(val) || 0;
         if (oninput) {

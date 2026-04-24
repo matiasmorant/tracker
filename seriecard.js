@@ -42,26 +42,26 @@ const SerieCard = () => {
             .filter(s => s && s.trim() !== '');
     };
 
-    const handleQuickAdd = async (series, vnode) => {
+    const handleQuickAdd = async (series, {dom}) => {
         await chronosDB.quickAction(series);
         const action = series.config?.quickAddAction || 'manual';
 
         if (action === 'increment') {
             await loadEntries(series);
-            vnode.dom.dispatchEvent(new CustomEvent('entry-created', { detail: { series }, bubbles: true }));
+            dom.dispatchEvent(new CustomEvent('entry-created', { detail: { series }, bubbles: true }));
         } else if (action === 'chronometer') {
             if (chronosDB.isRunning(series)) {
-                vnode.dom.dispatchEvent(new CustomEvent('series-updated', { detail: { series }, bubbles: true }));
+                dom.dispatchEvent(new CustomEvent('series-updated', { detail: { series }, bubbles: true }));
             } else {
                 await loadEntries(series);
-                vnode.dom.dispatchEvent(new CustomEvent('series-updated', { detail: { series }, bubbles: true }));
-                vnode.dom.dispatchEvent(new CustomEvent('entry-created', { detail: { series }, bubbles: true }));
+                dom.dispatchEvent(new CustomEvent('series-updated', { detail: { series }, bubbles: true }));
+                dom.dispatchEvent(new CustomEvent('entry-created', { detail: { series }, bubbles: true }));
             }
         } else if (action === 'currentTime') {
             await loadEntries(series);
-            vnode.dom.dispatchEvent(new CustomEvent('entry-created', { detail: { series }, bubbles: true }));
+            dom.dispatchEvent(new CustomEvent('entry-created', { detail: { series }, bubbles: true }));
         } else {
-            vnode.dom.dispatchEvent(new CustomEvent('add-entry-click', { detail: { series }, bubbles: true }));
+            dom.dispatchEvent(new CustomEvent('add-entry-click', { detail: { series }, bubbles: true }));
         }
     };
 
@@ -76,10 +76,10 @@ const SerieCard = () => {
     };
 
     return {
-        oninit: (vnode) => loadEntries(vnode.attrs.series),
+        oninit: ({attrs}) => loadEntries(attrs.series),
 
-        onupdate: (vnode) => {
-            const { series } = vnode.attrs;
+        onupdate: ({attrs}) => {
+            const { series } = attrs;
             const isRunning = chronosDB.isChrono(series) && chronosDB.isRunning(series);
             isRunning ? startTimer() : stopTimer();
         },
