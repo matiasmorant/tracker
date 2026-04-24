@@ -8,19 +8,19 @@ export const DEFAULT_COLOR = '#6366f1';
 
 export const ColorPicker = {
   view(vnode) {
-    const { selectedColor, onSelect } = vnode.attrs;
+    const { value, oninput } = vnode.attrs;
     
     return m('.grid.grid-cols-6.wa-gap-2xs',
       COLORS.map(color =>
         m([icon`square`,'.text-5xl'], {
           style: [
             `color: ${color}`,
-            color === selectedColor
+            color === value
               ? `box-shadow: 0 0 0 2px var(--wa-color-surface-default), 0 0 0 4px ${color}`
               : '',
           ].filter(Boolean).join('; '),
           onclick() {
-            onSelect(color);
+            oninput({ target: { id: vnode.attrs.id, value: color } });
           },
         })
       )
