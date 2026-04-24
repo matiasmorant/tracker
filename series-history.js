@@ -14,7 +14,7 @@ const tableStyles = `
     }
 `;
 
-function buildColumns(isTime, vnode) {
+function buildColumns(isTime, { onEntryUpdated, onDeleteEntryClick }) {
     return [
         {
             title: 'Date', field: 'timestamp', sorter: 'string',
@@ -31,7 +31,7 @@ function buildColumns(isTime, vnode) {
                     DurationPickerModal.open({
                         duration: cell.getValue(),
                         onAccept: (value) => {
-                            vnode.attrs.onEntryUpdated?.({ entry: { ...cell.getData(), value } });
+                            onEntryUpdated?.({ entry: { ...cell.getData(), value } });
                         },
                     });
                 }
@@ -48,38 +48,36 @@ function buildColumns(isTime, vnode) {
             formatter: () => `<wa-button appearance="plain" variant="danger" size="small"><wa-icon name="trash-alt" label="Delete entry"></wa-icon></wa-button>`,
             cellClick: (e, cell) => {
                 const entry = cell.getData();
-                vnode.attrs.onDeleteEntryClick?.(entry);
+                onDeleteEntryClick?.(entry);
             }
         }
     ];
 }
 
-function initTable(vnode) {
-    const { series, entries = [] } = vnode.attrs;
+function initTable({attrs, state, dom}) {
+    const { series, entries = [], onEntryUpdated } = attrs;
     if (!series) return;
 
     const isTime = series.type === 'time';
-    vnode.state.seriesId = series.id;
+    state.seriesId = series.id;
 
-    vnode.state.table = new Tabulator(vnode.dom.querySelector('#table-container'), {
+    state.table = new Tabulator(dom.querySelector('#table-container'), {
         data: [...entries].reverse(),
         layout: 'fitColumns',
         responsiveLayout: false,
         resizableColumns: false,
         resizableColumnFit: false,
         placeholder: 'No historical data available.',
-        columns: buildColumns(isTime, vnode),
+        columns: buildColumns(isTime, attrs),
     });
 
-    vnode.state.table.on('cellEdited', cell => {
-        vnode.attrs.onEntryUpdated?.({ entry: cell.getData() });
+    state.table.on('cellEdited', cell => {
+        onEntryUpdated?.({ entry: cell.getData() });
     });
 }
 
 const SeriesHistory = {
-    oncreate(vnode) {
-        initTable(vnode);
-    },
+    oncreate(vnode) { initTable(vnode); },
 
     onupdate(vnode) {
         if (!vnode.state.table) return;
@@ -93,24 +91,18 @@ const SeriesHistory = {
         }
     },
 
-    onremove(vnode) {
-        if (vnode.state.table) vnode.state.table.destroy();
-    },
+    onremove({state}) { state.table?.destroy(); },
 
-    view(vnode) {
-        const { series, onAddEntryClick } = vnode.attrs;
+    view({ attrs: { series, onAddEntryClick } }) {
         if (!series) return null;
 
         return m('.bg-white.rounded-2xl.shadow-sm.border.overflow-hidden.border-slate-200.dark:bg-slate-800.dark:border-slate-700', [
             m('style', tableStyles),
             m('.p-6.border-b.flex.justify-between.items-center.border-slate-100.dark:border-slate-700', [
                 m('h3.text-lg.font-semibold.dark:text-slate-100', 'Data History'),
-                m([button, '.brand.small'], {
-                    onclick: () => onAddEntryClick?.({ series })
-                }, [
-                    m(icon`plus`),
-                    'Add Entry'
-                ])
+                m([button, '.brand.small'], { onclick: () => onAddEntryClick?.({ series }) },
+                    [ m(icon`plus`), 'Add Entry']
+                )
             ]),
             m('#table-container.w-full')
         ]);
