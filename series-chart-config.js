@@ -46,6 +46,7 @@ const SeriesChartConfig = () => {
   let chartSettings     = {};
   let analysisSelection = [];
   let loadedSeriesId    = null;
+  let onConfigUpdated   = null;
 
   // ── data ──────────────────────────────────────────────────────────────────
 
@@ -57,7 +58,7 @@ const SeriesChartConfig = () => {
     m.redraw();
   }
 
-  async function saveSeries(onConfigUpdated) {
+  async function save() {
     if (!series) return;
 
     series.config = {
@@ -74,12 +75,12 @@ const SeriesChartConfig = () => {
 
   // ── event handlers ────────────────────────────────────────────────────────
 
-  const handleAnalysisChange      = (cb, e) => { analysisSelection              = e.detail.selection;              saveSeries(cb); };
-  const handlePeriodChange        = (cb, e) => { chartSettings.period           = e.target.value;                  saveSeries(cb); };
-  const handleRunningMetricChange = (cb, e) => { chartSettings.runningMetric    = e.target.value;                  saveSeries(cb); };
-  const handleWindowChange        = (cb, e) => { chartSettings.window           = parseInt(e.target.value) || 7;   saveSeries(cb); };
-  const handleSettingChange       = (cb, key, value) => { chartSettings[key]    = value;                           saveSeries(cb); };
-  const handleCompareChange       = (cb, e) => { chartSettings.compareSeriesIds = e.detail.selection;              saveSeries(cb); };
+  const onAnalysisChange      = e      => { analysisSelection              = e.detail.selection;            save(); };
+  const onPeriodChange        = e      => { chartSettings.period           = e.target.value;                save(); };
+  const onRunningMetricChange = e      => { chartSettings.runningMetric    = e.target.value;                save(); };
+  const onWindowChange        = e      => { chartSettings.window           = parseInt(e.target.value) || 7; save(); };
+  const onCompareChange       = e      => { chartSettings.compareSeriesIds = e.detail.selection;            save(); };
+  const onSettingChange       = (k, v) => { chartSettings[k]               = v;                             save(); };
 
   // ── component ─────────────────────────────────────────────────────────────
 
@@ -99,7 +100,7 @@ const SeriesChartConfig = () => {
     },
 
     view({ attrs }) {
-      const { onConfigUpdated } = attrs;
+      onConfigUpdated = attrs.onConfigUpdated;
 
       if (!series) {
         return m('.p-4.text-slate-500', 'Loading configuration...');
@@ -107,9 +108,6 @@ const SeriesChartConfig = () => {
 
       const otherSeries = allSeries.filter(s => s.id !== series.id);
       const settings    = { ...DEFAULT_SETTINGS, ...chartSettings };
-
-      // Partially apply the callback so every handler receives it as first arg
-      const on = fn => fn.bind(null, onConfigUpdated);
 
       return m('#configPanel.border-t.border-slate-100.dark:border-slate-700',
         m('.p-4',
@@ -125,7 +123,7 @@ const SeriesChartConfig = () => {
                 items: JSON.stringify(METRICS.map(({ id, label, color }) => ({ id, label, color }))),
                 'selected-ids': JSON.stringify(analysisSelection),
                 multi: true,
-                onchange: on(handleAnalysisChange),
+                onchange: onAnalysisChange,
               }),
 
               m('.flex.flex-col.gap-1\\.5',
@@ -133,7 +131,7 @@ const SeriesChartConfig = () => {
                   'Period Grouping'),
                 m('select.text-xs.border.border-slate-200.rounded-md.px-2.py-1\\.5.bg-slate-50.outline-none.focus:ring-1.focus:ring-indigo-500.dark:bg-slate-700.dark:border-slate-600.dark:text-slate-100', {
                   'data-setting': 'period',
-                  onchange: on(handlePeriodChange),
+                  onchange: onPeriodChange,
                 },
                   PERIOD_OPTIONS.map(val =>
                     m('option', { value: val, selected: settings.period === val },
@@ -152,7 +150,7 @@ const SeriesChartConfig = () => {
               m('.flex.items-center.space-x-2',
                 m('select.text-xs.border.border-slate-200.rounded-md.px-2.py-1\\.5.bg-slate-50.outline-none.focus:ring-1.focus:ring-indigo-500.dark:bg-slate-700.dark:border-slate-600.dark:text-slate-100', {
                   'data-setting': 'runningMetric',
-                  onchange: on(handleRunningMetricChange),
+                  onchange: onRunningMetricChange,
                 },
                   m('option', { value: '', selected: !settings.runningMetric }, 'None'),
                   METRICS.map(({ id, label }) =>
@@ -166,7 +164,7 @@ const SeriesChartConfig = () => {
                   min: 2,
                   step: 1,
                   placeholder: 'Win',
-                  oninput: on(handleWindowChange),
+                  oninput: onWindowChange,
                 })
               )
             )
@@ -178,7 +176,7 @@ const SeriesChartConfig = () => {
               'Time Range'),
             m(PeriodSelector, {
               settings,
-              onSettingChange: (key, value) => handleSettingChange(onConfigUpdated, key, value),
+              onSettingChange,
             })
           ),
 
@@ -192,7 +190,7 @@ const SeriesChartConfig = () => {
                 items: JSON.stringify(otherSeries.map(({ id, name }) => ({ id, label: name }))),
                 'selected-ids': JSON.stringify(settings.compareSeriesIds ?? []),
                 multi: true,
-                onchange: on(handleCompareChange),
+                onchange: onCompareChange,
               })
             )
           )
