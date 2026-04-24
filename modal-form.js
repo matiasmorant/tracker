@@ -2,7 +2,16 @@ import dhmsField from './dhmsField.js';
 import { ColorPicker } from './color-picker.js';
 import { toggleModal } from './utils.js';
 
-function makeModal(config) {
+const fieldComponents = new Map([
+  ['datetime', DateTimeInput],
+  ['number', NumberInput],
+  ['text', 'wa-input'],
+  ['dhms', dhmsField],
+  ['select', 'wa-select'],
+  ['color', ColorPicker],
+]);
+
+function ModalForm(config) {
   const {
     id,
     initState,
@@ -36,31 +45,22 @@ function makeModal(config) {
 
         const children = getValue(fields).filter(Boolean).map((f, index) => {
           const { id: fieldId, label: fieldLabel, type, options, attrs: extra = {} } = f;
-
           if (index === 0) extra.autofocus = true;
-
           const value = state.form[fieldId];
-
-          switch (type) {
-            case 'datetime': return m(DateTimeInput, { label: fieldLabel, value, ...extra });
-            case 'number':   return m(NumberInput,   { label: fieldLabel, value, ...extra });
-            case 'text':     return m('wa-input',    { label: fieldLabel, value, ...extra });
-            case 'dhms':     return m(dhmsField,     { label: fieldLabel, value, ...extra });
-            case 'select':   return m('wa-select',   { label: fieldLabel, value, ...extra },
-              (options ?? []).map(opt =>
-                m('wa-option', { value: opt.value }, opt.label ?? opt.value)
-              ));
-            case 'color':     return m(ColorPicker,  { label: fieldLabel, value, ...extra });
-          }
+          return m(fieldComponents.get(type), { label: fieldLabel, value, ...extra },
+            type === 'select'
+              ? (options ?? []).map(({ value, label }) => m('wa-option', { value }, label ?? value))
+              : []
+          );
         });
 
         const handleInput = (e) => { state.form[e.target.id] = e.target.value; };
 
         return m('wa-dialog[light-dismiss]', {
           id,
-          label:           getValue(label),
+          label: getValue(label),
           onwa_after_hide: onCancel ? () => onCancel(state) : undefined,
-          onwa_submit:     e => e.preventDefault(),
+          onwa_submit: e => e.preventDefault(),
           ...currentExtraAttrs,
         }, [
           m('form.wa-stack', { onsubmit(e) { e.preventDefault(); onAccept(); }, oninput: handleInput }, children),
@@ -71,9 +71,9 @@ function makeModal(config) {
             }, 'Cancel'),
 
             m([button, '.brand.accent[data-dialog=close]'], {
-              loading:  currentExtraAttrs.loading  || undefined,
+              loading: currentExtraAttrs.loading || undefined,
               disabled: currentExtraAttrs.disabled || undefined,
-              onclick:  onAccept,
+              onclick: onAccept,
             }, currentExtraAttrs.acceptLabel ?? 'Ok'),
           ]),
         ]);
@@ -89,4 +89,4 @@ function makeModal(config) {
   return Component;
 }
 
-export { makeModal };
+export { ModalForm };
