@@ -1,3 +1,4 @@
+import { Tabulator } from 'tabulator';
 import { format } from './utils.js';
 import DurationPickerModal from './duration-picker-modal.js';
 
