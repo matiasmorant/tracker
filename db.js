@@ -1,3 +1,4 @@
+import { openDB } from 'https://cdn.jsdelivr.net/npm/idb@8/+esm';
 import { format, getRunningTime, elapsedSeconds } from './utils.js';
 import { parseISO } from 'https://cdn.jsdelivr.net/npm/date-fns@4.1.0/+esm';
 
@@ -11,12 +12,8 @@ export class ChronosDB {
     async init() {
         if (this.db) return this.db;
 
-        return new Promise((resolve, reject) => {
-            const request = indexedDB.open(this.dbName, this.version);
-            
-            request.onupgradeneeded = (e) => {
-                const db = e.target.result;
-                
+        this.db = await openDB(this.dbName, this.version, {
+            upgrade: (db) => {
                 if (!db.objectStoreNames.contains('series')) {
                     db.createObjectStore('series', { keyPath: 'id', autoIncrement: true });
                 }
@@ -29,18 +26,10 @@ export class ChronosDB {
                     const entriesStore = db.createObjectStore('entries', { keyPath: 'id', autoIncrement: true });
                     entriesStore.createIndex('seriesId', 'seriesId', { unique: false });
                 }
-            };
-            
-            request.onsuccess = (e) => {
-                this.db = e.target.result;
-                resolve(this.db);
-            };
-            
-            request.onerror = (e) => {
-                console.error('Database initialization failed:', e.target.error);
-                reject(e.target.error);
-            };
+            }
         });
+
+        return this.db;
     }
 
     // --- Series Methods ---
@@ -49,61 +38,26 @@ export class ChronosDB {
     async saveSeries(seriesData) { return this.save('series', seriesData); }
     
     async deleteSeries(id) {
-        const tx = this.db.transaction(['series', 'entries'], 'readwrite');
-        const seriesStore = tx.objectStore('series');
-        const entriesStore = tx.objectStore('entries');
+        const seriesStore = this.db.transaction('series', 'readwrite').objectStore('series');
+        const entriesStore = this.db.transaction('entries', 'readwrite').objectStore('entries');
         
-        seriesStore.delete(id);
+        await seriesStore.delete(id);
         
         const index = entriesStore.index('seriesId');
-        index.openCursor(IDBKeyRange.only(id)).onsuccess = (e) => {
-            const cursor = e.target.result;
-            if (cursor) {
-                cursor.delete();
-                cursor.continue();
-            }
-        };
-        
-        return new Promise((resolve, reject) => {
-            tx.oncomplete = () => resolve();
-            tx.onerror = (e) => reject(e.target.error);
-        });
+        const entries = await index.getAll(IDBKeyRange.only(id));
+        for (const entry of entries) {
+            await entriesStore.delete(entry.id);
+        }
     }
 
     async getSeriesByGroup(groupName) {
-        return new Promise((resolve, reject) => {
-            const tx = this.db.transaction('series', 'readonly');
-            const store = tx.objectStore('series');
-            const request = store.openCursor();
-            const seriesInGroup = [];
-
-            request.onsuccess = (e) => {
-                const cursor = e.target.result;
-                if (cursor) {
-                    const series = cursor.value;
-                    if (series.group === groupName) {
-                        seriesInGroup.push(series);
-                    }
-                    cursor.continue();
-                } else {
-                    resolve(seriesInGroup);
-                }
-            };
-
-            request.onerror = (e) => reject(e.target.error);
-        });
+        const allSeries = await this.getAll('series');
+        return allSeries.filter(s => s.group === groupName);
     }
 
     async getEntriesForSeries(seriesId) {
-        return new Promise((resolve, reject) => {
-            const tx = this.db.transaction('entries', 'readonly');
-            const store = tx.objectStore('entries');
-            const index = store.index('seriesId');
-            const request = index.getAll(IDBKeyRange.only(seriesId));
-            
-            request.onsuccess = (e) => resolve(e.target.result || []);
-            request.onerror = (e) => reject(e.target.error);
-        });
+        const index = this.db.transaction('entries', 'readonly').objectStore('entries').index('seriesId');
+        return await index.getAll(IDBKeyRange.only(seriesId));
     }
 
     async getAllEntries() { return this.getAll('entries'); }
@@ -116,49 +70,19 @@ export class ChronosDB {
     async deleteGroup(id) { return this.delete('groups', id); }
 
     // --- Generic Internal Helpers ---
-    async getAll(storeName) {
-        return new Promise((resolve, reject) => {
-            const tx = this.db.transaction(storeName, 'readonly');
-            const store = tx.objectStore(storeName);
-            const request = store.getAll();
-            
-            request.onsuccess = (e) => resolve(e.target.result || []);
-            request.onerror = (e) => reject(e.target.error);
-        });
-    }
-    
-    async get(storeName, id) {
-        return new Promise((resolve, reject) => {
-            const tx = this.db.transaction(storeName, 'readonly');
-            const store = tx.objectStore(storeName);
-            const request = store.get(id);
-            
-            request.onsuccess = (e) => resolve(e.target.result);
-            request.onerror = (e) => reject(e.target.error);
-        });
-    }
+    async getAll (storeName)     { return this.db.getAll (storeName); }
+    async get    (storeName, id) { return this.db.get    (storeName, id); }
+    async delete (storeName, id) { return this.db.delete (storeName, id); }
     
     async save(storeName, data) {
-        return new Promise((resolve, reject) => {
-            const cleanData = structuredClone(data);
-            const tx = this.db.transaction(storeName, 'readwrite');
-            const store = tx.objectStore(storeName);
-            const request = cleanData.id ? store.put(cleanData) : store.add(cleanData);
-            request.onsuccess = (e) => resolve(e.target.result);
-            request.onerror = (e) => reject(e.target.error);
-        });
+        const cleanData = structuredClone(data);
+        if (cleanData.id) {
+            return this.db.put(storeName, cleanData);
+        } else {
+            return this.db.add(storeName, cleanData);
+        }
     }
     
-    async delete(storeName, id) {
-        return new Promise((resolve, reject) => {
-            const tx = this.db.transaction(storeName, 'readwrite');
-            const store = tx.objectStore(storeName);
-            const request = store.delete(id);
-            
-            request.onsuccess = () => resolve();
-            request.onerror = (e) => reject(e.target.error);
-        });
-    }
 
     isChrono(series) { return series.config?.quickAddAction === 'chronometer'; }
 
