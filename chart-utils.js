@@ -10,7 +10,7 @@ import {
   differenceInDays,
   min as dateFnsMin,
   max as dateFnsMax,
-} from 'https://cdn.jsdelivr.net/npm/date-fns@4.1.0/+esm';
+} from 'date-fns';
 
 // Returns a Date object. Single conversion point from raw data.
 export function parseDate(dateValue) {

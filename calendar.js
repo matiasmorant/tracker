@@ -1,5 +1,5 @@
 import { format } from './utils.js';
-import { startOfMonth, endOfMonth, getDate, getDay, getDaysInMonth, subDays, addDays, subMonths, addMonths, isToday as dateFnsIsToday } from 'https://cdn.jsdelivr.net/npm/date-fns@4.1.0/+esm';
+import { startOfMonth, endOfMonth, getDate, getDay, getDaysInMonth, subDays, addDays, subMonths, addMonths, isToday as dateFnsIsToday } from 'date-fns';
 
 // ---------------------------------------------------------------------------
 // Pure helpers

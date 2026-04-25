@@ -1,6 +1,7 @@
-import { openDB } from 'https://cdn.jsdelivr.net/npm/idb@8/+esm';
+import { openDB } from 'idb';
+import Papa from 'papaparse';
 import { format, getRunningTime, elapsedSeconds } from './utils.js';
-import { parseISO } from 'https://cdn.jsdelivr.net/npm/date-fns@4.1.0/+esm';
+import { parseISO } from 'date-fns';
 import { calculateSeriesSummary } from './analytics.js';
 
 export class ChronosDB {
@@ -261,11 +262,6 @@ export class ChronosDB {
     
     async importCSV(csvText) {
         return new Promise((resolve, reject) => {
-            if (typeof Papa === 'undefined') {
-                reject(new Error("PapaParse library not found."));
-                return;
-            }
-
             Papa.parse(csvText, {
                 complete: async (results) => {
                     try {
