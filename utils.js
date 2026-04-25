@@ -1,4 +1,4 @@
-import { format as formatFn, differenceInSeconds, intervalToDuration } from 'https://cdn.jsdelivr.net/npm/date-fns@4.1.0/+esm';
+import { format as formatFn, differenceInSeconds, intervalToDuration } from 'date-fns';
 
 function formatDuration(seconds, isTick = false) {
     if (seconds === 0) return '0s';

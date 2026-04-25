@@ -13,7 +13,16 @@
     </script>
     <link rel="icon" type="image/png" href="icon-192.png">
     
-    <script type="module" src="https://cdn.jsdelivr.net/npm/idb@8/+esm"></script>
+    <script type="importmap">
+    {
+      "imports": {
+        "date-fns": "https://cdn.jsdelivr.net/npm/date-fns@4.1.0/+esm",
+        "idb": "https://cdn.jsdelivr.net/npm/idb@8/+esm",
+        "tabulator": "https://esm.sh/tabulator-tables@6.4.0",
+        "papaparse": "https://esm.sh/papaparse@5.5.3"
+      }
+    }
+    </script>
 
     <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.3.1/dist/styles/webawesome.css" /> -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.3.1/dist-cdn/styles/themes/default.css" />
@@ -82,10 +91,8 @@
     }
     </script> -->
     <script src="https://unpkg.com/mithril/mithril.js"></script>
-    <script src="https://unpkg.com/papaparse@latest/papaparse.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://unpkg.com/tabulator-tables@6.4.0/dist/css/tabulator_modern.min.css" rel="stylesheet">
-    <script type="text/javascript" src="https://unpkg.com/tabulator-tables@6.4.0/dist/js/tabulator.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
 
     <script type="module" src="./mithril-super.js"></script>

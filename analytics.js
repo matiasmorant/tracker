@@ -1,4 +1,4 @@
-import { subDays,subMonths,subYears,startOfDay,startOfWeek,startOfMonth,startOfQuarter,startOfYear,isWithinInterval,parseISO,differenceInDays } from 'https://cdn.jsdelivr.net/npm/date-fns@4.1.0/+esm';
+import { subDays,subMonths,subYears,startOfDay,startOfWeek,startOfMonth,startOfQuarter,startOfYear,isWithinInterval,parseISO,differenceInDays } from 'date-fns';
 import { format } from './utils.js';
 
 function periodKey(period, date) {

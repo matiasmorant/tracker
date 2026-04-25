@@ -1,4 +1,3 @@
-import m from 'https://esm.sh/mithril';
 import { format } from './utils.js';
 import { calculateSeriesSummary } from './analytics.js';
 import chronosDB from './db.js';
