@@ -1,105 +1,77 @@
-import { openDB } from 'idb';
 import Papa from 'papaparse';
-import { format, getRunningTime, elapsedSeconds } from './utils.js';
+import { format, elapsedSeconds } from './utils.js';
+import Dexie from 'dexie';
 import { parseISO } from 'date-fns';
 import { calculateSeriesSummary } from './analytics.js';
 
-export class ChronosDB {
+class ChronosDB extends Dexie {
     constructor() {
-        this.db = null;
-        this.dbName = 'ChronosDB';
-        this.version = 2;
-    }
+        super('ChronosDB');
 
-    async init() {
-        if (this.db) return this.db;
-
-        this.db = await openDB(this.dbName, this.version, {
-            upgrade: (db) => {
-                if (!db.objectStoreNames.contains('series')) {
-                    db.createObjectStore('series', { keyPath: 'id', autoIncrement: true });
-                }
-                
-                if (!db.objectStoreNames.contains('groups')) {
-                    db.createObjectStore('groups', { keyPath: 'id', autoIncrement: true });
-                }
-                
-                if (!db.objectStoreNames.contains('entries')) {
-                    const entriesStore = db.createObjectStore('entries', { keyPath: 'id', autoIncrement: true });
-                    entriesStore.createIndex('seriesId', 'seriesId', { unique: false });
-                }
-            }
+        this.version(1).stores({
+            series: '++id, name, group, type, config',
+            groups: '++id, name, color',
+            entries: '++id, seriesId, timestamp, value, notes'
         });
 
-        return this.db;
+        this.version(2).stores({
+            series: '++id, group',
+            groups: '++id',
+            entries: '++id, seriesId, [seriesId+timestamp]'
+        }).upgrade(tx => {
+            return Promise.resolve();
+        });
+
+        this.series  = this.table('series');
+        this.groups  = this.table('groups');
+        this.entries = this.table('entries');
     }
 
     // --- Series Methods ---
-    async getAllSeries() { return this.getAll('series'); }
-    async getSeries(id) { return this.get('series', id); }
-    async saveSeries(seriesData) { return this.save('series', seriesData); }
-    
+    async getAllSeries   ()   { return await this.series  .toArray ()   ; }
+    async getSeries      (id) { return await this.series  .get     (id) ; }
+    async saveSeries(seriesData) { return await this.series.put(seriesData); }
+
     async deleteSeries(id) {
-        const seriesStore = this.db.transaction('series', 'readwrite').objectStore('series');
-        const entriesStore = this.db.transaction('entries', 'readwrite').objectStore('entries');
-        
-        await seriesStore.delete(id);
-        
-        const index = entriesStore.index('seriesId');
-        const entries = await index.getAll(IDBKeyRange.only(id));
-        for (const entry of entries) {
-            await entriesStore.delete(entry.id);
-        }
+        return await this.transaction('rw', this.series, this.entries, async () => {
+            await this.series.delete(id);
+            await this.entries.where({ seriesId: id }).delete();
+        });
     }
 
-    async getSeriesByGroup(groupName) {
-        const allSeries = await this.getAll('series');
-        return allSeries.filter(s => s.group === groupName);
-    }
+    async getSeriesByGroup   (group)    { return await this.series .where({group   }).toArray(); }
+    async getEntriesForSeries(seriesId) { return await this.entries.where({seriesId}).toArray(); }
 
-    async getEntriesForSeries(seriesId) {
-        const index = this.db.transaction('entries', 'readonly').objectStore('entries').index('seriesId');
-        return await index.getAll(IDBKeyRange.only(seriesId));
-    }
-
-    async getAllEntries() { return this.getAll('entries'); }
+    async getAllEntries() { return await this.entries.toArray(); }
     async saveEntry(entryData, updateSummaries = false) {
-        const id = await this.save('entries', entryData);
-        if (id) entryData.id = id;
+        const id = await this.entries.put(entryData);
 
         if (updateSummaries) {
-            const series     = await this.getSeries(entryData.seriesId);
-            const allEntries = await this.getEntriesForSeries(entryData.seriesId);
-            
+            const series     = await this.series.get(entryData.seriesId);
+            const allEntries = await this.entries.where({seriesId: entryData.seriesId}).toArray();
+
             series.summaryDisplay = calculateSeriesSummary(series, allEntries, format.duration);
-            await this.saveSeries(series);
-            
-            return { entry: entryData, series };
+            await this.series.put(series);
+
+            return { entry: { ...entryData, id }, series };
         }
 
         return id;
     }
-    async deleteEntry(id) { return this.delete('entries', id); }
+    async deleteEntry(id) { return await this.entries.delete(id); }
 
     // --- Group Methods ---
-    async getAllGroups() { return this.getAll('groups'); }
-    async saveGroup(groupData) { return this.save('groups', groupData); }
-    async deleteGroup(id) { return this.delete('groups', id); }
+    async getAllGroups() { return await this.groups.toArray(); }
+    async saveGroup(groupData) { return await this.groups.put(groupData); }
+    async deleteGroup(id) {
+        return await this.transaction('rw', this.groups, this.series, async () => {
+            await this.groups.delete(id);
+            await this.series.where({ group: id }).modify({ group: null });
+        });
+    }
 
     // --- Generic Internal Helpers ---
-    async getAll (storeName)     { return this.db.getAll (storeName); }
-    async get    (storeName, id) { return this.db.get    (storeName, id); }
-    async delete (storeName, id) { return this.db.delete (storeName, id); }
-    
-    async save(storeName, data) {
-        const cleanData = structuredClone(data);
-        if (cleanData.id) {
-            return this.db.put(storeName, cleanData);
-        } else {
-            return this.db.add(storeName, cleanData);
-        }
-    }
-    
+    async save(table, data) { return await table.put(data); }
 
     isChrono(series) { return series.config?.quickAddAction === 'chronometer'; }
 
@@ -112,7 +84,7 @@ export class ChronosDB {
         if (!this.isChrono(chrono)) { throw new Error('Series is not a chronometer'); }
         if (this.isRunning(chrono)) { throw new Error('Chronometer is already running'); }
         chrono.startTime = new Date().toISOString();
-        return await this.saveSeries(chrono);
+        return await this.series.put(chrono);
     }
 
     async stop(chrono) {
@@ -121,7 +93,7 @@ export class ChronosDB {
         // Calculate elapsed time before clearing startTime
         const elapsed = elapsedSeconds(chrono);
         chrono.startTime = null;
-        await this.saveSeries(chrono);
+        await this.series.put(chrono);
         return await this.saveEntry({
             timestamp: format.dateTime(new Date()),
             value: elapsed,
@@ -149,7 +121,7 @@ export class ChronosDB {
 
     async quickIncrement(series) {
         const todayStr = format.day(new Date());
-        const entries = await this.getEntriesForSeries(series.id);
+        const entries = await this.entries.where({seriesId: series.id}).toArray();
         const todayEntry = entries.find(x=>x.timestamp.startsWith(todayStr));
         
         if (todayEntry) {
@@ -175,9 +147,9 @@ export class ChronosDB {
     async exportJSON() {
         try {
             const [series, groups, entries] = await Promise.all([
-                this.getAllSeries(),
-                this.getAllGroups(),
-                this.getAllEntries()
+                this.series.toArray(),
+                this.groups.toArray(),
+                this.entries.toArray()
             ]);
             
             return {
@@ -194,9 +166,9 @@ export class ChronosDB {
     async exportCSV() {
         try {
             const [series, groups, entries] = await Promise.all([
-                this.getAllSeries(),
-                this.getAllGroups(),
-                this.getAllEntries()
+                this.series.toArray(),
+                this.groups.toArray(),
+                this.entries.toArray()
             ]);
             
             let csv = "Tags\r\n\r\n";
@@ -236,14 +208,14 @@ export class ChronosDB {
             
             for (const group of groups || []) {
                 delete group.id;
-                await this.saveGroup(group);
+                await this.groups.put(group);
             }
             
             for (const s of series || []) {
                 const oldId = s.id;
                 delete s.id;
                 s.config = s.config || { stat: 'mean', period: 'all', quickAddAction: 'manual' };
-                const newSeriesId = await this.saveSeries(s);
+                const newSeriesId = await this.series.put(s);
                 
                 const seriesEntries = (entries || []).filter(e => e.seriesId === oldId);
                 for (const entry of seriesEntries) {
@@ -288,7 +260,7 @@ export class ChronosDB {
                             }
                         }
                         
-                        for (const group of groups) await this.saveGroup(group);
+                        for (const group of groups) await this.groups.put(group);
                         
                         let inParameters = false, currentSeriesName = null, currentSeriesTags = "";
                         let currentSeriesType = 'number', currentEntries = [];
@@ -329,7 +301,7 @@ export class ChronosDB {
     }
     
     async saveImportedSeries(name, group, type, entries) {
-        const seriesId = await this.saveSeries({
+        const seriesId = await this.series.put({
             name, group: group || '', type,
             config: { stat: 'mean', period: 'all', quickAddAction: 'manual' }
         });
@@ -337,40 +309,40 @@ export class ChronosDB {
     }
 
     async updateSeriesConfig(seriesId, config) {
-        const series = await this.getSeries(seriesId);
+        const series = await this.series.get(seriesId);
         if (series) {
             series.config = { ...series.config, ...config };
-            await this.saveSeries(series);
+            await this.series.put(series);
         }
     }
     
     async updateSeriesGroup(seriesId, groupName) {
-        const series = await this.getSeries(seriesId);
+        const series = await this.series.get(seriesId);
         if (series) {
             series.group = groupName;
-            await this.saveSeries(series);
+            await this.series.put(series);
         }
     }
 
     async updateSeriesGroupNames(oldName, newName) {
-        const allSeries = await this.getAllSeries();
-        const targets = allSeries.filter(s => s.group === oldName);
+        const targets = await this.series.where({group: oldName}).toArray();
         for (const series of targets) {
             series.group = newName;
-            await this.saveSeries(series);
+            await this.series.put(series);
         }
     }
-    
+
     async getSeriesWithEntries() {
-        const [series, entries] = await Promise.all([this.getAllSeries(), this.getAllEntries()]);
-        const entriesBySeries = _.groupBy(entries, 'seriesId');
-        return _.map(series, s => ({
+        const series = await this.series.toArray();
+        const entries = await this.entries.toArray();
+
+        return series.map(s => ({
             ...s,
-            entries: entriesBySeries[s.id] || []
+            entries: entries.filter(e => e.seriesId === s.id)
         }));
     }
 }
 
 // Create and export a singleton instance
-const dbInstance = new ChronosDB(); await dbInstance.init();
+const dbInstance = new ChronosDB();
 export default dbInstance;
