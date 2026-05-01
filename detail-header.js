@@ -1,5 +1,5 @@
 import { State, Actions } from './mithril-state-actions.js';
-import chronosDB from './db.js';
+import db from './db.js';
 
 const DetailHeader = {
     oninit({state}) {
@@ -21,7 +21,7 @@ const DetailHeader = {
         const commitName = async () => {
             const trimmed = state.nameValue.trim();
             if (!trimmed) return;
-            await chronosDB.series.put({ ...series, name: trimmed });
+            await db.series.put({ ...series, name: trimmed });
             await Actions.loadSeries();
         };
 
@@ -37,7 +37,7 @@ const DetailHeader = {
             m([button, '.plain'],{
                 onclick: async () => {
                     if (!confirm('Delete series and all data?')) return;
-                    await chronosDB.deleteSeries(series.id);
+                    await db.deleteSeries(series.id);
                     await Actions.loadSeries();
                     State.view = 'list';
                     m.redraw();
