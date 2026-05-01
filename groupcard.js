@@ -13,15 +13,10 @@ const Summary = ".wa-cluster.wa-gap-0.items-baseline.*:first:(text-xs font-black
 const GroupCard = () => {
     let updateInterval = null;
 
-    const handleQuickAdd = async (series, {dom}) => {
+    const handleQuickAdd = async (series, {onaddEntryClick,onseriesUpdated} ) => {
         await db.quickAction(series);
         const action = series.config?.quickAddAction || 'manual';
-
-        if (action === 'manual') {
-            dom.dispatchEvent(new CustomEvent('add-entry-click', { detail: { series }, bubbles: true }));
-        } else {
-            dom.dispatchEvent(new CustomEvent('series-updated', { detail: { series }, bubbles: true }));
-        }
+        ((action === 'manual')?onaddEntryClick:onseriesUpdated)?.(series);
     };
 
     const startTimer = () => {
@@ -40,9 +35,9 @@ const GroupCard = () => {
             hasActive ? startTimer() : stopTimer();
         },
         onremove: () => stopTimer(),
-        view: (vnode) => {
-            const group = JSON.parse(vnode.attrs.group);
-            const seriesList = vnode.attrs.seriesList || [];
+        view: ({attrs}) => {
+            const group = JSON.parse(attrs.group);
+            const seriesList = attrs.seriesList || [];
             if (!group || seriesList.length === 0) return null;
 
             return m(".wa-stack.wa-gap-3xs.px-3.py-1.rounded-xl.border.shadow-sm.overflow-hidden.transition-all.hover:shadow-md", {
@@ -54,7 +49,7 @@ const GroupCard = () => {
                     const isRunning = db.isChrono(series) && db.isRunning(series);
                     
                     return m(".wa-split.wa-gap-0.dark:hover:bg-slate-700/50.cursor-pointer.transition-colors", {
-                        onclick: () => vnode.dom.dispatchEvent(new CustomEvent('series-click', { detail: { series }, bubbles: true }))
+                        onclick: () => attrs.onseriesClick?.(series)
                     }, [
                         m(".wa-stack.wa-gap-3xs.min-w-0", [
                             m("span.font-bold.text-sm.text-normal.truncate", series.name),
@@ -80,7 +75,7 @@ const GroupCard = () => {
                             class: (isRunning ? 'danger animate-pulse' : 'brand'),
                             onclick: (e) => {
                                 e.stopPropagation();
-                                handleQuickAdd(series, vnode);
+                                handleQuickAdd(series, attrs);
                             }
                         }, getButtonIcon(series, isRunning))
                     ]);
