@@ -1,6 +1,6 @@
 import { format } from './utils.js';
 import { calculateSeriesSummary } from './analytics.js';
-import chronosDB from './db.js';
+import db from './db.js';
 
 export const State = {
     view: 'list',
@@ -22,13 +22,13 @@ export const Actions = {
         }, 3000);
     },
     async loadSeries() {
-        State.series = await chronosDB.series.toArray();
+        State.series = await db.series.toArray();
         const dashboard = document.querySelector('dashboard-view');
         if (dashboard && dashboard.refreshData) await dashboard.refreshData();
         m.redraw();
     },
     async loadEntries(id) {
-        const entries = await chronosDB.entries.where({seriesId: id}).toArray();
+        const entries = await db.entries.where({seriesId: id}).toArray();
         State.currentSeriesEntries = entries.sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
         Actions.recalculateSummaryDisplay();
         m.redraw();
@@ -51,19 +51,19 @@ export const Actions = {
         m.redraw();
     },
     async updateEntry(entry) {
-        await chronosDB.saveEntry(entry);
+        await db.saveEntry(entry);
         await Actions.loadEntries(State.currentSeries.id);
         await Actions.loadSeries();
     },
     async deleteEntry(id) {
         if (confirm('Delete entry?')) {
-            await chronosDB.entries.delete(id);
+            await db.entries.delete(id);
             await Actions.loadEntries(State.currentSeries.id);
         }
     },
     async exportData() {
         try {
-            const obj = await chronosDB.exportJSON();
+            const obj = await db.exportJSON();
             const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -75,7 +75,7 @@ export const Actions = {
     },
     async exportCSV() {
         try {
-            const csv = await chronosDB.exportCSV();
+            const csv = await db.exportCSV();
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
