@@ -1,6 +1,6 @@
 import { format } from './utils.js';
 import { calculateSeriesSummary } from './analytics.js';
-import chronosDB from './db.js';
+import db from './db.js';
 import GroupCard from './groupcard.js';
 
 const Dashboard = () => {
@@ -11,13 +11,13 @@ const Dashboard = () => {
     let updateInterval = null;
     let groupSeriesData = new Map();
 
-    const getSeriesWithSummaries = async (groupName) => {
-        const seriesList = await chronosDB.series.where({group: groupName}).toArray();
-        for (const seriesObj of seriesList) {
-            const entries = await chronosDB.entries.where({seriesId: seriesObj.id}).toArray();
-            const configs = seriesObj.config?.summaries || [null];
-            seriesObj.summaries = configs.map(config => 
-                calculateSeriesSummary(seriesObj, entries, format.duration, config)
+    const getSeriesWithSummaries = async (group) => {
+        const seriesList = await db.series.where({group}).toArray();
+        for (const serie of seriesList) {
+            const entries = await db.entries.where({seriesId: serie.id}).toArray();
+            const configs = serie.config?.summaries || [null];
+            serie.summaries = configs.map(config => 
+                calculateSeriesSummary(serie, entries, format.duration, config)
             ).filter(s => s && s.trim() !== '');
         }
         return seriesList;
@@ -26,10 +26,10 @@ const Dashboard = () => {
     const loadData = async () => {
         groupSeriesData.clear();
         
-        groups = await chronosDB.groups.toArray();
+        groups = await db.groups.toArray();
         groups.sort((a, b) => a.name.localeCompare(b.name));
         
-        series = await chronosDB.series.toArray();
+        series = await db.series.toArray();
         
         for (const group of groups) {
             const seriesData = await getSeriesWithSummaries(group.name);
@@ -77,7 +77,7 @@ const Dashboard = () => {
             loadData();
             updateInterval = setInterval(() => {
                 const hasActive = getFilteredSeries().some(s => 
-                    chronosDB.isChrono(s) && chronosDB.isRunning(s)
+                    db.isChrono(s) && db.isRunning(s)
                 );
                 if (hasActive) m.redraw();
             }, 1000);

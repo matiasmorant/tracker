@@ -1,7 +1,7 @@
 import { themeManager } from './theme-utils.js';
 import { Actions } from './mithril-state-actions.js';
 import SeriesModal from './series-modal.js';
-import chronosDB from './db.js';
+import db from './db.js';
 
 const ListHeader = {
     oninit: () => themeManager.initTheme(),
@@ -14,8 +14,8 @@ const ListHeader = {
             if (!file) return;
             try {
                 const content = await file.text();
-                if (type === 'json') await chronosDB.importJSON(JSON.parse(content), true);
-                else await chronosDB.importCSV(content);
+                if (type === 'json') await db.importJSON(JSON.parse(content), true);
+                else await db.importCSV(content);
                 await Actions.loadSeries();
                 Actions.showToast(`${type.toUpperCase()} imported`);
             } catch (err) { Actions.showToast(err.toString()); }
