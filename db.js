@@ -67,31 +67,21 @@ class ChronosDB extends Dexie {
         return !!series.startTime;
     }
 
-    async start(chrono) {
-        if (!this.isChrono(chrono)) { throw new Error('Series is not a chronometer'); }
-        if (this.isRunning(chrono)) { throw new Error('Chronometer is already running'); }
-        chrono.startTime = new Date().toISOString();
-        return await this.series.put(chrono);
-    }
-
-    async stop(chrono) {
-        if (!this.isChrono(chrono)) { throw new Error('Series is not a chronometer'); }
-        if (!this.isRunning(chrono)) { throw new Error('Chronometer is not running'); }
-        // Calculate elapsed time before clearing startTime
-        const elapsed = elapsedSeconds(chrono);
-        chrono.startTime = null;
-        await this.series.put(chrono);
-        return await this.saveEntry({
-            timestamp: format.dateTime(new Date()),
-            value: elapsed,
-            notes: '',
-            seriesId: chrono.id
-        });
-    }
-
     async toggle(chrono) {
         if (!this.isChrono(chrono)) { throw new Error('Series is not a chronometer'); }
-        return await (this.isRunning(chrono) ? this.stop(chrono) : this.start(chrono));
+        if (this.isRunning(chrono)) {
+            const elapsed = elapsedSeconds(chrono);
+            chrono.startTime = null;
+            await this.series.put(chrono);
+            return await this.saveEntry({
+                timestamp: format.dateTime(new Date()),
+                value: elapsed,
+                notes: '',
+                seriesId: chrono.id
+            });
+        }
+        chrono.startTime = new Date().toISOString();
+        return await this.series.put(chrono);
     }
 
     async quickCurrentTime(series) {
