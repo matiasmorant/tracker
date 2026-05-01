@@ -1,6 +1,6 @@
 import { format } from './utils.js';
 import { calculateStat, calculateRunningMetric } from './analytics.js';
-import chronosDB from './db.js';
+import db from './db.js';
 import SeriesChartConfig from './series-chart-config.js';
 
 const METRICS = [
@@ -50,10 +50,10 @@ const SeriesChart = () => {
   // ── data ──────────────────────────────────────────────────────────────────
 
   async function loadData(seriesId) {
-    series    = await chronosDB.series.get(parseInt(seriesId));
-    entries   = await chronosDB.entries.where({seriesId: parseInt(seriesId)}).toArray();
+    series    = await db.series.get(parseInt(seriesId));
+    entries   = await db.entries.where({seriesId: parseInt(seriesId)}).toArray();
     entries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-    allSeries = await chronosDB.series.toArray();
+    allSeries = await db.series.toArray();
 
     if (series.config) {
       if (series.config.analysisSelection) {
@@ -182,10 +182,10 @@ const SeriesChart = () => {
         const compareSeries = allSeries.find(s => s.id === compareId);
         if (!compareSeries) continue;
 
-        const compareEntries = await chronosDB.entries.where({seriesId: compareId}).toArray();
+        const compareEntries = await db.entries.where({seriesId: compareId}).toArray();
         if (!compareEntries.length) continue;
 
-        const allGroups    = await chronosDB.groups.toArray();
+        const allGroups    = await db.groups.toArray();
         const compareGroup = allGroups.find(g => g.name === compareSeries.group);
         const color        = compareGroup
           ? compareGroup.color

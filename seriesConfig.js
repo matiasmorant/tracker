@@ -1,4 +1,4 @@
-import chronosDB from './db.js';
+import db from './db.js';
 import { format } from './utils.js';
 import { calculateSeriesSummary } from './analytics.js';
 import {PeriodSelector, StatSelect} from './period-selector.js'
@@ -37,9 +37,9 @@ function SeriesConfiguration() {
         try {
             const id = parseInt(seriesId);
             [series, groups, entries] = await Promise.all([
-                chronosDB.series.get(id),
-                chronosDB.groups.toArray(),
-                chronosDB.entries.where({seriesId: id}).toArray(),
+                db.series.get(id),
+                db.groups.toArray(),
+                db.entries.where({seriesId: id}).toArray(),
             ]);
             entries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         } catch (err) {
@@ -52,7 +52,7 @@ function SeriesConfiguration() {
 
     async function _save() {
         if (!series) return;
-        await chronosDB.series.put(series);
+        await db.series.put(series);
         if (_dom) {
             _dom.dispatchEvent(new CustomEvent('series-updated', {
                 detail: { seriesId },

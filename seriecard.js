@@ -1,6 +1,6 @@
 import { format, getRunningTime, elapsedSeconds } from './utils.js';
 import { calculateSeriesSummary } from './analytics.js';
-import chronosDB from './db.js';
+import db from './db.js';
 
 const Summary = ".wa-cluster.wa-gap-0.items-baseline.*:first:(text-xs font-black).*:last:(text-2xs font-bold uppercase ml-1)";
 
@@ -22,7 +22,7 @@ const SerieCard = () => {
 
     const loadEntries = async (series) => {
         if (!series?.id) return;
-        entries = await chronosDB.entries.where({seriesId: series.id}).toArray();
+        entries = await db.entries.where({seriesId: series.id}).toArray();
         entries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         recalculateSummaries(series);
         m.redraw();
@@ -43,14 +43,14 @@ const SerieCard = () => {
     };
 
     const handleQuickAdd = async (series, {dom}) => {
-        await chronosDB.quickAction(series);
+        await db.quickAction(series);
         const action = series.config?.quickAddAction || 'manual';
 
         if (action === 'increment') {
             await loadEntries(series);
             dom.dispatchEvent(new CustomEvent('entry-created', { detail: { series }, bubbles: true }));
         } else if (action === 'chronometer') {
-            if (chronosDB.isRunning(series)) {
+            if (db.isRunning(series)) {
                 dom.dispatchEvent(new CustomEvent('series-updated', { detail: { series }, bubbles: true }));
             } else {
                 await loadEntries(series);
@@ -80,7 +80,7 @@ const SerieCard = () => {
 
         onupdate: ({attrs}) => {
             const { series } = attrs;
-            const isRunning = chronosDB.isChrono(series) && chronosDB.isRunning(series);
+            const isRunning = db.isChrono(series) && db.isRunning(series);
             isRunning ? startTimer() : stopTimer();
         },
 
@@ -90,7 +90,7 @@ const SerieCard = () => {
             const { series, group } = vnode.attrs;
             if (!series) return null;
 
-            const isRunning = chronosDB.isChrono(series) && chronosDB.isRunning(series);
+            const isRunning = db.isChrono(series) && db.isRunning(series);
 
             const cardStyle = group
                 ? { backgroundColor: `${group.color}12`, borderColor: `${group.color}40` }

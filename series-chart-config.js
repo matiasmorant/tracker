@@ -1,4 +1,4 @@
-import chronosDB from './db.js';
+import db from './db.js';
 import {PeriodSelector} from './period-selector.js';
 
 // ---------------------------------------------------------------------------
@@ -51,8 +51,8 @@ const SeriesChartConfig = () => {
   // ── data ──────────────────────────────────────────────────────────────────
 
   async function loadData(seriesId) {
-    series    = await chronosDB.series.get(parseInt(seriesId));
-    allSeries = await chronosDB.series.toArray();
+    series    = await db.series.get(parseInt(seriesId));
+    allSeries = await db.series.toArray();
     chartSettings     = series.config?.chartSettings     ?? {};
     analysisSelection = series.config?.analysisSelection ?? [];
     m.redraw();
@@ -67,7 +67,7 @@ const SeriesChartConfig = () => {
       chartSettings: { ...chartSettings },
     };
 
-    await chronosDB.series.put(series);
+    await db.series.put(series);
     m.redraw();
 
     onConfigUpdated?.({ series });

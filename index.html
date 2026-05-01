@@ -170,7 +170,7 @@
         import Calendar from './calendar.js';
         import SeriesHistory from './series-history.js';
         import { format } from './utils.js';
-        import chronosDB from './db.js';
+        import db from './db.js';
 
         const ChronosApp = {
             oninit: () => {Actions.loadSeries();  window.matchMedia('(min-width: 768px)').addEventListener('change', m.redraw);},

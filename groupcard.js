@@ -1,5 +1,5 @@
 import { getRunningTime } from './utils.js';
-import chronosDB from './db.js';
+import db from './db.js';
 
 const addClass = (child, injected) => {
   const existing = child.attrs.class ?? child.attrs.className ?? '';
@@ -14,7 +14,7 @@ const GroupCard = () => {
     let updateInterval = null;
 
     const handleQuickAdd = async (series, {dom}) => {
-        await chronosDB.quickAction(series);
+        await db.quickAction(series);
         const action = series.config?.quickAddAction || 'manual';
 
         if (action === 'manual') {
@@ -36,7 +36,7 @@ const GroupCard = () => {
 
     return {
         onupdate: ({attrs}) => {
-            const hasActive = attrs.seriesList?.some(s => chronosDB.isChrono(s) && chronosDB.isRunning(s));
+            const hasActive = attrs.seriesList?.some(s => db.isChrono(s) && db.isRunning(s));
             hasActive ? startTimer() : stopTimer();
         },
         onremove: () => stopTimer(),
@@ -51,7 +51,7 @@ const GroupCard = () => {
                 m("h3.border-b.text-2xs.font-bold.uppercase.tracking-widest.truncate", { style: { color: group.color } }, group.name),
 
                 seriesList.map(series => {
-                    const isRunning = chronosDB.isChrono(series) && chronosDB.isRunning(series);
+                    const isRunning = db.isChrono(series) && db.isRunning(series);
                     
                     return m(".wa-split.wa-gap-0.dark:hover:bg-slate-700/50.cursor-pointer.transition-colors", {
                         onclick: () => vnode.dom.dispatchEvent(new CustomEvent('series-click', { detail: { series }, bubbles: true }))
