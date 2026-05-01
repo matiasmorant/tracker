@@ -161,6 +161,7 @@
         import { State, Actions } from './mithril-state-actions.js';
         import ListHeader from './list-header.js';
         import DetailHeader from './detail-header.js';
+        import Dashboard from './dashboard.js';
         import GroupManager from './group-manager.js';
         import SeriesModal from './series-modal.js';
         import EntryModal from './entry-modal.js';
@@ -182,12 +183,7 @@
 
                     
                     State.view === 'list'
-                    ? m("dashboard-view.overflow-y-auto", {
-                        'onseries-click': (e) => Actions.openSeriesDetail(e.detail.series),
-                        'onadd-entry-click': (e) => EntryModal.open({series: e.detail.series}),
-                        'onseries-updated': Actions.loadSeries,
-                        'onentry-created': () => Actions.loadSeries()
-                    })
+                    ? m([Dashboard,".overflow-y-auto"])
                     : m("wa-tab-group.expandable", {
                         placement: window.matchMedia('(min-width: 768px)').matches ? 'start' : 'top',
                     },
