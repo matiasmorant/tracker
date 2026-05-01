@@ -1,6 +1,7 @@
 import { format } from './utils.js';
 import { calculateSeriesSummary } from './analytics.js';
 import db from './db.js';
+import Dashboard from './dashboard.js';
 
 export const State = {
     view: 'list',
@@ -23,8 +24,7 @@ export const Actions = {
     },
     async loadSeries() {
         State.series = await db.series.toArray();
-        const dashboard = document.querySelector('dashboard-view');
-        if (dashboard && dashboard.refreshData) await dashboard.refreshData();
+        await Dashboard.loadData();
         m.redraw();
     },
     async loadEntries(id) {
