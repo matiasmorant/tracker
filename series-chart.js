@@ -50,10 +50,10 @@ const SeriesChart = () => {
   // ── data ──────────────────────────────────────────────────────────────────
 
   async function loadData(seriesId) {
-    series    = await chronosDB.getSeries(parseInt(seriesId));
-    entries   = await chronosDB.getEntriesForSeries(parseInt(seriesId));
+    series    = await chronosDB.series.get(parseInt(seriesId));
+    entries   = await chronosDB.entries.where({seriesId: parseInt(seriesId)}).toArray();
     entries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-    allSeries = await chronosDB.getAllSeries();
+    allSeries = await chronosDB.series.toArray();
 
     if (series.config) {
       if (series.config.analysisSelection) {
@@ -182,10 +182,10 @@ const SeriesChart = () => {
         const compareSeries = allSeries.find(s => s.id === compareId);
         if (!compareSeries) continue;
 
-        const compareEntries = await chronosDB.getEntriesForSeries(compareId);
+        const compareEntries = await chronosDB.entries.where({seriesId: compareId}).toArray();
         if (!compareEntries.length) continue;
 
-        const allGroups    = await chronosDB.getAllGroups();
+        const allGroups    = await chronosDB.groups.toArray();
         const compareGroup = allGroups.find(g => g.name === compareSeries.group);
         const color        = compareGroup
           ? compareGroup.color

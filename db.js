@@ -28,10 +28,6 @@ class ChronosDB extends Dexie {
     }
 
     // --- Series Methods ---
-    async getAllSeries   ()   { return await this.series  .toArray ()   ; }
-    async getSeries      (id) { return await this.series  .get     (id) ; }
-    async saveSeries(seriesData) { return await this.series.put(seriesData); }
-
     async deleteSeries(id) {
         return await this.transaction('rw', this.series, this.entries, async () => {
             await this.series.delete(id);
@@ -39,10 +35,6 @@ class ChronosDB extends Dexie {
         });
     }
 
-    async getSeriesByGroup   (group)    { return await this.series .where({group   }).toArray(); }
-    async getEntriesForSeries(seriesId) { return await this.entries.where({seriesId}).toArray(); }
-
-    async getAllEntries() { return await this.entries.toArray(); }
     async saveEntry(entryData, updateSummaries = false) {
         const id = await this.entries.put(entryData);
 
@@ -58,11 +50,8 @@ class ChronosDB extends Dexie {
 
         return id;
     }
-    async deleteEntry(id) { return await this.entries.delete(id); }
 
     // --- Group Methods ---
-    async getAllGroups() { return await this.groups.toArray(); }
-    async saveGroup(groupData) { return await this.groups.put(groupData); }
     async deleteGroup(id) {
         return await this.transaction('rw', this.groups, this.series, async () => {
             await this.groups.delete(id);
@@ -71,8 +60,6 @@ class ChronosDB extends Dexie {
     }
 
     // --- Generic Internal Helpers ---
-    async save(table, data) { return await table.put(data); }
-
     isChrono(series) { return series.config?.quickAddAction === 'chronometer'; }
 
     isRunning(series) {

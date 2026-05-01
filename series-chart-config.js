@@ -51,8 +51,8 @@ const SeriesChartConfig = () => {
   // ── data ──────────────────────────────────────────────────────────────────
 
   async function loadData(seriesId) {
-    series    = await chronosDB.getSeries(parseInt(seriesId));
-    allSeries = await chronosDB.getAllSeries();
+    series    = await chronosDB.series.get(parseInt(seriesId));
+    allSeries = await chronosDB.series.toArray();
     chartSettings     = series.config?.chartSettings     ?? {};
     analysisSelection = series.config?.analysisSelection ?? [];
     m.redraw();
@@ -67,7 +67,7 @@ const SeriesChartConfig = () => {
       chartSettings: { ...chartSettings },
     };
 
-    await chronosDB.saveSeries(series);
+    await chronosDB.series.put(series);
     m.redraw();
 
     onConfigUpdated?.({ series });

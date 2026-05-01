@@ -27,7 +27,7 @@ const GroupEditor = ModalForm({
     };
   },
   save: async (state, data) => {
-    await db.saveGroup(data);
+    await db.groups.put(data);
     if (state.group?.name && state.group.name !== data.name)
       await db.updateSeriesGroupNames(state.group.name, data.name);
     return data;
@@ -47,7 +47,7 @@ const GroupManager = () => {
   let groups = [];
 
   const loadGroups = async (onGroupsUpdated) => {
-    const result = await db.getAllGroups();
+    const result = await db.groups.toArray();
     groups = result.sort((a, b) => a.name.localeCompare(b.name));
     onGroupsUpdated?.();
     m.redraw();

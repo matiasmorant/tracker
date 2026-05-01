@@ -22,13 +22,13 @@ export const Actions = {
         }, 3000);
     },
     async loadSeries() {
-        State.series = await chronosDB.getAllSeries();
+        State.series = await chronosDB.series.toArray();
         const dashboard = document.querySelector('dashboard-view');
         if (dashboard && dashboard.refreshData) await dashboard.refreshData();
         m.redraw();
     },
     async loadEntries(id) {
-        const entries = await chronosDB.getEntriesForSeries(id);
+        const entries = await chronosDB.entries.where({seriesId: id}).toArray();
         State.currentSeriesEntries = entries.sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
         Actions.recalculateSummaryDisplay();
         m.redraw();
@@ -57,7 +57,7 @@ export const Actions = {
     },
     async deleteEntry(id) {
         if (confirm('Delete entry?')) {
-            await chronosDB.deleteEntry(id);
+            await chronosDB.entries.delete(id);
             await Actions.loadEntries(State.currentSeries.id);
         }
     },
