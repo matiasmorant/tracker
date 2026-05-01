@@ -37,9 +37,9 @@ function SeriesConfiguration() {
         try {
             const id = parseInt(seriesId);
             [series, groups, entries] = await Promise.all([
-                chronosDB.getSeries(id),
-                chronosDB.getAllGroups(),
-                chronosDB.getEntriesForSeries(id),
+                chronosDB.series.get(id),
+                chronosDB.groups.toArray(),
+                chronosDB.entries.where({seriesId: id}).toArray(),
             ]);
             entries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         } catch (err) {
@@ -52,7 +52,7 @@ function SeriesConfiguration() {
 
     async function _save() {
         if (!series) return;
-        await chronosDB.saveSeries(series);
+        await chronosDB.series.put(series);
         if (_dom) {
             _dom.dispatchEvent(new CustomEvent('series-updated', {
                 detail: { seriesId },

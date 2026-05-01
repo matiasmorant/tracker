@@ -11,7 +11,7 @@ const SeriesModal = ModalForm({
     lastSeries: null,
   }),
   onOpen: async ({ series }) => {
-    const allGroups = await db.getAllGroups();
+    const allGroups = await db.groups.toArray();
     const groups = allGroups.slice().sort((a, b) => a.name.localeCompare(b.name));
     return  { lastSeries: series, form: withDefaults(series, {
       name:   '',
@@ -32,7 +32,7 @@ const SeriesModal = ModalForm({
     };
   },
   save: async (state, data) => {
-    await db.saveSeries(data);
+    await db.series.put(data);
     return { series: data, isNew: !state.lastSeries };
   },
   onSave: (state, result) => Actions.loadSeries(),
