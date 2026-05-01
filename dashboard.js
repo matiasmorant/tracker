@@ -12,9 +12,9 @@ const Dashboard = () => {
     let groupSeriesData = new Map();
 
     const getSeriesWithSummaries = async (groupName) => {
-        const seriesList = await chronosDB.getSeriesByGroup(groupName);
+        const seriesList = await chronosDB.series.where({group: groupName}).toArray();
         for (const seriesObj of seriesList) {
-            const entries = await chronosDB.getEntriesForSeries(seriesObj.id);
+            const entries = await chronosDB.entries.where({seriesId: seriesObj.id}).toArray();
             const configs = seriesObj.config?.summaries || [null];
             seriesObj.summaries = configs.map(config => 
                 calculateSeriesSummary(seriesObj, entries, format.duration, config)
@@ -26,10 +26,10 @@ const Dashboard = () => {
     const loadData = async () => {
         groupSeriesData.clear();
         
-        groups = await chronosDB.getAllGroups();
+        groups = await chronosDB.groups.toArray();
         groups.sort((a, b) => a.name.localeCompare(b.name));
         
-        series = await chronosDB.getAllSeries();
+        series = await chronosDB.series.toArray();
         
         for (const group of groups) {
             const seriesData = await getSeriesWithSummaries(group.name);

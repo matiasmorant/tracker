@@ -22,7 +22,7 @@ const SerieCard = () => {
 
     const loadEntries = async (series) => {
         if (!series?.id) return;
-        entries = await chronosDB.getEntriesForSeries(series.id);
+        entries = await chronosDB.entries.where({seriesId: series.id}).toArray();
         entries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         recalculateSummaries(series);
         m.redraw();

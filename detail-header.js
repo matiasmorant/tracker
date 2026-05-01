@@ -21,7 +21,7 @@ const DetailHeader = {
         const commitName = async () => {
             const trimmed = state.nameValue.trim();
             if (!trimmed) return;
-            await chronosDB.saveSeries({ ...series, name: trimmed });
+            await chronosDB.series.put({ ...series, name: trimmed });
             await Actions.loadSeries();
         };
 
