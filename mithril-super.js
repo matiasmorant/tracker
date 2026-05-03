@@ -28,6 +28,21 @@ const serializeSelector = ({ tag, classes, id, attrs }) => [
   ...Object.entries(attrs).map(([k, v]) => v === true ? `[${k}]` : `[${k}=${v}]`)
 ].join('')
 
+// _.memoize.Cache = WeakMap;
+const refIds = new WeakMap();
+let nextId = 0;
+function keyFor(value) {
+  if (value !== null && (typeof value === 'object' || typeof value === 'function')) {
+    if (!refIds.has(value)) {
+      refIds.set(value, ++nextId);
+    }
+    return `#${refIds.get(value)}`;
+  }
+  // Primitives (string, number, boolean, null, undefined, symbol)
+  return `${typeof value}:${String(value)}`;
+}
+const memoize = (fn)=>_.memoize(fn, arr=>arr.map(keyFor).join('|'));
+
 // TODO: support event handler composition
 const withAttrs = (component, extraAttrs) => ({
   view: ({ attrs, children }) => {
@@ -40,7 +55,7 @@ const withAttrs = (component, extraAttrs) => ({
   }
 })
 
-const cx = (arr) => {
+const cx = memoize((arr) => {
   const flat = arr.flat(Infinity)
   const strings = flat.filter(x => typeof x === 'string').map(vg)
   const component = flat.find(x => x && (typeof x === 'object' || typeof x === 'function'))
@@ -56,7 +71,7 @@ const cx = (arr) => {
   }
 
   return withAttrs(component, extraAttrs)
-}
+})
 
 window.m = (...args) => {
   if (Array.isArray(args[0])) args[0] = cx(args[0])
