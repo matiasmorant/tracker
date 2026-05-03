@@ -28,37 +28,23 @@ function SeriesConfiguration() {
     let groups = [];
     let entries = [];
     let loading = true;
-    let _dom;
 
     async function _load() {
         if (!seriesId) return;
         loading = true;
         m.redraw();
-        try {
-            const id = parseInt(seriesId);
-            [series, groups, entries] = await Promise.all([
-                db.series.get(id),
-                db.groups.toArray(),
-                db.entries.where({seriesId: id}).toArray(),
-            ]);
-            entries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-        } catch (err) {
-            console.error('Failed to load series data:', err);
-        } finally {
-            loading = false;
-            m.redraw();
-        }
+        const id = parseInt(seriesId);
+        series  = await db.series.get(id);
+        groups  = await db.groups.toArray();
+        entries = await db.entries.where({seriesId: id}).toArray();
+        entries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        loading = false;
+        m.redraw();
     }
 
     async function _save() {
         if (!series) return;
         await db.series.put(series);
-        if (_dom) {
-            _dom.dispatchEvent(new CustomEvent('series-updated', {
-                detail: { seriesId },
-                bubbles: true,
-            }));
-        }
         m.redraw();
     }
 
@@ -132,7 +118,7 @@ function SeriesConfiguration() {
             }
         },
 
-        view(vnode) {
+        view() {
 
             const cfg = series?.config ?? {};
 
@@ -141,9 +127,7 @@ function SeriesConfiguration() {
                 : [{ period: 'all', operation: 'mean' }];
             const previews  = getSummaryPreviews(series, entries);
 
-            return m('', {
-                oncreate: v => { _dom = v.dom; },
-            }, [
+            return m('', [
                 loading
                     ? m('.p-6.text-slate-500', [
                         m('wa-spinner'),
