@@ -2,6 +2,7 @@ import { format } from './utils.js';
 import { calculateStat, calculateRunningMetric } from './analytics.js';
 import db from './db.js';
 import SeriesChartConfig from './series-chart-config.js';
+import ChronosChart from './chronos-chart.js';
 
 const METRICS = [
   { id: 'mean',    label: 'Mean',    color: '#4f46e5' },
@@ -44,8 +45,8 @@ const SeriesChart = () => {
   let collapsed         = true;
   let isDark            = isDarkMode();
   let loadedSeriesId    = null;
-  let themeObserver     = null;
-  let chartEl           = null; // reference to the <chronos-chart> DOM node
+  let chartData         = { datasets: [] };
+  let chartOptions      = {};
 
   // ── data ──────────────────────────────────────────────────────────────────
 
@@ -71,7 +72,7 @@ const SeriesChart = () => {
   }
 
   async function updateChart() {
-    if (!chartEl || !entries.length) return;
+    if (!entries.length) return;
 
     // Compute viewDays
     let viewDays = 0;
@@ -196,10 +197,7 @@ const SeriesChart = () => {
       }
     }
 
-    if (!chartEl) return;
-
-    chartEl.options = {
-      ...chartEl.options,
+    chartOptions = {
       logScale: chartSettings.logScale,
       darkMode: isDark,
       viewDays,
@@ -218,8 +216,8 @@ const SeriesChart = () => {
       },
     };
 
-    if (!chartEl) return;
-    chartEl.data = { datasets };
+    chartData = { datasets };
+    m.redraw();
   }
 
   // ── event handlers ────────────────────────────────────────────────────────
@@ -227,11 +225,6 @@ const SeriesChart = () => {
   function handleToggleCollapsed() {
     collapsed = !collapsed;
     m.redraw();
-  }
-
-  function handleScaleClick() {
-    chartSettings.logScale = !chartSettings.logScale;
-    updateChart();
   }
 
   function handleConfigUpdated({ series: updatedSeries }) {
@@ -249,34 +242,19 @@ const SeriesChart = () => {
   // ── lifecycle ─────────────────────────────────────────────────────────────
 
   return {
-    oninit({ attrs }) {
+    async oninit({ attrs }) {
       if (attrs.seriesId) {
         loadedSeriesId = attrs.seriesId;
-        loadData(attrs.seriesId);
+        await loadData(attrs.seriesId);
+        updateChart();
       }
     },
 
-    onbeforeupdate({ attrs }) {
+    async onbeforeupdate({ attrs }) {
       if (attrs.seriesId && attrs.seriesId !== loadedSeriesId) {
         loadedSeriesId = attrs.seriesId;
-        loadData(attrs.seriesId);
+        await loadData(attrs.seriesId);
       }
-    },
-
-    oncreate() {
-      themeObserver = new MutationObserver(() => {
-        const wasDark = isDark;
-        isDark = isDarkMode();
-        if (wasDark !== isDark) updateChart();
-      });
-      themeObserver.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ['class'],
-      });
-    },
-
-    onremove() {
-      themeObserver?.disconnect();
     },
 
     view({ attrs }) {
@@ -290,20 +268,9 @@ const SeriesChart = () => {
       return m('.wa-stack.gap-0.dark:bg-slate-800.overflow-hidden.h-full',
 
         // ── Chart ──────────────────────────────────────────────────────────
-        m('chronos-chart#seriesChart.w-full.h-full', {
-          oncreate(vnode) {
-            chartEl = vnode.dom;
-            chartEl.addEventListener('scale-click', handleScaleClick);
-            updateChart();
-          },
-          onupdate(vnode) {
-            chartEl = vnode.dom;
-            updateChart();
-          },
-          onremove() {
-            chartEl?.removeEventListener('scale-click', handleScaleClick);
-            chartEl = null;
-          },
+        m(ChronosChart, {
+          data:    chartData,
+          options: chartOptions,
         }),
 
         // ── Toolbar ────────────────────────────────────────────────────────
