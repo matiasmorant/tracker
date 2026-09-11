@@ -47,7 +47,7 @@ function ModalForm(config) {
           const { id: fieldId, label: fieldLabel, type, options, attrs: extra = {} } = f;
           if (index === 0) extra.autofocus = true;
           const value = state.form[fieldId];
-          return m(fieldComponents.get(type), { label: fieldLabel, value, ...extra },
+          return m(fieldComponents.get(type), { id: fieldId, label: fieldLabel, value, ...extra },
             type === 'select'
               ? (options ?? []).map(({ value, label }) => m('wa-option', { value }, label ?? value))
               : []

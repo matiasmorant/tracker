@@ -11,15 +11,8 @@ export default function dhmsField({ attrs: {value} }) {
         duration.fromTotalSeconds(value || 0);
       }
     },
-    view({ attrs: { label: fieldLabel, oninput } }) {
-      const update = (key, val) => {
-        duration[key] = parseInt(val) || 0;
-        if (oninput) {
-          oninput({ target: { value: duration.toTotalSeconds() } });
-        }
-      };
-
-      return m('div', [
+    view({ attrs: { id, label: fieldLabel } }) {
+      return m('', {id}, [
         fieldLabel && m('label', { style: 'display: block; margin-bottom: var(--wa-space-xs); font-size: var(--wa-font-size-s); font-weight: var(--wa-font-weight-medium);' }, fieldLabel),
         m('.wa-cluster', [
           ['d', 'Days',  null, null],
@@ -29,7 +22,12 @@ export default function dhmsField({ attrs: {value} }) {
         ].map(([key, label, min, max]) =>
           m([NumberInput, '.max-w-24'], {
             label, min, max, value: duration[key],
-            oninput(e) { update(key, e.target.value); },
+            oninput(e) { 
+              duration[key] = parseInt(e.target.value) || 0;
+              const parent = e.currentTarget.parentElement;
+              parent.value = duration.toTotalSeconds();
+              parent.dispatchEvent(new Event('input', { bubbles: true }));
+            },
           })
         )),
       ]);
