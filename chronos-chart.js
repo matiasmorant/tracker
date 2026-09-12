@@ -35,13 +35,11 @@ function shadingRect(band, minDate, maxDate, xScale, padding, chartWidth, chartH
   const xEnd   = padding.left + xScale(visibleEnd);
   const w = xEnd - xStart;
   if (w <= 0 || xStart > padding.left + chartWidth || xEnd < padding.left) return null;
-  return m('rect', {
+  return m('rect[fill=currentColor][fill-opacity=0.1]', {
     x: Math.max(padding.left, xStart),
     y: padding.top,
     width: Math.min(chartWidth, w - Math.max(0, padding.left - xStart)),
     height: chartHeight,
-    fill: 'currentColor',
-    'fill-opacity': '0.1',
   });
 }
 
@@ -63,62 +61,42 @@ function axesGrid(xScale, yScale, chartWidth, chartHeight, padding, allPoints, o
       items.forEach(({ date }) => {
         const x = padding.left + xScale(date);
         if (x >= padding.left && x <= padding.left + chartWidth) {
-          gridLines.push(m('line.grid-line', {
+          gridLines.push(m('line.grid-line[stroke=currentColor][stroke-opacity=0.2][stroke-width=1]', {
             x1: x, y1: padding.top, x2: x, y2: padding.top + chartHeight,
-            stroke: 'currentColor',
-            'stroke-opacity': '0.2',
-            'stroke-width': '1',
           }));
         }
       });
     }
     yValues.forEach(yv => {
       const y = padding.top + yScale(yv);
-      gridLines.push(m('line.grid-line', {
+      gridLines.push(m('line.grid-line[stroke=currentColor][stroke-opacity=0.2][stroke-width=1]', {
         x1: padding.left, y1: y, x2: padding.left + chartWidth, y2: y,
-        stroke: 'currentColor',
-        'stroke-opacity': '0.2',
-        'stroke-width': '1',
       }));
     });
   }
 
   if (options.axis.show) {
     axisLines.push(
-      m('line.axis-line', {
+      m('line.axis-line[stroke=currentColor][stroke-opacity=0.5][stroke-width=1.5]', {
         x1: padding.left, y1: padding.top + chartHeight, x2: padding.left + chartWidth, y2: padding.top + chartHeight,
-        stroke: 'currentColor',
-        'stroke-opacity': '0.5',
-        'stroke-width': '1.5',
       }),
-      m('line.axis-line', {
+      m('line.axis-line[stroke=currentColor][stroke-opacity=0.5][stroke-width=1.5]', {
         x1: padding.left, y1: padding.top, x2: padding.left, y2: padding.top + chartHeight,
-        stroke: 'currentColor',
-        'stroke-opacity': '0.5',
-        'stroke-width': '1.5',
       }),
     );
     items.forEach(item => {
       const x = padding.left + xScale(item.label.pos);
       if (x < padding.left || x > padding.left + chartWidth) return;
-      axisTexts.push(m('text.axis-text', {
+      axisTexts.push(m('text.axis-text.text-xs.select-none.pointer-events-none[text-anchor=middle][fill=currentColor][opacity=0.7]', {
         x,
         y: padding.top + chartHeight + 20,
-        'text-anchor': 'middle',
-        fill: 'currentColor',
-        opacity: '0.7',
-        style: 'font-size:12px;user-select:none;pointer-events:none;',
       }, item.label.text));
     });
     yValues.forEach(v => {
       const y = padding.top + yScale(v);
-      axisTexts.push(m('text.axis-text', {
+      axisTexts.push(m('text.axis-text.text-xs.select-none.pointer-events-none[text-anchor=end][fill=currentColor][opacity=0.7]', {
         x: padding.left + 20,
         y: y - 4,
-        'text-anchor': 'end',
-        fill: 'currentColor',
-        opacity: '0.7',
-        style: 'font-size:12px;user-select:none;pointer-events:none;',
       }, formatValue(v, options.valueFormatter)));
     });
   }
@@ -132,13 +110,10 @@ function axesGrid(xScale, yScale, chartWidth, chartHeight, padding, allPoints, o
 function chartLine(points, xScale, yScale, padding, style) {
   if (points.length < 2) return null;
   const d = generateSmoothPath(points, xScale, yScale, padding.left, padding.top, style.tension);
-  return m('path.chart-line', {
+  return m('path.chart-line[fill=none][stroke-linecap=round][stroke-linejoin=round]', {
     d,
-    fill: 'none',
     stroke: style.color,
     'stroke-width': style.width,
-    'stroke-linecap': 'round',
-    'stroke-linejoin': 'round',
     'stroke-dasharray': style.dash.join(' '),
   });
 }
@@ -150,14 +125,12 @@ function chartPoints(points, xScale, yScale, dims, style, onEnter, onLeave) {
     points.map((point, index) => {
       const cx = padding.left + xScale(point.x);
       const cy = padding.top  + yScale(point.y);
-      return m('circle.chart-point', {
+      return m('circle.chart-point.cursor-pointer[stroke-width=2][fill=white]', {
         cx, cy,
         r: radius,
         stroke: style.color,
-        'stroke-width': 2,
-        fill: 'white',
         class: 'hover:[r:6px]',
-        style: 'cursor: pointer; transition: r 0.2s ease;',
+        style: 'transition: r 0.2s ease;',
         onmouseenter: (e) => {
           e.redraw = false;
           if (cx >= padding.left && cx <= padding.left + chartWidth &&
@@ -357,8 +330,7 @@ function ChronosChart(initialVnode) {
       );
     });
 
-    return m('svg', {
-      style: 'width:100%;height:100%;display:block;user-select:none;touch-action:none;',
+    return m('svg.w-full.h-full.block.select-none.touch-none', {
       onpointerenter,
       onpointerleave,
       onpointerdown,
@@ -370,29 +342,29 @@ function ChronosChart(initialVnode) {
       clipPath(padding, chartWidth, chartHeight),
       ...axesGrid(xScaleFn, yScaleFn, chartWidth, chartHeight, padding, allPoints,
         { ...options, panOffset }),
-      m('g', { 'clip-path': 'url(#chartClip)' }, datasetNodes),
+      m('g[clip-path="url(#chartClip)"]', datasetNodes),
     );
   }
 
   return {
-    oncreate(vnode) {
-      containerEl = vnode.dom.querySelector('.chart-container');
+    oncreate({dom}) {
+      containerEl = dom.querySelector('.chart-container');
 
       resizeObserver = new ResizeObserver(() => {
         if (raf) cancelAnimationFrame(raf);
         raf = requestAnimationFrame(() => m.redraw());
       });
-      resizeObserver.observe(vnode.dom);
+      resizeObserver.observe(dom);
     },
 
-    onbeforeupdate(vnode) {
-      containerEl = vnode.dom?.querySelector('.chart-container') || containerEl;
-      syncDataAndOptions(vnode.attrs);
+    onbeforeupdate({dom, attrs}) {
+      containerEl = dom?.querySelector('.chart-container') || containerEl;
+      syncDataAndOptions(attrs);
     },
 
-    onupdate(vnode) {
-      containerEl = vnode.dom?.querySelector('.chart-container') || containerEl;
-      syncDataAndOptions(vnode.attrs);
+    onupdate({dom, attrs }) {
+      containerEl = dom?.querySelector('.chart-container') || containerEl;
+      syncDataAndOptions(attrs);
     },
 
     onremove() {
@@ -412,33 +384,28 @@ function ChronosChart(initialVnode) {
           { class: cursorClass },
           chartNode
             ? chartNode
-            : m('', {
-                class: 'absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-sm text-gray-400 text-center',
-              }, 'No data to display'),
+            : m('.absolute.top-1/2.left-1/2.-translate-x-1/2.-translate-y-1/2.text-sm.text-gray-400.text-center',
+                'No data to display'),
 
-          m('.tooltip.absolute.pointer-events-none.z-50.rounded-md.px-3.py-2.text-xs.text-white.whitespace-nowrap.shadow-lg', {
+          m('.tooltip.absolute.pointer-events-none.z-50.rounded-md.px-3.py-2.text-xs.text-white.whitespace-nowrap.shadow-lg.bg-black/80.transition-opacity.duration-200', {
             style: {
-              background: 'rgba(0,0,0,0.8)',
               opacity: isTooltipVisible ? 1 : 0,
               left: `${tooltipLeft}px`,
               top: `${tooltipTop}px`,
-              transition: 'opacity 0.2s ease',
             },
-            oncreate(vnode) { tooltipEl = vnode.dom; },
-            onupdate(vnode) { tooltipEl = vnode.dom; },
+            oncreate({dom}) { tooltipEl = dom; },
+            onupdate({dom}) { tooltipEl = dom; },
           }),
 
-          m('', { class: 'absolute bottom-1.5 left-2.5 z-10' },
-            m('button', {
-              class: [
-                'text-[10px] font-black px-1 py-0.5 rounded cursor-pointer transition-all',
-                'border-none outline outline-1 backdrop-blur-sm',
-                'bg-white/80 text-indigo-600 outline-indigo-200/60',
-                'hover:bg-indigo-50 hover:outline-indigo-400/60 hover:-translate-y-px',
-                'active:translate-y-0',
-                'dark:bg-black/80 dark:text-indigo-400 dark:outline-indigo-400/20',
-                'dark:hover:bg-indigo-900/20 dark:hover:outline-indigo-400/40',
-              ].join(' '),
+          m('.absolute.z-10', { class: 'bottom-1.5 left-2.5' },
+            m('button.font-black.px-1.rounded.cursor-pointer.transition-all' +
+              '.border-none.outline.outline-1.backdrop-blur-sm' +
+              '.bg-white/80.text-indigo-600.outline-indigo-200/60' +
+              '.hover:bg-indigo-50.hover:outline-indigo-400/60.hover:-translate-y-px' +
+              '.active:translate-y-0' +
+              '.dark:bg-black/80.dark:text-indigo-400.dark:outline-indigo-400/20' +
+              '.dark:hover:bg-indigo-900/20.dark:hover:outline-indigo-400/40', {
+              class: 'text-[10px] py-0.5',
               onclick(e) {
                 e.preventDefault();
                 e.stopPropagation();
