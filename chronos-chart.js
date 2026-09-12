@@ -63,30 +63,63 @@ function axesGrid(xScale, yScale, chartWidth, chartHeight, padding, allPoints, o
       items.forEach(({ date }) => {
         const x = padding.left + xScale(date);
         if (x >= padding.left && x <= padding.left + chartWidth) {
-          gridLines.push(m('line.grid-line', { x1: x, y1: padding.top, x2: x, y2: padding.top + chartHeight }));
+          gridLines.push(m('line.grid-line', {
+            x1: x, y1: padding.top, x2: x, y2: padding.top + chartHeight,
+            stroke: 'currentColor',
+            'stroke-opacity': '0.2',
+            'stroke-width': '1',
+          }));
         }
       });
     }
     yValues.forEach(yv => {
       const y = padding.top + yScale(yv);
-      gridLines.push(m('line.grid-line', { x1: padding.left, y1: y, x2: padding.left + chartWidth, y2: y }));
+      gridLines.push(m('line.grid-line', {
+        x1: padding.left, y1: y, x2: padding.left + chartWidth, y2: y,
+        stroke: 'currentColor',
+        'stroke-opacity': '0.2',
+        'stroke-width': '1',
+      }));
     });
   }
 
   if (options.axis.show) {
     axisLines.push(
-      m('line.axis-line', { x1: padding.left, y1: padding.top + chartHeight, x2: padding.left + chartWidth, y2: padding.top + chartHeight }),
-      m('line.axis-line', { x1: padding.left, y1: padding.top,               x2: padding.left,              y2: padding.top + chartHeight }),
+      m('line.axis-line', {
+        x1: padding.left, y1: padding.top + chartHeight, x2: padding.left + chartWidth, y2: padding.top + chartHeight,
+        stroke: 'currentColor',
+        'stroke-opacity': '0.5',
+        'stroke-width': '1.5',
+      }),
+      m('line.axis-line', {
+        x1: padding.left, y1: padding.top, x2: padding.left, y2: padding.top + chartHeight,
+        stroke: 'currentColor',
+        'stroke-opacity': '0.5',
+        'stroke-width': '1.5',
+      }),
     );
     items.forEach(item => {
       const x = padding.left + xScale(item.label.pos);
       if (x < padding.left || x > padding.left + chartWidth) return;
-      axisTexts.push(m('text.axis-text', { x, y: padding.top + chartHeight + 20, 'text-anchor': 'middle' }, item.label.text));
+      axisTexts.push(m('text.axis-text', {
+        x,
+        y: padding.top + chartHeight + 20,
+        'text-anchor': 'middle',
+        fill: 'currentColor',
+        opacity: '0.7',
+        style: 'font-size:12px;user-select:none;pointer-events:none;',
+      }, item.label.text));
     });
     yValues.forEach(v => {
       const y = padding.top + yScale(v);
-      axisTexts.push(m('text.axis-text', { x: padding.left + 20, y: y - 4, 'text-anchor': 'end' },
-        formatValue(v, options.valueFormatter)));
+      axisTexts.push(m('text.axis-text', {
+        x: padding.left + 20,
+        y: y - 4,
+        'text-anchor': 'end',
+        fill: 'currentColor',
+        opacity: '0.7',
+        style: 'font-size:12px;user-select:none;pointer-events:none;',
+      }, formatValue(v, options.valueFormatter)));
     });
   }
 
@@ -101,30 +134,41 @@ function chartLine(points, xScale, yScale, padding, style) {
   const d = generateSmoothPath(points, xScale, yScale, padding.left, padding.top, style.tension);
   return m('path.chart-line', {
     d,
+    fill: 'none',
     stroke: style.color,
     'stroke-width': style.width,
+    'stroke-linecap': 'round',
+    'stroke-linejoin': 'round',
     'stroke-dasharray': style.dash.join(' '),
   });
 }
 
 function chartPoints(points, xScale, yScale, dims, style, onEnter, onLeave) {
   const { padding, chartWidth, chartHeight } = dims;
+  const radius = style.radius || 4;
   return m('g',
     points.map((point, index) => {
       const cx = padding.left + xScale(point.x);
       const cy = padding.top  + yScale(point.y);
       return m('circle.chart-point', {
         cx, cy,
-        r: style.radius,
+        r: radius,
         stroke: style.color,
+        'stroke-width': 2,
         fill: 'white',
+        class: 'hover:[r:6px]',
+        style: 'cursor: pointer; transition: r 0.2s ease;',
         onmouseenter: (e) => {
+          e.redraw = false;
           if (cx >= padding.left && cx <= padding.left + chartWidth &&
               cy >= padding.top  && cy <= padding.top  + chartHeight) {
             onEnter(e, point, style.label, index);
           }
         },
-        onmouseleave: onLeave,
+        onmouseleave: (e) => {
+          e.redraw = false;
+          onLeave();
+        },
       });
     })
   );
@@ -146,7 +190,10 @@ function ChronosChart(initialVnode) {
   let originalViewDays = options.viewDays;
 
   // Tooltip state
-  let tooltip = { visible: false, label: '', dateStr: '', formattedValue: '', left: 0, top: 0 };
+  let tooltipEl        = null;
+  let isTooltipVisible = false;
+  let tooltipLeft      = 0;
+  let tooltipTop       = 0;
 
   // Theme observer — triggers a redraw when dark class toggles
   const themeObserver = new MutationObserver(() => m.redraw());
@@ -163,6 +210,25 @@ function ChronosChart(initialVnode) {
     isPanning        = false;
     originalViewDays = options.viewDays;
     panReady         = false;
+  }
+
+  function syncDataAndOptions(newAttrs) {
+    let shouldResetPan = false;
+    if (newAttrs.data !== undefined && (newAttrs.data !== data || newAttrs.data?.datasets !== data?.datasets)) {
+      data = newAttrs.data;
+      shouldResetPan = true;
+    }
+    if (newAttrs.options !== undefined) {
+      const o = newAttrs.options;
+      if (o.viewDays !== undefined && o.viewDays !== originalViewDays) {
+        originalViewDays = o.viewDays;
+        shouldResetPan = true;
+      }
+      options = { ...defaultOptions, ...o };
+    }
+    if (shouldResetPan) {
+      resetPanState();
+    }
   }
 
   function onpointerenter() {
@@ -213,6 +279,7 @@ function ChronosChart(initialVnode) {
   // ---------------------------------------------------------------------------
 
   function showTooltip(event, point, label) {
+    if (!tooltipEl || !containerEl) return;
     const formattedValue = formatValue(point.y, options.valueFormatter);
     const [minDate, maxDate] = getVisibleDateRange(
       data?.datasets?.flatMap(d => d.data || []) || [],
@@ -220,20 +287,35 @@ function ChronosChart(initialVnode) {
     );
     const dateStr = formatDate(point.x, minDate, maxDate);
 
-    const rect = containerEl.getBoundingClientRect();
-    const tw = 160, th = 60;
-    let left = event.clientX - rect.left + 10;
-    let top  = event.clientY - rect.top  + 10;
-    if (left + tw > rect.width)  left = event.clientX - rect.left - tw - 10;
-    if (top  + th > rect.height) top  = event.clientY - rect.top  - th - 10;
+    tooltipEl.innerHTML = `
+      <div><strong>${label}</strong></div>
+      <div>Date: ${dateStr}</div>
+      <div>Value: ${formattedValue}</div>
+    `;
+    tooltipEl.style.opacity = '1';
 
-    tooltip = { visible: true, label, dateStr, formattedValue, left, top };
-    m.redraw();
+    const tooltipWidth  = tooltipEl.offsetWidth;
+    const tooltipHeight = tooltipEl.offsetHeight;
+    const containerRect = containerEl.getBoundingClientRect();
+
+    let left = event.clientX - containerRect.left + 10;
+    let top  = event.clientY - containerRect.top  + 10;
+
+    if (left + tooltipWidth  > containerRect.width)  left = event.clientX - containerRect.left - tooltipWidth  - 10;
+    if (top  + tooltipHeight > containerRect.height) top  = event.clientY - containerRect.top  - tooltipHeight - 10;
+
+    tooltipEl.style.left = `${left}px`;
+    tooltipEl.style.top  = `${top}px`;
+    tooltipLeft = left;
+    tooltipTop  = top;
+    isTooltipVisible = true;
   }
 
   function hideTooltip() {
-    tooltip = { ...tooltip, visible: false };
-    m.redraw();
+    isTooltipVisible = false;
+    if (tooltipEl) {
+      tooltipEl.style.opacity = '0';
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -303,17 +385,14 @@ function ChronosChart(initialVnode) {
       resizeObserver.observe(vnode.dom);
     },
 
-    onupdate(vnode) {
-      containerEl = vnode.dom.querySelector('.chart-container');
+    onbeforeupdate(vnode) {
+      containerEl = vnode.dom?.querySelector('.chart-container') || containerEl;
+      syncDataAndOptions(vnode.attrs);
+    },
 
-      if (vnode.attrs.data !== undefined) {
-        data = vnode.attrs.data;
-      }
-      if (vnode.attrs.options !== undefined) {
-        const o = vnode.attrs.options;
-        options = { ...defaultOptions, ...o };
-        if (o.viewDays !== undefined) originalViewDays = o.viewDays;
-      }
+    onupdate(vnode) {
+      containerEl = vnode.dom?.querySelector('.chart-container') || containerEl;
+      syncDataAndOptions(vnode.attrs);
     },
 
     onremove() {
@@ -323,27 +402,31 @@ function ChronosChart(initialVnode) {
     },
 
     view({attrs}) {
-      const hasData     = data?.datasets?.length;
       const cursorClass = isPanning ? 'cursor-grabbing' : panReady ? 'cursor-grab' : 'cursor-default';
       const width       = containerEl?.clientWidth  || parseInt(attrs.width)  || 600;
       const height      = containerEl?.clientHeight || parseInt(attrs.height) || 400;
+      const chartNode   = data?.datasets?.length ? renderChart(width, height) : null;
 
       return m('.relative.w-full.h-full.font-sans',
         m('.chart-container.relative.w-full.h-full.overflow-hidden.touch-pan-y',
           { class: cursorClass },
-          hasData
-            ? renderChart(width, height)
+          chartNode
+            ? chartNode
             : m('', {
                 class: 'absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-sm text-gray-400 text-center',
               }, 'No data to display'),
 
-          tooltip.visible && m('.absolute.pointer-events-none.z-50.rounded-md.px-3.py-2.text-xs.text-white.whitespace-nowrap.shadow-lg', {
-            style: { background: 'rgba(0,0,0,0.8)', left: `${tooltip.left}px`, top: `${tooltip.top}px` },
-          },
-            m('', m('strong', tooltip.label)),
-            m('', `Date: ${tooltip.dateStr}`),
-            m('', `Value: ${tooltip.formattedValue}`),
-          ),
+          m('.tooltip.absolute.pointer-events-none.z-50.rounded-md.px-3.py-2.text-xs.text-white.whitespace-nowrap.shadow-lg', {
+            style: {
+              background: 'rgba(0,0,0,0.8)',
+              opacity: isTooltipVisible ? 1 : 0,
+              left: `${tooltipLeft}px`,
+              top: `${tooltipTop}px`,
+              transition: 'opacity 0.2s ease',
+            },
+            oncreate(vnode) { tooltipEl = vnode.dom; },
+            onupdate(vnode) { tooltipEl = vnode.dom; },
+          }),
 
           m('', { class: 'absolute bottom-1.5 left-2.5 z-10' },
             m('button', {
@@ -359,7 +442,14 @@ function ChronosChart(initialVnode) {
               onclick(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                options.logScale = !options.logScale;
+                const newScale = !options.logScale;
+                const onScaleClick = attrs.onScaleClick || attrs.onscaleclick;
+                if (onScaleClick) {
+                  onScaleClick(newScale);
+                } else {
+                  options.logScale = newScale;
+                  m.redraw();
+                }
               },
             }, options.logScale ? 'LOG' : 'LINEAR'),
           ),
