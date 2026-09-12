@@ -47,6 +47,7 @@ const SeriesChart = () => {
   let loadedSeriesId    = null;
   let chartData         = { datasets: [] };
   let chartOptions      = {};
+  let themeObserver     = null;
 
   // ── data ──────────────────────────────────────────────────────────────────
 
@@ -72,7 +73,11 @@ const SeriesChart = () => {
   }
 
   async function updateChart() {
-    if (!entries.length) return;
+    if (!entries.length) {
+      chartData = { datasets: [] };
+      m.redraw();
+      return;
+    }
 
     // Compute viewDays
     let viewDays = 0;
@@ -197,6 +202,7 @@ const SeriesChart = () => {
       }
     }
 
+    isDark = isDarkMode();
     chartOptions = {
       logScale: chartSettings.logScale,
       darkMode: isDark,
@@ -227,6 +233,21 @@ const SeriesChart = () => {
     m.redraw();
   }
 
+  async function handleScaleClick(logScale) {
+    chartSettings.logScale = typeof logScale === 'boolean' ? logScale : !chartSettings.logScale;
+    if (series) {
+      series.config = {
+        ...series.config,
+        chartSettings: {
+          ...(series.config?.chartSettings || {}),
+          logScale: chartSettings.logScale,
+        },
+      };
+      await db.series.put(series);
+    }
+    updateChart();
+  }
+
   function handleConfigUpdated({ series: updatedSeries }) {
     if (updatedSeries.config) {
       if (updatedSeries.config.analysisSelection) {
@@ -254,7 +275,24 @@ const SeriesChart = () => {
       if (attrs.seriesId && attrs.seriesId !== loadedSeriesId) {
         loadedSeriesId = attrs.seriesId;
         await loadData(attrs.seriesId);
+        updateChart();
       }
+    },
+
+    oncreate() {
+      themeObserver = new MutationObserver(() => {
+        const wasDark = isDark;
+        isDark = isDarkMode();
+        if (wasDark !== isDark) updateChart();
+      });
+      themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class'],
+      });
+    },
+
+    onremove() {
+      themeObserver?.disconnect();
     },
 
     view({ attrs }) {
@@ -269,8 +307,9 @@ const SeriesChart = () => {
 
         // ── Chart ──────────────────────────────────────────────────────────
         m(ChronosChart, {
-          data:    chartData,
-          options: chartOptions,
+          data:         chartData,
+          options:      chartOptions,
+          onScaleClick: handleScaleClick,
         }),
 
         // ── Toolbar ────────────────────────────────────────────────────────
