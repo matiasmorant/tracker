@@ -3,6 +3,7 @@ import {
   startOfMonth,
   startOfYear,
   startOfDay,
+  addHours,
   addDays,
   subDays,
   addMonths,
@@ -11,6 +12,13 @@ import {
   min as dateFnsMin,
   max as dateFnsMax,
 } from 'date-fns';
+
+export const UNITS = {
+  year  : { format: (d) => format(d, 'yyyy' ), startOf: startOfYear  , add: addYears  , index: (d) => d.getFullYear()                     ,},
+  month : { format: (d) => format(d, 'MMM'  ), startOf: startOfMonth , add: addMonths , index: (d) => d.getMonth() + d.getFullYear() * 12 ,},
+  day   : { format: (d) => format(d, 'd MMM'), startOf: startOfDay   , add: addDays   , index: (d) => Math.floor(d/(24*60*60*1000))       ,},
+  hour  : { format: (d) => format(d, 'HH:mm'), startOf: (d) => d     , add: addHours  , index: (d) => Math.floor(d/(   60*60*1000))       ,},
+};
 
 // Returns a Date object. Single conversion point from raw data.
 export function parseDate(dateValue) {
@@ -36,26 +44,19 @@ export function getXMode(days) {
   return 'hour';
 }
 
-export function getUnitFns(unit) {
-  if (unit === 'year')  return { startOf: startOfYear,  addFn: addYears };
-  if (unit === 'month') return { startOf: startOfMonth, addFn: addMonths };
-  return                       { startOf: startOfDay,   addFn: addDays };
-}
-
-export function generateTickDates(unit, minDate, maxDate, step = 1) {
-  const { startOf, addFn } = getUnitFns(unit);
+export function generateTickDates(unitKey, minDate, maxDate, step = 1) {
+  const unit = UNITS[unitKey] || UNITS.day;
   const dates = [];
-  for (let cur = startOf(minDate); cur <= maxDate; cur = addFn(cur, step)) {
+  for (let cur = unit.startOf(minDate); cur <= maxDate; cur = unit.add(cur, step)) {
     dates.push(cur);
   }
   return dates;
 }
 
 export function formatXLabel(date, mode) {
-  if (mode === 'shade-year' || mode === 'tick-year' )  return format(date, 'yyyy');
-  if (mode === 'shade-month'|| mode === 'tick-month')  return format(date, 'MMM');
-  if (mode === 'shade-day'  || mode === 'tick-day'  )  return format(date, 'd MMM');
-  return format(date, 'HH:mm'); // hour
+  const unitKey = mode.includes('-') ? mode.split('-')[1] : mode;
+  const unit = UNITS[unitKey] || UNITS.hour;
+  return unit.format(date);
 }
 
 export function dateRange(count, [minDate, maxDate]) {
@@ -71,20 +72,17 @@ export function getPointsDateRange(points) {
   return [dateFnsMin(dates), dateFnsMax(dates)];
 }
 
-export function getPeriodBands(unit, [minDate, maxDate], globalMin) {
-  const { startOf, addFn } = getUnitFns(unit);
-  const getIndex = unit === 'year'  ? (d) => d.getFullYear() : 
-                   unit === 'month' ? (d) => (d.getMonth() + (d.getFullYear() * 12)) : 
-                   (d) => Math.floor(d.getTime() / (24 * 60 * 60 * 1000));
+export function getPeriodBands(unitKey, [minDate, maxDate], globalMin) {
+  const unit = UNITS[unitKey] || UNITS.day;
+  const firstIndex = unit.index(unit.startOf(globalMin));
+  const bands = [];
   
-  const firstIndex = getIndex(startOf(globalMin));
-  const bands      = [];
   
-  for (let cur = startOf(minDate); cur <= maxDate; cur = addFn(cur, 1)) {
+  for (let cur = unit.startOf(minDate); cur <= maxDate; cur = unit.add(cur, 1)) {
     bands.push({
       start:  cur,
-      end:    addFn(cur, 1),
-      isEven: (getIndex(cur) - firstIndex) % 2 === 0,
+      end:    unit.add(cur, 1),
+      isEven: (unit.index(cur) - firstIndex) % 2 === 0,
     });
   }
   return bands;
