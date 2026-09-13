@@ -50,7 +50,9 @@ function axesGrid(xScale, yScale, chartWidth, chartHeight, padding, allPoints, o
   const gridLines = [];
   const axisLines = [];
   const axisTexts = [];
-
+  const GridLine = 'line[stroke=currentColor][stroke-opacity=0.2][stroke-width=1]';
+  const Axis = 'line[stroke=currentColor][stroke-opacity=0.5][stroke-width=1.5]';
+  const TickLabel = 'text.text-xs.select-none.pointer-events-none[fill=currentColor][opacity=0.7]'; 
   if (options.grid.show) {
     if (mode.startsWith('shade-')) {
       items.filter(b => b.isEven).forEach(band => {
@@ -61,7 +63,7 @@ function axesGrid(xScale, yScale, chartWidth, chartHeight, padding, allPoints, o
       items.forEach(({ date }) => {
         const x = padding.left + xScale(date);
         if (x >= padding.left && x <= padding.left + chartWidth) {
-          gridLines.push(m('line.grid-line[stroke=currentColor][stroke-opacity=0.2][stroke-width=1]', {
+          gridLines.push(m(GridLine, {
             x1: x, y1: padding.top, x2: x, y2: padding.top + chartHeight,
           }));
         }
@@ -69,7 +71,7 @@ function axesGrid(xScale, yScale, chartWidth, chartHeight, padding, allPoints, o
     }
     yValues.forEach(yv => {
       const y = padding.top + yScale(yv);
-      gridLines.push(m('line.grid-line[stroke=currentColor][stroke-opacity=0.2][stroke-width=1]', {
+      gridLines.push(m(GridLine, {
         x1: padding.left, y1: y, x2: padding.left + chartWidth, y2: y,
       }));
     });
@@ -77,27 +79,17 @@ function axesGrid(xScale, yScale, chartWidth, chartHeight, padding, allPoints, o
 
   if (options.axis.show) {
     axisLines.push(
-      m('line.axis-line[stroke=currentColor][stroke-opacity=0.5][stroke-width=1.5]', {
-        x1: padding.left, y1: padding.top + chartHeight, x2: padding.left + chartWidth, y2: padding.top + chartHeight,
-      }),
-      m('line.axis-line[stroke=currentColor][stroke-opacity=0.5][stroke-width=1.5]', {
-        x1: padding.left, y1: padding.top, x2: padding.left, y2: padding.top + chartHeight,
-      }),
+      m(Axis, { x1: padding.left, y1: padding.top + chartHeight, x2: padding.left + chartWidth, y2: padding.top + chartHeight, }),
+      m(Axis, { x1: padding.left, y1: padding.top              , x2: padding.left             , y2: padding.top + chartHeight, }),
     );
     items.forEach(item => {
       const x = padding.left + xScale(item.label.pos);
       if (x < padding.left || x > padding.left + chartWidth) return;
-      axisTexts.push(m('text.axis-text.text-xs.select-none.pointer-events-none[text-anchor=middle][fill=currentColor][opacity=0.7]', {
-        x,
-        y: padding.top + chartHeight + 20,
-      }, item.label.text));
+      axisTexts.push(m(TickLabel+'[text-anchor=middle]', { x, y: padding.top + chartHeight + 20, }, item.label.text));
     });
     yValues.forEach(v => {
       const y = padding.top + yScale(v);
-      axisTexts.push(m('text.axis-text.text-xs.select-none.pointer-events-none[text-anchor=end][fill=currentColor][opacity=0.7]', {
-        x: padding.left + 20,
-        y: y - 4,
-      }, formatValue(v, options.valueFormatter)));
+      axisTexts.push(m(TickLabel+'[text-anchor=end]'   , { x: padding.left + 20, y: y - 4, }, formatValue(v, options.valueFormatter)));
     });
   }
 
@@ -148,10 +140,10 @@ function chartPoints(points, xScale, yScale, dims, style, onEnter, onLeave) {
 }
 
 function ChronosChart(initialVnode) {
-  let options      = { ...defaultOptions, ...(initialVnode.attrs.options || {}) };
-  let data         = initialVnode.attrs.data || [];
-  let containerEl  = null;
-  let raf          = null;
+  let options     = { ...defaultOptions, ...(initialVnode.attrs.options || {}) };
+  let data        = initialVnode.attrs.data || [];
+  let containerEl = null;
+  let raf         = null;
 
   // Pan state
   let isPanning      = false;
@@ -168,15 +160,10 @@ function ChronosChart(initialVnode) {
   let tooltipLeft      = 0;
   let tooltipTop       = 0;
 
-  // Theme observer — triggers a redraw when dark class toggles
   const themeObserver = new MutationObserver(() => m.redraw());
   themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
 
   let resizeObserver = null;
-
-  // ---------------------------------------------------------------------------
-  // Pan helpers
-  // ---------------------------------------------------------------------------
 
   function resetPanState() {
     panOffset        = 0;
@@ -199,9 +186,7 @@ function ChronosChart(initialVnode) {
       }
       options = { ...defaultOptions, ...o };
     }
-    if (shouldResetPan) {
-      resetPanState();
-    }
+    if (shouldResetPan) resetPanState();
   }
 
   function onpointerenter() {
@@ -234,7 +219,7 @@ function ChronosChart(initialVnode) {
     const chartWidth = containerEl.clientWidth - options.padding.left - options.padding.right;
     const daysPerPx  = maxPanOffset / chartWidth;
     let   newOffset  = panStartOffset + (e.clientX - panStartX) * daysPerPx;
-    panOffset        = Math.max(0, Math.min(maxPanOffset, newOffset));
+    panOffset        = _.clamp(newOffset, 0, maxPanOffset);;
     options.viewDays = originalViewDays;
     m.redraw();
   }
@@ -246,10 +231,6 @@ function ChronosChart(initialVnode) {
     panReady  = options.viewDays > 0;
     m.redraw();
   }
-
-  // ---------------------------------------------------------------------------
-  // Tooltip helpers
-  // ---------------------------------------------------------------------------
 
   function showTooltip(event, point, label) {
     if (!tooltipEl || !containerEl) return;
@@ -286,14 +267,8 @@ function ChronosChart(initialVnode) {
 
   function hideTooltip() {
     isTooltipVisible = false;
-    if (tooltipEl) {
-      tooltipEl.style.opacity = '0';
-    }
+    if (tooltipEl) tooltipEl.style.opacity = '0';
   }
-
-  // ---------------------------------------------------------------------------
-  // SVG chart content
-  // ---------------------------------------------------------------------------
 
   function renderChart(width, height) {
     const padding     = options.padding;
@@ -391,7 +366,7 @@ function ChronosChart(initialVnode) {
             style: {
               opacity: isTooltipVisible ? 1 : 0,
               left: `${tooltipLeft}px`,
-              top: `${tooltipTop}px`,
+              top:  `${tooltipTop}px`,
             },
             oncreate({dom}) { tooltipEl = dom; },
             onupdate({dom}) { tooltipEl = dom; },
@@ -411,12 +386,8 @@ function ChronosChart(initialVnode) {
                 e.stopPropagation();
                 const newScale = !options.logScale;
                 const onScaleClick = attrs.onScaleClick || attrs.onscaleclick;
-                if (onScaleClick) {
-                  onScaleClick(newScale);
-                } else {
-                  options.logScale = newScale;
-                  m.redraw();
-                }
+                if (onScaleClick) onScaleClick(newScale);
+                else { options.logScale = newScale; m.redraw(); }
               },
             }, options.logScale ? 'LOG' : 'LINEAR'),
           ),
