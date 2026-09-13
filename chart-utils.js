@@ -52,23 +52,21 @@ export function generateTickDates(unit, minDate, maxDate, step = 1) {
 }
 
 export function formatXLabel(date, mode) {
-  if (mode === 'shade-year' || mode === 'tick-year')   return format(date, 'yyyy');
-  if (mode === 'shade-month' || mode === 'tick-month') return format(date, 'MMM');
-  if (mode === 'shade-day' || mode === 'tick-day')     return format(date, 'd MMM');
+  if (mode === 'shade-year' || mode === 'tick-year' )  return format(date, 'yyyy');
+  if (mode === 'shade-month'|| mode === 'tick-month')  return format(date, 'MMM');
+  if (mode === 'shade-day'  || mode === 'tick-day'  )  return format(date, 'd MMM');
   return format(date, 'HH:mm'); // hour
 }
 
 export function dateRange(count, [minDate, maxDate]) {
   const totalMs = maxDate - minDate;
-  const result = [];
-  for (let i = 0; i < count; i++) {
-    result.push(new Date(minDate.getTime() + (i / (count - 1)) * totalMs));
-  }
-  return result;
+  return _.range(count).map(i =>
+    new Date(minDate.getTime() + (i / (count - 1)) * totalMs)
+  );
 }
 
 export function getPointsDateRange(points) {
-  if (!points || points.length === 0) return [new Date(), new Date()];
+  if (_.isEmpty(points)) return [new Date(), new Date()];
   const dates = points.map(p => parseDate(p.x));
   return [dateFnsMin(dates), dateFnsMax(dates)];
 }
@@ -83,11 +81,10 @@ export function getPeriodBands(unit, [minDate, maxDate], globalMin) {
   const bands      = [];
   
   for (let cur = startOf(minDate); cur <= maxDate; cur = addFn(cur, 1)) {
-    const start = cur;
-    const end   = addFn(start, 1);
     bands.push({
-      start, end,
-      isEven: (getIndex(start) - firstIndex) % 2 === 0
+      start:  cur,
+      end:    addFn(cur, 1),
+      isEven: (getIndex(cur) - firstIndex) % 2 === 0,
     });
   }
   return bands;
@@ -105,7 +102,7 @@ export function getXAxisConfig(points, viewDays, panOffset) {
         b.start = dateFnsMax([b.start , minDate]);
         b.end   = dateFnsMin([b.end   , maxDate]);
         const label = {
-          pos: new Date(b.start.getTime() + (b.end.getTime() - b.start.getTime()) / 2),
+          pos:  new Date((+b.start + +b.end) / 2),
           text: formatXLabel(b.start, mode)
         };
         return { ...b, type: 'shade', label };
@@ -141,17 +138,15 @@ export function formatValue(value, customFormatter = null) {
 
 export function formatDate(date, minDate, maxDate) {
   date = parseDate(date);
-  const dRange = differenceInDays(maxDate, minDate);
-  const mode   = getXMode(dRange);
-  return formatXLabel(date, mode);
+  return formatXLabel(date, getXMode(differenceInDays(maxDate, minDate)));
 }
 
 export function generateYValues(values, count = 6, logScale = false) {
-  if (values.length === 0) return Array(count).fill(0);
-  
-  let minVal = Math.min(...values);
-  let maxVal = Math.max(...values);
-  
+  if (_.isEmpty(values)) return Array(count).fill(0);
+
+  let minVal = _.min(values);
+  let maxVal = _.max(values);
+
   if (minVal === maxVal) {
     minVal = minVal > 0 ? minVal * 0.9 : minVal - 1;
     maxVal = maxVal > 0 ? maxVal * 1.1 : maxVal + 1;
@@ -191,16 +186,9 @@ export function generateYValues(values, count = 6, logScale = false) {
 
   const graphMin = Math.floor(minVal / niceStep) * niceStep;
   const graphMax = Math.ceil(maxVal / niceStep) * niceStep;
-
-  const result = [];
-  for (let v = graphMin; v <= graphMax + niceStep * 0.0001; v += niceStep) {
-    result.push(v);
-  }
-  
-  return result;
+  return  _.range( graphMin, graphMax + niceStep * 0.0001, niceStep );
 }
 
-// Returns Date[]
 export function getVisibleDateRange(points, viewDays = 0, panOffset = 0) {
   const [minDate, maxDate] = getPointsDateRange(points);
   
@@ -217,10 +205,8 @@ export function getVisibleDateRange(points, viewDays = 0, panOffset = 0) {
   return [vMin, vMax];
 }
 
-
-
 export function getTotalDataDays(chartData) {
-  if (!chartData?.datasets?.length) return 0;
+  if (_.isEmpty(chartData?.datasets)) return 0;
   
   const allPoints = chartData.datasets.flatMap(dataset => 
     dataset.data?.filter(p => p.x) || []
