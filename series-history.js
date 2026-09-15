@@ -1,4 +1,4 @@
-import { Tabulator } from 'tabulator';
+import { TabulatorFull as Tabulator } from 'tabulator';
 import { format } from './utils.js';
 import DurationPickerModal from './duration-picker-modal.js';
 
@@ -61,6 +61,7 @@ function initTable({attrs, state, dom}) {
 
     const isTime = series.type === 'time';
     state.seriesId = series.id;
+    state.tableReady = false;
 
     state.table = new Tabulator(dom.querySelector('#table-container'), {
         data: [...entries].reverse(),
@@ -70,6 +71,10 @@ function initTable({attrs, state, dom}) {
         resizableColumnFit: false,
         placeholder: 'No historical data available.',
         columns: buildColumns(isTime, attrs),
+    });
+
+    state.table.on('tableBuilt', () => {
+        state.tableReady = true;
     });
 
     state.table.on('cellEdited', cell => {
@@ -87,7 +92,7 @@ const SeriesHistory = {
         if (series?.id !== vnode.state.seriesId) {
             vnode.state.table.destroy();
             initTable(vnode);
-        } else {
+        } else if (vnode.state.tableReady) {
             vnode.state.table.replaceData([...entries].reverse());
         }
     },
