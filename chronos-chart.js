@@ -1,4 +1,5 @@
 import {
+  Interval,
   parseDate,
   formatValue,
   formatDate,
@@ -24,22 +25,22 @@ const defaultOptions = {
 
 function clipPath(box) {
   return m('clipPath#chartClip',
-    m('rect', { x: box.left, y: box.top, width: box.width, height: box.height })
+    m('rect', { x: box.x[0], y: box.y[0], width: Interval.size(box.x), height: Interval.size(box.y) })
   );
 }
 
 function shadingRect(band, minDate, maxDate, xScale, box) {
-  const visibleStart = Math.max(band.start, minDate);
-  const visibleEnd   = Math.min(band.end, maxDate);
-  const xStart = xScale(visibleStart);
-  const xEnd   = xScale(visibleEnd);
-  const w = xEnd - xStart;
-  if (w <= 0 || xStart > box.right || xEnd < box.left) return null;
+  const visible = Interval.intersectDate([band.start, band.end], [minDate, maxDate]);
+  if (!visible) return null;
+  const xVisible = visible.map(xScale);
+  if (Interval.isEmpty(xVisible)) return null;
+  const clamped = Interval.intersect(xVisible, box.x);
+  if (!clamped) return null;
   return m('rect[fill=currentColor][fill-opacity=0.1]', {
-    x: Math.max(box.left, xStart),
-    y: box.top,
-    width: Math.min(box.width, w - Math.max(0, box.left - xStart)),
-    height: box.height,
+    x: clamped[0],
+    y: box.y[0],
+    width:  Interval.size(clamped),
+    height: Interval.size(box.y),
   });
 }
 
@@ -62,32 +63,32 @@ function axesGrid(xScale, yScale, box, allPoints, options) {
     } else {
       items.forEach(({ date }) => {
         const x = xScale(date);
-        if (x >= box.left && x <= box.right) {
-          gridLines.push(m(GridLine, { x1: x, y1: box.top, x2: x, y2: box.bottom, }));
+        if (Interval.contains(box.x, x)) {
+          gridLines.push(m(GridLine, { x1: x, y1: box.y[0], x2: x, y2: box.y[1], }));
         }
       });
     }
     yValues.forEach(yv => {
       const y = yScale(yv);
       gridLines.push(m(GridLine, {
-        x1: box.left, y1: y, x2: box.right, y2: y,
+        x1: box.x[0], y1: y, x2: box.x[1], y2: y,
       }));
     });
   }
 
   if (options.axis.show) {
     axisLines.push(
-      m(Axis, { x1: box.left, y1: box.bottom, x2: box.right, y2: box.bottom, }),
-      m(Axis, { x1: box.left, y1: box.top,    x2: box.left,  y2: box.bottom, }),
+      m(Axis, { x1: box.x[0], y1: box.y[1], x2: box.x[1], y2: box.y[1], }),
+      m(Axis, { x1: box.x[0], y1: box.y[0], x2: box.x[0], y2: box.y[1], }),
     );
     items.forEach(item => {
       const x = xScale(item.label.pos);
-      if (x < box.left || x > box.right) return;
-      axisTexts.push(m(TickLabel+'[text-anchor=middle]', { x, y: box.bottom + 20, }, item.label.text));
+      if (!Interval.contains(box.x, x)) return;
+      axisTexts.push(m(TickLabel+'[text-anchor=middle]', { x, y: box.y[1] + 20, }, item.label.text));
     });
     yValues.forEach(v => {
       const y = yScale(v);
-      axisTexts.push(m(TickLabel+'[text-anchor=end]'   , { x: box.left + 20, y: y - 4, }, formatValue(v, options.valueFormatter)));
+      axisTexts.push(m(TickLabel+'[text-anchor=end]'   , { x: box.x[0] + 20, y: y - 4, }, formatValue(v, options.valueFormatter)));
     });
   }
 
@@ -121,8 +122,7 @@ function chartPoints(points, xScale, yScale, box, style, onEnter, onLeave) {
         class: 'hover:[r:6px]',
         style: 'transition: r 0.2s ease;',
         onmouseenter: (e) => {
-          if (cx >= box.left && cx <= box.right &&
-              cy >= box.top  && cy <= box.bottom) {
+          if (Interval.contains(box.x, cx) && Interval.contains(box.y, cy)) {
             onEnter(e, point, style.label, index);
           }
         },
@@ -214,8 +214,8 @@ function ChronosChart(initialVnode) {
 
     const chartWidth = containerEl.clientWidth - options.padding.left - options.padding.right;
     const daysPerPx  = maxPanOffset / chartWidth;
-    let   newOffset  = panStartOffset + (e.clientX - panStartX) * daysPerPx;
-    panOffset        = _.clamp(newOffset, 0, maxPanOffset);;
+    const newOffset  = panStartOffset + (e.clientX - panStartX) * daysPerPx;
+    panOffset        = Interval.clamp([0, maxPanOffset], newOffset);
     options.viewDays = originalViewDays;
     m.redraw();
   }
@@ -261,8 +261,8 @@ function ChronosChart(initialVnode) {
     let top  = tooltip.top;
     if (left + tw > cw) left = tooltip.left - 10 - tw - 10;
     if (top  + th > ch) top  = tooltip.top  - 10 - th - 10;
-    left = _.clamp(left, 0, cw - tw);
-    top  = _.clamp(top,  0, ch - th);
+    left = Interval.clamp([0, cw - tw], left);
+    top  = Interval.clamp([0, ch - th], top);
 
     if (left !== tooltip.left || top !== tooltip.top) {
       tooltip.left = left;
@@ -276,7 +276,10 @@ function ChronosChart(initialVnode) {
     const padding     = options.padding;
     const chartWidth  = Math.max(0, width  - padding.left - padding.right);
     const chartHeight = Math.max(0, height - padding.top  - padding.bottom);
-    const box = { left: padding.left, top: padding.top, right: padding.left + chartWidth, bottom: padding.top + chartHeight, width: chartWidth, height: chartHeight };
+    const box = {
+      x: [padding.left, padding.left + chartWidth],
+      y: [padding.top,  padding.top  + chartHeight],
+    };
 
     const allPoints = data.datasets.flatMap(ds =>
       ds.data?.filter(p => p.x && p.y !== undefined) || []
