@@ -13,6 +13,23 @@ import {
   max as dateFnsMax,
 } from 'date-fns';
 
+export const Interval = {
+  size      ([lo, hi]) { return hi - lo;},
+  isEmpty   ([lo, hi]) { return lo >= hi;},
+  contains  ([lo, hi], v) { return v >= lo && v <= hi;},
+  clamp     ([lo, hi], v) { return Math.max(lo, Math.min(hi, v));},
+  clampDate ([lo, hi], d) { return new Date(this.clamp([+lo, +hi], +d));},
+  intersect ([lo1, hi1], [lo2, hi2]) {
+    const lo = Math.max(lo1, lo2);
+    const hi = Math.min(hi1, hi2);
+    return lo < hi ? [lo, hi] : null;
+  },
+  intersectDate([lo1, hi1], [lo2, hi2]) {
+    const result = this.intersect([+lo1, +hi1], [+lo2, +hi2]);
+    return result ? result.map(t => new Date(t)) : null;
+  },
+};
+
 export const UNITS = {
   year  : { format: (d) => format(d, 'yyyy' ), startOf: startOfYear  , add: addYears  , index: (d) => d.getFullYear()                     ,},
   month : { format: (d) => format(d, 'MMM'  ), startOf: startOfMonth , add: addMonths , index: (d) => d.getMonth() + d.getFullYear() * 12 ,},
@@ -77,7 +94,6 @@ export function getPeriodBands(unitKey, [minDate, maxDate], globalMin) {
   const firstIndex = unit.index(unit.startOf(globalMin));
   const bands = [];
   
-  
   for (let cur = unit.startOf(minDate); cur <= maxDate; cur = unit.add(cur, 1)) {
     bands.push({
       start:  cur,
@@ -97,14 +113,16 @@ export function getXAxisConfig(points, viewDays, panOffset) {
   if (mode.startsWith('shade-')) {
     items = getPeriodBands(mode.split('-')[1], [minDate, maxDate], globalMin)
       .map(b => {
-        b.start = dateFnsMax([b.start , minDate]);
-        b.end   = dateFnsMin([b.end   , maxDate]);
+        const clipped = Interval.intersectDate([b.start, b.end], [minDate, maxDate]);
+        if (!clipped) return null;
+        [b.start, b.end] = clipped;
         const label = {
           pos:  new Date((+b.start + +b.end) / 2),
           text: formatXLabel(b.start, mode)
         };
         return { ...b, type: 'shade', label };
-      });
+      })
+      .filter(Boolean);
   } else if (mode.startsWith('tick-')) {
     items = generateTickDates(mode.split('-')[1], minDate, maxDate, 3)
       .map(date => ({ date, type: 'tick', label: { pos: date, text: formatXLabel(date, mode) } }));
@@ -189,15 +207,18 @@ export function generateYValues(values, count = 6, logScale = false) {
 
 export function getVisibleDateRange(points, viewDays = 0, panOffset = 0) {
   const [minDate, maxDate] = getPointsDateRange(points);
-  
+  const dateBounds = [minDate, maxDate];
+
   if (viewDays <= 0) return [minDate, maxDate];
 
+  // Anchor the window right edge to (maxDate - panOffset), then derive left edge.
   let vMax = subDays(maxDate, panOffset);
-  let vMin = dateFnsMax([minDate, subDays(vMax, viewDays)]);
-  
-  if (vMin <= minDate) {
+  let vMin = Interval.clampDate(dateBounds, subDays(vMax, viewDays));
+
+  // If the left edge hit the data minimum, slide the right edge forward instead.
+  if (+vMin <= +minDate) {
     vMin = minDate;
-    vMax = dateFnsMin([maxDate, addDays(vMin, viewDays)]);
+    vMax = Interval.clampDate(dateBounds, addDays(vMin, viewDays));
   }
   
   return [vMin, vMax];
@@ -219,7 +240,7 @@ export function createXScale(points, box, viewDays = 0, panOffset = 0) {
   const visibleMinMs = minDate.getTime();
   const visibleRangeMs = Math.max(1, maxDate.getTime() - visibleMinMs);
 
-  return (date) => box.left + ((parseDate(date).getTime() - visibleMinMs) / visibleRangeMs) * box.width;
+  return (date) => box.x[0] + ((parseDate(date).getTime() - visibleMinMs) / visibleRangeMs) * Interval.size(box.x);
 }
 
 export function createYScale(points, box, logScale = false) {
@@ -228,19 +249,19 @@ export function createYScale(points, box, logScale = false) {
   let minY = Math.min(...displayYValues);
   let maxY = Math.max(...displayYValues);
   
-  if (minY === maxY) return (y) => box.top + box.height / 2;
+  if (minY === maxY) return (y) => box.y[0] + Interval.size(box.y) / 2;
   
   if (logScale && minY > 0) {
     minY = Math.log10(minY);
     maxY = Math.log10(maxY);
     return (y) => {
-      if (y <= 0) return box.bottom;
+      if (y <= 0) return box.y[1];
       const logY = Math.log10(y);
-      return box.bottom - ((logY - minY) / (maxY - minY)) * box.height;
+      return box.y[1] - ((logY - minY) / (maxY - minY)) * Interval.size(box.y);
     };
   }
   
-  return (y) => box.bottom - ((y - minY) / (maxY - minY)) * box.height;
+  return (y) => box.y[1] - ((y - minY) / (maxY - minY)) * Interval.size(box.y);
 }
 
 export function generateSmoothPath(points, xScale, yScale, tension = 0.2) {
