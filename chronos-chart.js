@@ -22,28 +22,28 @@ const defaultOptions = {
            '#06b6d4', '#ec4899', '#14b8a6', '#f97316', '#8b5cf6'],
 };
 
-function clipPath(padding, chartWidth, chartHeight) {
+function clipPath(box) {
   return m('clipPath#chartClip',
-    m('rect', { x: padding.left, y: padding.top, width: chartWidth, height: chartHeight })
+    m('rect', { x: box.left, y: box.top, width: box.width, height: box.height })
   );
 }
 
-function shadingRect(band, minDate, maxDate, xScale, padding, chartWidth, chartHeight) {
-  const visibleStart = band.start < minDate ? minDate : band.start;
-  const visibleEnd   = band.end   > maxDate ? maxDate : band.end;
-  const xStart = padding.left + xScale(visibleStart);
-  const xEnd   = padding.left + xScale(visibleEnd);
+function shadingRect(band, minDate, maxDate, xScale, box) {
+  const visibleStart = Math.max(band.start, minDate);
+  const visibleEnd   = Math.min(band.end, maxDate);
+  const xStart = xScale(visibleStart);
+  const xEnd   = xScale(visibleEnd);
   const w = xEnd - xStart;
-  if (w <= 0 || xStart > padding.left + chartWidth || xEnd < padding.left) return null;
+  if (w <= 0 || xStart > box.right || xEnd < box.left) return null;
   return m('rect[fill=currentColor][fill-opacity=0.1]', {
-    x: Math.max(padding.left, xStart),
-    y: padding.top,
-    width: Math.min(chartWidth, w - Math.max(0, padding.left - xStart)),
-    height: chartHeight,
+    x: Math.max(box.left, xStart),
+    y: box.top,
+    width: Math.min(box.width, w - Math.max(0, box.left - xStart)),
+    height: box.height,
   });
 }
 
-function axesGrid(xScale, yScale, chartWidth, chartHeight, padding, allPoints, options) {
+function axesGrid(xScale, yScale, box, allPoints, options) {
   const { minDate, maxDate, mode, items } = getXAxisConfig(allPoints, options.viewDays, options.panOffset);
   const yValues = generateYValues(allPoints.map(p => p.y), 6, options.logScale);
 
@@ -56,40 +56,38 @@ function axesGrid(xScale, yScale, chartWidth, chartHeight, padding, allPoints, o
   if (options.grid.show) {
     if (mode.startsWith('shade-')) {
       items.filter(b => b.isEven).forEach(band => {
-        const r = shadingRect(band, minDate, maxDate, xScale, padding, chartWidth, chartHeight);
+        const r = shadingRect(band, minDate, maxDate, xScale, box);
         if (r) gridLines.push(r);
       });
     } else {
       items.forEach(({ date }) => {
-        const x = padding.left + xScale(date);
-        if (x >= padding.left && x <= padding.left + chartWidth) {
-          gridLines.push(m(GridLine, {
-            x1: x, y1: padding.top, x2: x, y2: padding.top + chartHeight,
-          }));
+        const x = xScale(date);
+        if (x >= box.left && x <= box.right) {
+          gridLines.push(m(GridLine, { x1: x, y1: box.top, x2: x, y2: box.bottom, }));
         }
       });
     }
     yValues.forEach(yv => {
-      const y = padding.top + yScale(yv);
+      const y = yScale(yv);
       gridLines.push(m(GridLine, {
-        x1: padding.left, y1: y, x2: padding.left + chartWidth, y2: y,
+        x1: box.left, y1: y, x2: box.right, y2: y,
       }));
     });
   }
 
   if (options.axis.show) {
     axisLines.push(
-      m(Axis, { x1: padding.left, y1: padding.top + chartHeight, x2: padding.left + chartWidth, y2: padding.top + chartHeight, }),
-      m(Axis, { x1: padding.left, y1: padding.top              , x2: padding.left             , y2: padding.top + chartHeight, }),
+      m(Axis, { x1: box.left, y1: box.bottom, x2: box.right, y2: box.bottom, }),
+      m(Axis, { x1: box.left, y1: box.top,    x2: box.left,  y2: box.bottom, }),
     );
     items.forEach(item => {
-      const x = padding.left + xScale(item.label.pos);
-      if (x < padding.left || x > padding.left + chartWidth) return;
-      axisTexts.push(m(TickLabel+'[text-anchor=middle]', { x, y: padding.top + chartHeight + 20, }, item.label.text));
+      const x = xScale(item.label.pos);
+      if (x < box.left || x > box.right) return;
+      axisTexts.push(m(TickLabel+'[text-anchor=middle]', { x, y: box.bottom + 20, }, item.label.text));
     });
     yValues.forEach(v => {
-      const y = padding.top + yScale(v);
-      axisTexts.push(m(TickLabel+'[text-anchor=end]'   , { x: padding.left + 20, y: y - 4, }, formatValue(v, options.valueFormatter)));
+      const y = yScale(v);
+      axisTexts.push(m(TickLabel+'[text-anchor=end]'   , { x: box.left + 20, y: y - 4, }, formatValue(v, options.valueFormatter)));
     });
   }
 
@@ -99,9 +97,9 @@ function axesGrid(xScale, yScale, chartWidth, chartHeight, padding, allPoints, o
   ];
 }
 
-function chartLine(points, xScale, yScale, padding, style) {
+function chartLine(points, xScale, yScale, box, style) {
   if (points.length < 2) return null;
-  const d = generateSmoothPath(points, xScale, yScale, padding.left, padding.top, style.tension);
+  const d = generateSmoothPath(points, xScale, yScale, style.tension);
   return m('path.chart-line[fill=none][stroke-linecap=round][stroke-linejoin=round]', {
     d,
     stroke: style.color,
@@ -110,13 +108,12 @@ function chartLine(points, xScale, yScale, padding, style) {
   });
 }
 
-function chartPoints(points, xScale, yScale, dims, style, onEnter, onLeave) {
-  const { padding, chartWidth, chartHeight } = dims;
+function chartPoints(points, xScale, yScale, box, style, onEnter, onLeave) {
   const radius = style.radius || 4;
   return m('g',
     points.map((point, index) => {
-      const cx = padding.left + xScale(point.x);
-      const cy = padding.top  + yScale(point.y);
+      const cx = xScale(point.x);
+      const cy = yScale(point.y);
       return m('circle.chart-point.cursor-pointer[stroke-width=2][fill=white]', {
         cx, cy,
         r: radius,
@@ -125,8 +122,8 @@ function chartPoints(points, xScale, yScale, dims, style, onEnter, onLeave) {
         style: 'transition: r 0.2s ease;',
         onmouseenter: (e) => {
           e.redraw = false;
-          if (cx >= padding.left && cx <= padding.left + chartWidth &&
-              cy >= padding.top  && cy <= padding.top  + chartHeight) {
+          if (cx >= box.left && cx <= box.right &&
+              cy >= box.top  && cy <= box.bottom) {
             onEnter(e, point, style.label, index);
           }
         },
@@ -274,15 +271,15 @@ function ChronosChart(initialVnode) {
     const padding     = options.padding;
     const chartWidth  = Math.max(0, width  - padding.left - padding.right);
     const chartHeight = Math.max(0, height - padding.top  - padding.bottom);
+    const box = { left: padding.left, top: padding.top, right: padding.left + chartWidth, bottom: padding.top + chartHeight, width: chartWidth, height: chartHeight };
 
     const allPoints = data.datasets.flatMap(ds =>
       ds.data?.filter(p => p.x && p.y !== undefined) || []
     );
     if (!allPoints.length) return null;
 
-    const xScaleFn = createXScale(allPoints, chartWidth, options.viewDays, panOffset);
-    const yScaleFn = createYScale(allPoints, chartHeight, options.logScale);
-    const dims     = { width, height, chartWidth, chartHeight, padding };
+    const xScaleFn = createXScale(allPoints, box, options.viewDays, panOffset);
+    const yScaleFn = createYScale(allPoints, box, options.logScale);
 
     const datasetNodes = data.datasets.map((ds, i) => {
       if (!ds.data?.length) return null;
@@ -291,14 +288,14 @@ function ChronosChart(initialVnode) {
       if (!points.length) return null;
 
       return m('g', { key: i },
-        chartLine(points, xScaleFn, yScaleFn, padding, {
+        chartLine(points, xScaleFn, yScaleFn, box, {
           color,
           width:   ds.borderWidth || options.lineWidth,
           tension: ds.tension     || options.tension,
           dash:    ds.borderDash  || [],
         }),
         options.showPoints && !ds.hidePoints
-          ? chartPoints(points, xScaleFn, yScaleFn, dims,
+          ? chartPoints(points, xScaleFn, yScaleFn, box,
               { color, radius: ds.pointRadius || options.pointRadius, label: ds.label || `Dataset ${i + 1}` },
               showTooltip, hideTooltip)
           : null,
@@ -314,8 +311,8 @@ function ChronosChart(initialVnode) {
       onpointercancel: onpointerup,
       oncontextmenu:   e => e.preventDefault(),
     },
-      clipPath(padding, chartWidth, chartHeight),
-      ...axesGrid(xScaleFn, yScaleFn, chartWidth, chartHeight, padding, allPoints,
+      clipPath(box),
+      ...axesGrid(xScaleFn, yScaleFn, box, allPoints,
         { ...options, panOffset }),
       m('g[clip-path="url(#chartClip)"]', datasetNodes),
     );

@@ -216,40 +216,40 @@ export function getTotalDataDays(chartData) {
   return differenceInDays(maxDate, minDate);
 }
 
-export function createXScale(points, chartWidth, viewDays = 0, panOffset = 0) {
+export function createXScale(points, box, viewDays = 0, panOffset = 0) {
   const [minDate, maxDate] = getVisibleDateRange(points, viewDays, panOffset);
   const visibleMinMs = minDate.getTime();
   const visibleRangeMs = Math.max(1, maxDate.getTime() - visibleMinMs);
 
-  return (date) => ((parseDate(date).getTime() - visibleMinMs) / visibleRangeMs) * chartWidth;
+  return (date) => box.left + ((parseDate(date).getTime() - visibleMinMs) / visibleRangeMs) * box.width;
 }
 
-export function createYScale(points, chartHeight, logScale = false) {
+export function createYScale(points, box, logScale = false) {
   const yValues = points.map(p => p.y);
   const displayYValues = generateYValues(yValues, 6, logScale);
   let minY = Math.min(...displayYValues);
   let maxY = Math.max(...displayYValues);
   
-  if (minY === maxY) return (y) => chartHeight / 2;
+  if (minY === maxY) return (y) => box.top + box.height / 2;
   
   if (logScale && minY > 0) {
     minY = Math.log10(minY);
     maxY = Math.log10(maxY);
     return (y) => {
-      if (y <= 0) return chartHeight;
+      if (y <= 0) return box.bottom;
       const logY = Math.log10(y);
-      return chartHeight - ((logY - minY) / (maxY - minY)) * chartHeight;
+      return box.bottom - ((logY - minY) / (maxY - minY)) * box.height;
     };
   }
   
-  return (y) => chartHeight - ((y - minY) / (maxY - minY)) * chartHeight;
+  return (y) => box.bottom - ((y - minY) / (maxY - minY)) * box.height;
 }
 
-export function generateSmoothPath(points, xScale, yScale, paddingLeft, paddingTop, tension = 0.2) {
+export function generateSmoothPath(points, xScale, yScale, tension = 0.2) {
   if (points.length < 2) return '';
   
-  const getX = (p) => paddingLeft + xScale(p.x);
-  const getY = (p) => paddingTop  + yScale(p.y);
+  const getX = (p) => xScale(p.x);
+  const getY = (p) => yScale(p.y);
 
   let pathData = `M ${getX(points[0])} ${getY(points[0])}`;
   
