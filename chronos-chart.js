@@ -121,14 +121,12 @@ function chartPoints(points, xScale, yScale, box, style, onEnter, onLeave) {
         class: 'hover:[r:6px]',
         style: 'transition: r 0.2s ease;',
         onmouseenter: (e) => {
-          e.redraw = false;
           if (cx >= box.left && cx <= box.right &&
               cy >= box.top  && cy <= box.bottom) {
             onEnter(e, point, style.label, index);
           }
         },
-        onmouseleave: (e) => {
-          e.redraw = false;
+        onmouseleave: () => {
           onLeave();
         },
       });
@@ -151,11 +149,12 @@ function ChronosChart(initialVnode) {
   let panStartOffset = 0;
   let originalViewDays = options.viewDays;
 
-  // Tooltip state
-  let tooltipEl        = null;
-  let isTooltipVisible = false;
-  let tooltipLeft      = 0;
-  let tooltipTop       = 0;
+  // Tooltip state — single source of truth, consumed by tooltipVnode()
+  let tooltip = {
+    visible: false,
+    left: 0, top: 0,
+    label: '', date: '', value: '',
+  };
 
   const themeObserver = new MutationObserver(() => m.redraw());
   themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
@@ -230,41 +229,47 @@ function ChronosChart(initialVnode) {
   }
 
   function showTooltip(event, point, label) {
-    if (!tooltipEl || !containerEl) return;
-    const formattedValue = formatValue(point.y, options.valueFormatter);
+    if (!containerEl) return;
     const [minDate, maxDate] = getVisibleDateRange(
       data?.datasets?.flatMap(d => d.data || []) || [],
       options.viewDays, panOffset
     );
-    const dateStr = formatDate(point.x, minDate, maxDate);
+    const rect = containerEl.getBoundingClientRect();
 
-    tooltipEl.innerHTML = `
-      <div><strong>${label}</strong></div>
-      <div>Date: ${dateStr}</div>
-      <div>Value: ${formattedValue}</div>
-    `;
-    tooltipEl.style.opacity = '1';
-
-    const tooltipWidth  = tooltipEl.offsetWidth;
-    const tooltipHeight = tooltipEl.offsetHeight;
-    const containerRect = containerEl.getBoundingClientRect();
-
-    let left = event.clientX - containerRect.left + 10;
-    let top  = event.clientY - containerRect.top  + 10;
-
-    if (left + tooltipWidth  > containerRect.width)  left = event.clientX - containerRect.left - tooltipWidth  - 10;
-    if (top  + tooltipHeight > containerRect.height) top  = event.clientY - containerRect.top  - tooltipHeight - 10;
-
-    tooltipEl.style.left = `${left}px`;
-    tooltipEl.style.top  = `${top}px`;
-    tooltipLeft = left;
-    tooltipTop  = top;
-    isTooltipVisible = true;
+    tooltip = {
+      visible: true,
+      left : event.clientX - rect.left + 10,
+      top  : event.clientY - rect.top  + 10,
+      label,
+      date:  formatDate(point.x, minDate, maxDate),
+      value: formatValue(point.y, options.valueFormatter),
+    };
   }
 
   function hideTooltip() {
-    isTooltipVisible = false;
-    if (tooltipEl) tooltipEl.style.opacity = '0';
+    if (!tooltip.visible) return;
+    tooltip.visible = false;
+  }
+
+  function clampTooltip({ dom }) {
+    if (!tooltip.visible || !containerEl) return;
+
+    const tw = dom.offsetWidth,  th = dom.offsetHeight;
+    const cw = containerEl.clientWidth, ch = containerEl.clientHeight;
+
+    let left = tooltip.left;
+    let top  = tooltip.top;
+    if (left + tw > cw) left = tooltip.left - 10 - tw - 10;
+    if (top  + th > ch) top  = tooltip.top  - 10 - th - 10;
+    left = _.clamp(left, 0, cw - tw);
+    top  = _.clamp(top,  0, ch - th);
+
+    if (left !== tooltip.left || top !== tooltip.top) {
+      tooltip.left = left;
+      tooltip.top  = top;
+      dom.style.left = `${left}px`;
+      dom.style.top  = `${top}px`;
+    }
   }
 
   function renderChart(width, height) {
@@ -361,13 +366,17 @@ function ChronosChart(initialVnode) {
 
           m('.tooltip.absolute.pointer-events-none.z-50.rounded-md.px-3.py-2.text-xs.text-white.whitespace-nowrap.shadow-lg.bg-black/80.transition-opacity.duration-200', {
             style: {
-              opacity: isTooltipVisible ? 1 : 0,
-              left: `${tooltipLeft}px`,
-              top:  `${tooltipTop}px`,
+              opacity: tooltip.visible ? 1 : 0,
+              left: `${tooltip.left}px`,
+              top:  `${tooltip.top}px`,
             },
-            oncreate({dom}) { tooltipEl = dom; },
-            onupdate({dom}) { tooltipEl = dom; },
-          }),
+            oncreate: clampTooltip,
+            onupdate: clampTooltip,
+            },
+            m('', m('strong', tooltip.label)),
+            m('', `Date: ${tooltip.date}`),
+            m('', `Value: ${tooltip.value}`),
+          ),
 
           m('.absolute.z-10', { class: 'bottom-1.5 left-2.5' },
             m('button.font-black.px-1.rounded.cursor-pointer.transition-all' +
