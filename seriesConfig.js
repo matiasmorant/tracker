@@ -153,12 +153,7 @@ function SeriesConfiguration() {
                                 ),
                             ]),
 
-                            m('wa-card', [
-                                m('.wa-cluster[slot=header]', 
-                                    m(icon`calculator`+'.text-brand'),
-                                    m(h3, 'Dashboard Summary'),
-                                ),
-
+                            m(section, { title: 'Dashboard Summary', icon: 'calculator' }, [
                                 m('.grid.grid-cols-3-auto.gap-2.py-2',
                                     summaries.flatMap((s, i) => _viewSummaryRow(s, i, summaries.length))
                                 ),
@@ -176,13 +171,7 @@ function SeriesConfiguration() {
                                 ]),
                             ]),
 
-                            m('wa-card', [
-
-                                m('.wa-cluster[slot=header]', 
-                                    m(icon`bolt`+'.text-brand'),
-                                    m(h3, 'Quick Add (+) Action'),
-                                ),
-
+                            m(section, { title: 'Quick Add (+) Action', icon: 'bolt' }, [
                                 m('wa-select', {
                                     value: cfg.quickAddAction ?? 'manual',
                                     onchange: e => {
