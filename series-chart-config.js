@@ -104,7 +104,7 @@ const SeriesChartConfig = () => {
 
       const otherSeries = allSeries.filter(s => s.id !== series.id);
       const settings    = { ...DEFAULT_SETTINGS, ...chartSettings };
-      const Sentence = 'span.text-sm.text-quiet';
+      const Sentence = '.wa-cluster.items-center.gap-2.text-sm.text-quiet';
 
       return m('#configPanel.p-4',
         m('.wa-stack.gap-4',
@@ -131,57 +131,55 @@ const SeriesChartConfig = () => {
           ),
 
           // ── Statistics ──────────────────────────────────────────────────
-          METRICS.length > 0 && m(section, { title: 'Statistics', icon: 'chart-line' },
-            m('.wa-cluster.items-center.gap-2',
-              m(Sentence, analysisSelection.length > 0 ? 'Show' : 'Add Statistic'),
-              m('multi-select', {
-                'data-role': 'analysis-select',
-                items: JSON.stringify(METRICS.map(({ id, label, color }) => ({ id, label, color }))),
-                'selected-ids': JSON.stringify(analysisSelection),
-                multi: true,
-                onchange: onAnalysisChange,
-              }),
-              analysisSelection.length > 0 && [
-                m(Sentence, 'for each'),
+          m(section, { title: 'Statistics', icon: 'chart-line' },
+            m('.wa-stack.gap-9',
+              m(Sentence,
+                analysisSelection.length > 0 ? 'Show' : 'Add Statistic',
+                m('multi-select', {
+                  'data-role': 'analysis-select',
+                  items: JSON.stringify(METRICS.map(({ id, label, color }) => ({ id, label, color }))),
+                  'selected-ids': JSON.stringify(analysisSelection),
+                  multi: true,
+                  onchange: onAnalysisChange,
+                }),
+                analysisSelection.length > 0 && [
+                  'for each',
+                  m(select, {
+                    value: settings.period,
+                    'data-setting': 'period',
+                    onchange: onPeriodChange,
+                    options: PERIOD_OPTIONS.map(val => ({
+                      value: val,
+                      label: val === 'none' ? 'Raw Data' : val[0].toUpperCase() + val.slice(1),
+                    })),
+                  })
+                ]
+              ),
+              m(Sentence,
+                settings.runningMetric ? 'Show running' : 'Add running statistic',
                 m(select, {
-                  value: settings.period,
-                  'data-setting': 'period',
-                  onchange: onPeriodChange,
-                  options: PERIOD_OPTIONS.map(val => ({
-                    value: val,
-                    label: val === 'none' ? 'Raw Data' : val[0].toUpperCase() + val.slice(1),
-                  })),
-                })
-              ]
+                    value: settings.runningMetric || '',
+                    'data-setting': 'runningMetric',
+                    onchange: onRunningMetricChange,
+                    options: [
+                      { value: '', label: 'None' },
+                      ...METRICS.map(({ id, label }) => ({ value: id, label })),
+                    ],
+                  }),
+                settings.runningMetric && [
+                  'over last',
+                  m('wa-number-input.w-24', {
+                    'data-setting': 'window',
+                    value: settings.window,
+                    min: 2,
+                    step: 1,
+                    placeholder: 'Win',
+                    oninput: onWindowChange,
+                  }),
+                  'entries',
+                ]
+              )
             )
-          ),
-
-          // ── Running Average / Stat ───────────────────────────────────────
-          m(section, { title: 'Running Average / Stat', icon: 'wave-square' },
-            m('.wa-cluster.items-center.gap-2',
-              m(Sentence, settings.runningMetric ? 'Show running' : 'Add running statistic'),
-              m(select, {
-                  value: settings.runningMetric || '',
-                  'data-setting': 'runningMetric',
-                  onchange: onRunningMetricChange,
-                  options: [
-                    { value: '', label: 'None' },
-                    ...METRICS.map(({ id, label }) => ({ value: id, label })),
-                  ],
-                }),
-              settings.runningMetric && [
-                m(Sentence, 'over last'),
-                m('wa-number-input.w-24', {
-                  'data-setting': 'window',
-                  value: settings.window,
-                  min: 2,
-                  step: 1,
-                  placeholder: 'Win',
-                  oninput: onWindowChange,
-                }),
-                m(Sentence, 'entries'),
-              ]
-            ),
           ),
 
           // ── Compare with other series ────────────────────────────────────
