@@ -7,7 +7,7 @@ const fieldComponents = new Map([
   ['number', NumberInput],
   ['text', 'wa-input'],
   ['dhms', dhmsField],
-  ['select', 'wa-select'],
+  ['select', [select, '.w-full.medium']],
   ['color', ColorPicker],
 ]);
 
@@ -47,11 +47,7 @@ function ModalForm(config) {
           const { id: fieldId, label: fieldLabel, type, options, attrs: extra = {} } = f;
           if (index === 0) extra.autofocus = true;
           const value = state.form[fieldId];
-          return m(fieldComponents.get(type), { id: fieldId, label: fieldLabel, value, ...extra },
-            type === 'select'
-              ? (options ?? []).map(({ value, label }) => m('wa-option', { value }, label ?? value))
-              : []
-          );
+          return m(fieldComponents.get(type), { id: fieldId, label: fieldLabel, value, options, ...extra });
         });
 
         const handleInput = (e) => { state.form[e.target.id] = e.target.value; };

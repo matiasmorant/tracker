@@ -140,18 +140,18 @@ function SeriesConfiguration() {
 
                         m('.masonry-md-lg.gap-3.*:mb-3', [
 
-                            m('wa-select[label=Group]', {
+                            m(select, {
+                                label: 'Group',
                                 value: series.group ?? '',
                                 onchange: e => {
                                     series.group = e.target.value;
                                     _save();
                                 },
-                            }, [
-                                m('wa-option[value=]', 'No Group'),
-                                groups.map(g =>
-                                    m('wa-option', { value: g.name }, g.name)
-                                ),
-                            ]),
+                                options: [
+                                    { value: '', label: 'No Group' },
+                                    ...groups.map(g => ({ value: g.name, label: g.name })),
+                                ],
+                            }),
 
                             m(section, { title: 'Dashboard Summary', icon: 'calculator' }, [
                                 m('.grid.grid-cols-3-auto.gap-2.py-2',
@@ -172,21 +172,22 @@ function SeriesConfiguration() {
                             ]),
 
                             m(section, { title: 'Quick Add (+) Action', icon: 'bolt' }, [
-                                m('wa-select', {
+                                m(select, {
                                     value: cfg.quickAddAction ?? 'manual',
                                     onchange: e => {
                                         _ensureConfig();
                                         series.config.quickAddAction = e.target.value;
                                         _save();
                                     },
-                                }, [
-                                    m('wa-option[value=manual]', 'Manual Entry Modal'),
-                                    series.type === 'number' && m('wa-option[value=increment]', 'One-Click (+1)'),
-                                    series.type === 'time' && [
-                                        m('wa-option[value=currentTime]', 'Stamp Current Time'),
-                                        m('wa-option[value=chronometer]', 'Start/Stop Chronometer'),
+                                    options: [
+                                        { value: 'manual', label: 'Manual Entry Modal' },
+                                        ...(series.type === 'number' ? [{ value: 'increment', label: 'One-Click (+1)' }] : []),
+                                        ...(series.type === 'time' ? [
+                                            { value: 'currentTime', label: 'Stamp Current Time' },
+                                            { value: 'chronometer', label: 'Start/Stop Chronometer' },
+                                        ] : []),
                                     ],
-                                ]),
+                                }),
 
                                 m([callout, '.neutral.filled'], 
                                     m('p.text-xs.font-bold.text-slate-500.uppercase.mb-1', 'How it works'),
