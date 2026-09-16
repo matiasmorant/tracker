@@ -1,3 +1,4 @@
+window.h2='h2.text-lg.font-bold';
 window.h3='h3.text-xs.text-quiet.uppercase.font-black.tracking-widest';
 window.h4='h4.text-xs.text-quiet.uppercase.font-bold.tracking-wide';
 window.icon=(name)=>`wa-icon[name=${name}]`

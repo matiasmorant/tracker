@@ -136,7 +136,7 @@ function SeriesConfiguration() {
                     : !series
                     ? m('.p-6.text-slate-500', 'No series selected.')
                     : m('wa-card[appearance=outlined]', [
-                        m('h2.text-lg.font-bold[slot=header]', 'Configuration'),
+                        m(h2+'[slot=header]', 'Configuration'),
 
                         m('.masonry-md-lg.gap-3.*:mb-3', [
 

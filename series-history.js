@@ -105,7 +105,7 @@ const SeriesHistory = {
         return m('.bg-white.rounded-2xl.shadow-sm.border.overflow-hidden.border-slate-200.dark:bg-slate-800.dark:border-slate-700', [
             m('style', tableStyles),
             m('.p-6.border-b.flex.justify-between.items-center.border-slate-100.dark:border-slate-700', [
-                m('h3.text-lg.font-semibold.dark:text-slate-100', 'Data History'),
+                m(h2, 'Data History'),
                 m([button, '.brand.small'], { onclick: () => onAddEntryClick?.({ series }) },
                     [ m(icon`plus`), 'Add Entry']
                 )
