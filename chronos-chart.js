@@ -29,13 +29,10 @@ function clipPath(box) {
   );
 }
 
-function shadingRect(band, minDate, maxDate, xScale, box) {
-  const visible = Interval.intersectDate([band.start, band.end], [minDate, maxDate]);
-  if (!visible) return null;
-  const xVisible = visible.map(xScale);
-  if (Interval.isEmpty(xVisible)) return null;
-  const clamped = Interval.intersect(xVisible, box.x);
-  if (!clamped) return null;
+function shadingRect(band, dateInterval, xScale, box) {
+  const visible = Interval.intersectDate(band.interval, dateInterval); if (!visible)                   return null;
+  const xVisible = visible.map(xScale);                                if (Interval.isEmpty(xVisible)) return null;
+  const clamped = Interval.intersect(xVisible, box.x);                 if (!clamped)                   return null;
   return m('rect[fill=currentColor][fill-opacity=0.1]', {
     x: clamped[0],
     y: box.y[0],
@@ -45,7 +42,7 @@ function shadingRect(band, minDate, maxDate, xScale, box) {
 }
 
 function axesGrid(xScale, yScale, box, allPoints, options) {
-  const { minDate, maxDate, mode, items } = getXAxisConfig(allPoints, options.viewDays, options.panOffset);
+  const { dateInterval, mode, items } = getXAxisConfig(allPoints, options.viewDays, options.panOffset);
   const yValues = generateYValues(allPoints.map(p => p.y), 6, options.logScale);
 
   const gridLines = [];
@@ -57,7 +54,7 @@ function axesGrid(xScale, yScale, box, allPoints, options) {
   if (options.grid.show) {
     if (mode.startsWith('shade-')) {
       items.filter(b => b.isEven).forEach(band => {
-        const r = shadingRect(band, minDate, maxDate, xScale, box);
+        const r = shadingRect(band, dateInterval, xScale, box);
         if (r) gridLines.push(r);
       });
     } else {
@@ -70,9 +67,7 @@ function axesGrid(xScale, yScale, box, allPoints, options) {
     }
     yValues.forEach(yv => {
       const y = yScale(yv);
-      gridLines.push(m(GridLine, {
-        x1: box.x[0], y1: y, x2: box.x[1], y2: y,
-      }));
+      gridLines.push(m(GridLine, { x1: box.x[0], y1: y, x2: box.x[1], y2: y, }));
     });
   }
 
@@ -93,8 +88,8 @@ function axesGrid(xScale, yScale, box, allPoints, options) {
   }
 
   return [
-    gridLines.length ? m('g.grid-group', gridLines) : null,
-    axisLines.length || axisTexts.length ? m('g.axis-group', [...axisLines, ...axisTexts]) : null,
+    gridLines.length ? m('g', gridLines) : null,
+    axisLines.length || axisTexts.length ? m('g', [...axisLines, ...axisTexts]) : null,
   ];
 }
 
@@ -230,7 +225,7 @@ function ChronosChart(initialVnode) {
 
   function showTooltip(event, point, label) {
     if (!containerEl) return;
-    const [minDate, maxDate] = getVisibleDateRange(
+    const dateInterval = getVisibleDateRange(
       data?.datasets?.flatMap(d => d.data || []) || [],
       options.viewDays, panOffset
     );
@@ -241,7 +236,7 @@ function ChronosChart(initialVnode) {
       left : event.clientX - rect.left + 10,
       top  : event.clientY - rect.top  + 10,
       label,
-      date:  formatDate(point.x, minDate, maxDate),
+      date:  formatDate(point.x, dateInterval),
       value: formatValue(point.y, options.valueFormatter),
     };
   }
@@ -362,11 +357,7 @@ function ChronosChart(initialVnode) {
       return m('.relative.w-full.h-full.font-sans',
         m('.chart-container.relative.w-full.h-full.overflow-hidden.touch-pan-y',
           { class: cursorClass },
-          chartNode
-            ? chartNode
-            : m('.absolute.top-1/2.left-1/2.-translate-x-1/2.-translate-y-1/2.text-sm.text-gray-400.text-center',
-                'No data to display'),
-
+          chartNode || m('.absolute.top-1/2.left-1/2.-translate-x-1/2.-translate-y-1/2.text-sm.text-gray-400.text-center', 'No data to display'),
           m('.tooltip.absolute.pointer-events-none.z-50.rounded-md.px-3.py-2.text-xs.text-white.whitespace-nowrap.shadow-lg.bg-black/80.transition-opacity.duration-200', {
             style: {
               opacity: tooltip.visible ? 1 : 0,
