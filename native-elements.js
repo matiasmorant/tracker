@@ -82,5 +82,15 @@ window.section = {
   }
 };
 
+window.field = {
+  view: ({ attrs, children }) => {
+    const { label, ...rest } = attrs;
+    return m('.wa-stack.gap-1\\.5', rest, [
+      label && m(h4, label),
+      children,
+    ]);
+  }
+};
+
 window.DateTimeInput = 'wa-input[placeholder="yyyy-MM-dd HH:mm:ss"]'
 window.NumberInput = 'wa-number-input[step=1]'
