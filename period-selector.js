@@ -2,18 +2,19 @@ const PeriodSelector = {
   view({ attrs: { settings, onSettingChange } }) {
     return m(".flex.gap-3.items-start.sm:items-center", [
 
-      m("wa-select[size=small].w-28", {
+      m(select, {
         value: settings.range,
         onchange: (e) => onSettingChange("range", e.target.value),
-      }, [
-        m("wa-option[value=all]",     "All Time"),
-        m("wa-option[value=day]",     "Day"),
-        m("wa-option[value=week]",    "Week"),
-        m("wa-option[value=month]",   "Month"),
-        m("wa-option[value=quarter]", "Quarter"),
-        m("wa-option[value=year]",    "Year"),
-        m("wa-option[value=custom]",  "Custom"),
-      ]),
+        options: [
+          { value: "all",     label: "All Time" },
+          { value: "day",     label: "Day" },
+          { value: "week",    label: "Week" },
+          { value: "month",   label: "Month" },
+          { value: "quarter", label: "Quarter" },
+          { value: "year",    label: "Year" },
+          { value: "custom",  label: "Custom" },
+        ],
+      }),
 
       settings.range === "custom"
         ? m("[placeholder=Days].flex.items-center.space-x-1", [
@@ -32,8 +33,10 @@ const PeriodSelector = {
 
 const StatSelect = {
     view({ attrs: { value, onchange } }) {
-        return m(`wa-select[size=small].w-30`, { value, onchange },
-          [
+return m(select, {
+        value,
+        onchange,
+        options: [
             { value: 'mean',    label: 'Mean' },
             { value: 'dayMean', label: 'Daily Avg' },
             { value: 'sum',     label: 'Sum' },
@@ -45,8 +48,8 @@ const StatSelect = {
             { value: 'max',     label: 'Max' },
             { value: 'first',   label: 'First' },
             { value: 'last',    label: 'Last' },
-        ].map(op => m(`wa-option[value=${op.value}]`, op.label))
-      );
+        ],
+      });
     }
 };
 

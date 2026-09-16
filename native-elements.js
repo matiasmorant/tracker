@@ -68,6 +68,26 @@ window.callout = {
   }
 };
 
+window.select = {
+  view: ({ attrs, children }) => {
+    const classes = (attrs.class || '').split(/[\s\.]+/).filter(Boolean);
+
+    const sizes = ['small', 'medium', 'large'];
+    const { options, size: sizeAttr, ...rest } = attrs;
+
+    const width = classes.find(c => c.startsWith('w-')) || 'w-28';
+    const size  = classes.find(c => sizes.includes(c)) || sizeAttr || 'small';
+
+    const remaining = classes.filter(c => c !== width && !sizes.includes(c));
+
+    const kids = options
+      ? options.map(op => m('wa-option', { value: op.value }, op.label ?? op.value))
+      : children;
+
+    return m('wa-select', { ...rest, size, class: [width, ...remaining].join(' ') }, kids);
+  }
+};
+
 window.section = {
   view: ({ attrs, children }) => {
     const { title, icon: iconName, ...restAttrs } = attrs;

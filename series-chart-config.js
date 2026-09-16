@@ -31,10 +31,6 @@ const DEFAULT_SETTINGS = {
 
 const PERIOD_OPTIONS = ['none', 'day', 'week', 'month', 'quarter', 'year'];
 
-const SELECT_CLS =
-  'text-sm border border-slate-200 rounded-md px-2 py-1.5 bg-slate-50 outline-none ' +
-  'focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100';
-
 // ---------------------------------------------------------------------------
 // SeriesChartConfig  –  attrs: { seriesId, onConfigUpdated? }
 // ---------------------------------------------------------------------------
@@ -136,7 +132,7 @@ const SeriesChartConfig = () => {
 
           // ── Statistics ──────────────────────────────────────────────────
           METRICS.length > 0 && m(section, { title: 'Statistics', icon: 'chart-line' },
-            m('.wa-cluster.items-center.gap-2', { style: 'flex-wrap: wrap;' },
+            m('.wa-cluster.items-center.gap-2',
               m(Sentence, analysisSelection.length > 0 ? 'Show' : 'Add Statistic'),
               m('multi-select', {
                 'data-role': 'analysis-select',
@@ -147,38 +143,35 @@ const SeriesChartConfig = () => {
               }),
               analysisSelection.length > 0 && [
                 m(Sentence, 'for each'),
-                m('select', {
-                  class: SELECT_CLS,
+                m(select, {
+                  value: settings.period,
                   'data-setting': 'period',
                   onchange: onPeriodChange,
-                },
-                  PERIOD_OPTIONS.map(val =>
-                    m('option', { value: val, selected: settings.period === val },
-                      val === 'none' ? 'Raw Data' : val[0].toUpperCase() + val.slice(1))
-                  )
-                )
+                  options: PERIOD_OPTIONS.map(val => ({
+                    value: val,
+                    label: val === 'none' ? 'Raw Data' : val[0].toUpperCase() + val.slice(1),
+                  })),
+                })
               ]
             )
           ),
 
           // ── Running Average / Stat ───────────────────────────────────────
           m(section, { title: 'Running Average / Stat', icon: 'wave-square' },
-            m('.wa-cluster.items-center.gap-2', { style: 'flex-wrap: wrap;' },
+            m('.wa-cluster.items-center.gap-2',
               m(Sentence, settings.runningMetric ? 'Show running' : 'Add running statistic'),
-              m('select', {
-                class: SELECT_CLS,
-                'data-setting': 'runningMetric',
-                onchange: onRunningMetricChange,
-              },
-                m('option', { value: '', selected: !settings.runningMetric }, 'None'),
-                METRICS.map(({ id, label }) =>
-                  m('option', { value: id, selected: settings.runningMetric === id }, label)
-                )
-              ),
+              m(select, {
+                  value: settings.runningMetric || '',
+                  'data-setting': 'runningMetric',
+                  onchange: onRunningMetricChange,
+                  options: [
+                    { value: '', label: 'None' },
+                    ...METRICS.map(({ id, label }) => ({ value: id, label })),
+                  ],
+                }),
               settings.runningMetric && [
                 m(Sentence, 'over last'),
-                m('wa-number-input', {
-                  class: 'w-24',
+                m('wa-number-input.w-24', {
                   'data-setting': 'window',
                   value: settings.window,
                   min: 2,
@@ -188,7 +181,7 @@ const SeriesChartConfig = () => {
                 }),
                 m(Sentence, 'entries'),
               ]
-            )
+            ),
           ),
 
           // ── Compare with other series ────────────────────────────────────
