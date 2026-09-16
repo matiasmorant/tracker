@@ -32,7 +32,7 @@ const DEFAULT_SETTINGS = {
 const PERIOD_OPTIONS = ['none', 'day', 'week', 'month', 'quarter', 'year'];
 
 const SELECT_CLS =
-  'text-xs border border-slate-200 rounded-md px-2 py-1.5 bg-slate-50 outline-none ' +
+  'text-sm border border-slate-200 rounded-md px-2 py-1.5 bg-slate-50 outline-none ' +
   'focus:ring-1 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100';
 
 // ---------------------------------------------------------------------------
@@ -108,26 +108,36 @@ const SeriesChartConfig = () => {
 
       const otherSeries = allSeries.filter(s => s.id !== series.id);
       const settings    = { ...DEFAULT_SETTINGS, ...chartSettings };
+      const Sentence = 'span.text-sm.text-quiet';
 
-      return m('#configPanel.border-t.border-slate-100.dark:border-slate-700',
-        m('.p-4',
+      return m('#configPanel.p-4',
+        m('.wa-stack.gap-4',
 
-          // ── axis config ──────────────────────────────────────────────────
-          m('.flex.flex-col.gap-1\\.5',
-            m('span.text-2xs.font-bold.text-slate-400.uppercase.tracking-tighter.dark:text-slate-500',
-              'Log Scale'),
-            m('wa-switch', {
-              checked: !!settings.logScale,
-              onchange: e => onSettingChange('logScale', e.target.checked),
-            })
+          // ── Axis ──────────────────────────────────────────────────────────
+          m(section, { title: 'Axis', icon: 'ruler-combined' },
+            m('.wa-stack.gap-3',
+              m(field, { label: 'Scale' },
+                m('wa-radio-group[orientation=horizontal]', {
+                  value: settings.logScale ? 'log' : 'linear',
+                  onchange: e => onSettingChange('logScale', e.target.value === 'log'),
+                },
+                  m('wa-radio[appearance=button][value=linear]' , 'Linear'),
+                  m('wa-radio[appearance=button][value=log]'    , 'Log'),
+                )
+              ),
+              m(field, { label: 'Range' },
+                m(PeriodSelector, {
+                  settings,
+                  onSettingChange,
+                })
+              )
+            )
           ),
 
           // ── Statistics ──────────────────────────────────────────────────
-          m('.statistics-section',
-            m('h3.text-2xs.font-bold.text-slate-400.uppercase.tracking-widest.dark:text-slate-500',
-              'Statistics'),
-
-            METRICS.length > 0 && m('.flex.flex-row.gap-2.mt-2',
+          METRICS.length > 0 && m(section, { title: 'Statistics', icon: 'chart-line' },
+            m('.wa-cluster.items-center.gap-2', { style: 'flex-wrap: wrap;' },
+              m(Sentence, analysisSelection.length > 0 ? 'Show' : 'Add Statistic'),
               m('multi-select', {
                 'data-role': 'analysis-select',
                 items: JSON.stringify(METRICS.map(({ id, label, color }) => ({ id, label, color }))),
@@ -135,11 +145,10 @@ const SeriesChartConfig = () => {
                 multi: true,
                 onchange: onAnalysisChange,
               }),
-
-              m('.flex.flex-col.gap-1\\.5',
-                m('span.text-2xs.font-bold.text-slate-400.uppercase.tracking-tighter.dark:text-slate-500',
-                  'Period Grouping'),
-                m('select.text-xs.border.border-slate-200.rounded-md.px-2.py-1\\.5.bg-slate-50.outline-none.focus:ring-1.focus:ring-indigo-500.dark:bg-slate-700.dark:border-slate-600.dark:text-slate-100', {
+              analysisSelection.length > 0 && [
+                m(Sentence, 'for each'),
+                m('select', {
+                  class: SELECT_CLS,
                   'data-setting': 'period',
                   onchange: onPeriodChange,
                 },
@@ -148,61 +157,49 @@ const SeriesChartConfig = () => {
                       val === 'none' ? 'Raw Data' : val[0].toUpperCase() + val.slice(1))
                   )
                 )
-              )
+              ]
             )
           ),
 
           // ── Running Average / Stat ───────────────────────────────────────
-          m('.flex.flex-wrap.items-center.gap-4.my-3',
-            m('.flex.flex-col.gap-1\\.5',
-              m('span.text-2xs.font-bold.text-slate-400.uppercase.tracking-tighter.dark:text-slate-500',
-                'Running Average/Stat'),
-              m('.flex.items-center.space-x-2',
-                m('select.text-xs.border.border-slate-200.rounded-md.px-2.py-1\\.5.bg-slate-50.outline-none.focus:ring-1.focus:ring-indigo-500.dark:bg-slate-700.dark:border-slate-600.dark:text-slate-100', {
-                  'data-setting': 'runningMetric',
-                  onchange: onRunningMetricChange,
-                },
-                  m('option', { value: '', selected: !settings.runningMetric }, 'None'),
-                  METRICS.map(({ id, label }) =>
-                    m('option', { value: id, selected: settings.runningMetric === id }, label)
-                  )
-                ),
-                m('input.w-14.text-xs.border.border-slate-200.rounded-md.px-2.py-1\\.5.bg-slate-50.outline-none.focus:ring-1.focus:ring-indigo-500.dark:bg-slate-700.dark:border-slate-600.dark:text-slate-100', {
-                  type: 'number',
+          m(section, { title: 'Running Average / Stat', icon: 'wave-square' },
+            m('.wa-cluster.items-center.gap-2', { style: 'flex-wrap: wrap;' },
+              m(Sentence, settings.runningMetric ? 'Show running' : 'Add running statistic'),
+              m('select', {
+                class: SELECT_CLS,
+                'data-setting': 'runningMetric',
+                onchange: onRunningMetricChange,
+              },
+                m('option', { value: '', selected: !settings.runningMetric }, 'None'),
+                METRICS.map(({ id, label }) =>
+                  m('option', { value: id, selected: settings.runningMetric === id }, label)
+                )
+              ),
+              settings.runningMetric && [
+                m(Sentence, 'over last'),
+                m('wa-number-input', {
+                  class: 'w-24',
                   'data-setting': 'window',
                   value: settings.window,
                   min: 2,
                   step: 1,
                   placeholder: 'Win',
                   oninput: onWindowChange,
-                })
-              )
+                }),
+                m(Sentence, 'entries'),
+              ]
             )
-          ),
-
-          // ── Time Range ───────────────────────────────────────────────────
-          m('.flex.flex-row.gap-2.mt-4.pt-4.border-t.border-slate-100.dark:border-slate-700',
-            m('h3.content-center.text-2xs.font-bold.text-slate-400.uppercase.tracking-widest.dark:text-slate-500',
-              'Time Range'),
-            m(PeriodSelector, {
-              settings,
-              onSettingChange,
-            })
           ),
 
           // ── Compare with other series ────────────────────────────────────
-          m('.p-4.border-t.border-slate-100.dark:border-slate-700',
-            m('h3.text-2xs.font-bold.text-slate-400.uppercase.tracking-widest.dark:text-slate-500.mb-2',
-              'Compare with other series'),
-            m('.flex.flex-row.gap-2',
-              m('multi-select.flex-1', {
-                'data-role': 'compare-select',
-                items: JSON.stringify(otherSeries.map(({ id, name }) => ({ id, label: name }))),
-                'selected-ids': JSON.stringify(settings.compareSeriesIds ?? []),
-                multi: true,
-                onchange: onCompareChange,
-              })
-            )
+          m(section, { title: 'Compare with other series', icon: 'code-compare' },
+            m('multi-select', {
+              'data-role': 'compare-select',
+              items: JSON.stringify(otherSeries.map(({ id, name }) => ({ id, label: name }))),
+              'selected-ids': JSON.stringify(settings.compareSeriesIds ?? []),
+              multi: true,
+              onchange: onCompareChange,
+            })
           )
         )
       );
