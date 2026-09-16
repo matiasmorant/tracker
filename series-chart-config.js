@@ -112,6 +112,16 @@ const SeriesChartConfig = () => {
       return m('#configPanel.border-t.border-slate-100.dark:border-slate-700',
         m('.p-4',
 
+          // ── axis config ──────────────────────────────────────────────────
+          m('.flex.flex-col.gap-1\\.5',
+            m('span.text-2xs.font-bold.text-slate-400.uppercase.tracking-tighter.dark:text-slate-500',
+              'Log Scale'),
+            m('wa-switch', {
+              checked: !!settings.logScale,
+              onchange: e => onSettingChange('logScale', e.target.checked),
+            })
+          ),
+
           // ── Statistics ──────────────────────────────────────────────────
           m('.statistics-section',
             m('h3.text-2xs.font-bold.text-slate-400.uppercase.tracking-widest.dark:text-slate-500',
