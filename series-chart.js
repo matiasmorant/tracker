@@ -233,21 +233,6 @@ const SeriesChart = () => {
     m.redraw();
   }
 
-  async function handleScaleClick(logScale) {
-    chartSettings.logScale = typeof logScale === 'boolean' ? logScale : !chartSettings.logScale;
-    if (series) {
-      series.config = {
-        ...series.config,
-        chartSettings: {
-          ...(series.config?.chartSettings || {}),
-          logScale: chartSettings.logScale,
-        },
-      };
-      await db.series.put(series);
-    }
-    updateChart();
-  }
-
   function handleConfigUpdated({ series: updatedSeries }) {
     if (updatedSeries.config) {
       if (updatedSeries.config.analysisSelection) {
@@ -307,9 +292,8 @@ const SeriesChart = () => {
 
         // ── Chart ──────────────────────────────────────────────────────────
         m(ChronosChart, {
-          data:         chartData,
-          options:      chartOptions,
-          onScaleClick: handleScaleClick,
+          data:    chartData,
+          options: chartOptions,
         }),
 
         // ── Toolbar ────────────────────────────────────────────────────────
