@@ -371,26 +371,6 @@ function ChronosChart(initialVnode) {
             m('', `Date: ${tooltip.date}`),
             m('', `Value: ${tooltip.value}`),
           ),
-
-          m('.absolute.z-10', { class: 'bottom-1.5 left-2.5' },
-            m('button.font-black.px-1.rounded.cursor-pointer.transition-all' +
-              '.border-none.outline.outline-1.backdrop-blur-sm' +
-              '.bg-white/80.text-indigo-600.outline-indigo-200/60' +
-              '.hover:bg-indigo-50.hover:outline-indigo-400/60.hover:-translate-y-px' +
-              '.active:translate-y-0' +
-              '.dark:bg-black/80.dark:text-indigo-400.dark:outline-indigo-400/20' +
-              '.dark:hover:bg-indigo-900/20.dark:hover:outline-indigo-400/40', {
-              class: 'text-[10px] py-0.5',
-              onclick(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                const newScale = !options.logScale;
-                const onScaleClick = attrs.onScaleClick || attrs.onscaleclick;
-                if (onScaleClick) onScaleClick(newScale);
-                else { options.logScale = newScale; m.redraw(); }
-              },
-            }, options.logScale ? 'LOG' : 'LINEAR'),
-          ),
         ),
       );
     },
