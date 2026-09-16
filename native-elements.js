@@ -68,5 +68,19 @@ window.callout = {
   }
 };
 
+window.section = {
+  view: ({ attrs, children }) => {
+    const { title, icon: iconName, ...restAttrs } = attrs;
+    
+    return m('wa-card', restAttrs, [
+      m('.wa-cluster[slot=header]', [
+        iconName && m(icon(iconName) + '.text-brand'),
+        m(h3, title),
+      ]),
+      children,
+    ]);
+  }
+};
+
 window.DateTimeInput = 'wa-input[placeholder="yyyy-MM-dd HH:mm:ss"]'
 window.NumberInput = 'wa-number-input[step=1]'
