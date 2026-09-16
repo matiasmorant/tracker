@@ -28,6 +28,7 @@ export const Interval = {
     const result = this.intersect([+lo1, +hi1], [+lo2, +hi2]);
     return result ? result.map(t => new Date(t)) : null;
   },
+  dayCount  ([lo, hi]) { return differenceInDays(hi, lo);},
 };
 
 export const UNITS = {
@@ -61,7 +62,7 @@ export function getXMode(days) {
   return 'hour';
 }
 
-export function generateTickDates(unitKey, minDate, maxDate, step = 1) {
+export function generateTickDates(unitKey, [minDate, maxDate], step = 1) {
   const unit = UNITS[unitKey] || UNITS.day;
   const dates = [];
   for (let cur = unit.startOf(minDate); cur <= maxDate; cur = unit.add(cur, step)) {
@@ -96,42 +97,41 @@ export function getPeriodBands(unitKey, [minDate, maxDate], globalMin) {
   
   for (let cur = unit.startOf(minDate); cur <= maxDate; cur = unit.add(cur, 1)) {
     bands.push({
-      start:  cur,
-      end:    unit.add(cur, 1),
-      isEven: (unit.index(cur) - firstIndex) % 2 === 0,
+      interval: [cur, unit.add(cur, 1)],
+      isEven:   (unit.index(cur) - firstIndex) % 2 === 0,
     });
   }
   return bands;
 }
 
 export function getXAxisConfig(points, viewDays, panOffset) {
-  const [minDate, maxDate] = getVisibleDateRange(points, viewDays, panOffset);
-  const [globalMin]        = getPointsDateRange(points);
-  const mode               = getXMode(differenceInDays(maxDate, minDate));
-  
+  const dateInterval = getVisibleDateRange(points, viewDays, panOffset);
+  const [globalMin]  = getPointsDateRange(points);
+  const mode         = getXMode(Interval.dayCount(dateInterval));
+
   let items = [];
   if (mode.startsWith('shade-')) {
-    items = getPeriodBands(mode.split('-')[1], [minDate, maxDate], globalMin)
-      .map(b => {
-        const clipped = Interval.intersectDate([b.start, b.end], [minDate, maxDate]);
-        if (!clipped) return null;
-        [b.start, b.end] = clipped;
+    items = getPeriodBands(mode.split('-')[1], dateInterval, globalMin)
+      .map(({ interval: bandInterval, isEven }) => {
+        const interval = Interval.intersectDate(bandInterval, dateInterval);
+        if (!interval) return null;
+        const [lo, hi] = interval;
         const label = {
-          pos:  new Date((+b.start + +b.end) / 2),
-          text: formatXLabel(b.start, mode)
+          pos:  new Date((+lo + +hi) / 2),
+          text: formatXLabel(lo, mode)
         };
-        return { ...b, type: 'shade', label };
+        return { interval, isEven, type: 'shade', label };
       })
       .filter(Boolean);
   } else if (mode.startsWith('tick-')) {
-    items = generateTickDates(mode.split('-')[1], minDate, maxDate, 3)
+    items = generateTickDates(mode.split('-')[1], dateInterval, 3)
       .map(date => ({ date, type: 'tick', label: { pos: date, text: formatXLabel(date, mode) } }));
   } else {
-    items = dateRange(8, [minDate, maxDate])
+    items = dateRange(8, dateInterval)
       .map(date => ({ date, type: 'tick', label: { pos: date, text: formatXLabel(date, mode) } }));
   }
-  
-  return { minDate, maxDate, mode, items };
+
+  return { dateInterval, mode, items };
 }
 
 export function formatValue(value, customFormatter = null) {
@@ -152,9 +152,9 @@ export function formatValue(value, customFormatter = null) {
   });
 }
 
-export function formatDate(date, minDate, maxDate) {
+export function formatDate(date, dateInterval) {
   date = parseDate(date);
-  return formatXLabel(date, getXMode(differenceInDays(maxDate, minDate)));
+  return formatXLabel(date, getXMode(Interval.dayCount(dateInterval)));
 }
 
 export function generateYValues(values, count = 6, logScale = false) {
@@ -231,14 +231,13 @@ export function getTotalDataDays(chartData) {
     dataset.data?.filter(p => p.x) || []
   );
   
-  const [minDate, maxDate] = getPointsDateRange(allPoints);
-  return differenceInDays(maxDate, minDate);
+  return Interval.dayCount(getPointsDateRange(allPoints));
 }
 
 export function createXScale(points, box, viewDays = 0, panOffset = 0) {
-  const [minDate, maxDate] = getVisibleDateRange(points, viewDays, panOffset);
-  const visibleMinMs = minDate.getTime();
-  const visibleRangeMs = Math.max(1, maxDate.getTime() - visibleMinMs);
+  const dateInterval = getVisibleDateRange(points, viewDays, panOffset);
+  const visibleMinMs = dateInterval[0].getTime();
+  const visibleRangeMs = Math.max(1, dateInterval[1].getTime() - visibleMinMs);
 
   return (date) => box.x[0] + ((parseDate(date).getTime() - visibleMinMs) / visibleRangeMs) * Interval.size(box.x);
 }
