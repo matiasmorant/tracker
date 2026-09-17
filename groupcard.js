@@ -66,12 +66,12 @@ const GroupCard = () => {
                                             m("span.text-quiet", label)
                                         ]);
                                     })
-                                    : [m("span", { class: "text-[9px] text-slate-300 italic dark:text-slate-600" }, "No data")]
+                                    : [m("span.text-xs.text-slate-300.italic.dark:text-slate-600", "No data")]
                                   )
                             )
                         ]),
                         // Action Button
-                        m([button, '.plain.transition-colors'], {
+                        m([button,'.plain.transition-colors'], {
                             class: (isRunning ? 'danger animate-pulse' : 'brand'),
                             onclick: (e) => {
                                 e.stopPropagation();
