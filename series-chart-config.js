@@ -110,9 +110,9 @@ const SeriesChartConfig = () => {
         m('.wa-stack.gap-4',
 
           // ── Axis ──────────────────────────────────────────────────────────
-          m(section, { title: 'Axis', icon: 'ruler-combined' },
+          m([section,'[title=Axis][icon=ruler-combined]'],
             m('.wa-stack.gap-3',
-              m(field, { label: 'Scale' },
+              m([field,'[label=Scale]'],
                 m('wa-radio-group[orientation=horizontal]', {
                   value: settings.logScale ? 'log' : 'linear',
                   onchange: e => onSettingChange('logScale', e.target.value === 'log'),
@@ -121,7 +121,7 @@ const SeriesChartConfig = () => {
                   m('wa-radio[appearance=button][value=log]'    , 'Log'),
                 )
               ),
-              m(field, { label: 'Range' },
+              m([field,'[label=Range]'],
                 m(PeriodSelector, {
                   settings,
                   onSettingChange,
@@ -131,7 +131,7 @@ const SeriesChartConfig = () => {
           ),
 
           // ── Statistics ──────────────────────────────────────────────────
-          m(section, { title: 'Statistics', icon: 'chart-line' },
+          m([section,'[title=Statistics][icon=chart-line]'],
             m('.wa-stack.gap-9',
               m(Sentence,
                 analysisSelection.length > 0 ? 'Show' : 'Add Statistic',
@@ -144,9 +144,8 @@ const SeriesChartConfig = () => {
                 }),
                 analysisSelection.length > 0 && [
                   'for each',
-                  m(select, {
+                  m([select,'[data-setting=period]'], {
                     value: settings.period,
-                    'data-setting': 'period',
                     onchange: onPeriodChange,
                     options: PERIOD_OPTIONS.map(val => ({
                       value: val,
@@ -157,9 +156,8 @@ const SeriesChartConfig = () => {
               ),
               m(Sentence,
                 settings.runningMetric ? 'Show running' : 'Add running statistic',
-                m(select, {
+                m([select,'[data-setting=runningMetric]'], {
                     value: settings.runningMetric || '',
-                    'data-setting': 'runningMetric',
                     onchange: onRunningMetricChange,
                     options: [
                       { value: '', label: 'None' },
@@ -168,8 +166,7 @@ const SeriesChartConfig = () => {
                   }),
                 settings.runningMetric && [
                   'over last',
-                  m('wa-number-input.w-24', {
-                    'data-setting': 'window',
+                  m('wa-number-input.w-24[data-setting=window]', {
                     value: settings.window,
                     min: 2,
                     step: 1,
@@ -183,12 +180,10 @@ const SeriesChartConfig = () => {
           ),
 
           // ── Compare with other series ────────────────────────────────────
-          m(section, { title: 'Compare with other series', icon: 'code-compare' },
-            m('multi-select', {
-              'data-role': 'compare-select',
+          m([section,'[title="Compare with other series"][icon=code-compare]'],
+            m('multi-select[multi][data-role=compare-select]', {
               items: JSON.stringify(otherSeries.map(({ id, name }) => ({ id, label: name }))),
               'selected-ids': JSON.stringify(settings.compareSeriesIds ?? []),
-              multi: true,
               onchange: onCompareChange,
             })
           )
