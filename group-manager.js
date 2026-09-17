@@ -66,9 +66,7 @@ const GroupManager = () => {
       const onAccept = () => loadGroups(onGroupsUpdated);
 
       return [
-        m('wa-dialog[light-dismiss]#group-dialog', {
-          label: 'Manage Groups',
-        }, [
+        m('wa-dialog[light-dismiss][label="Manage Groups"]#group-dialog', [
           // Action Bar
           m('.wa-justify-content-end',
             m([button, '.plain.brand.small'], {

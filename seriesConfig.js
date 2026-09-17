@@ -153,7 +153,7 @@ function SeriesConfiguration() {
                                 ],
                             }),
 
-                            m(section, { title: 'Dashboard Summary', icon: 'calculator' }, [
+                            m([section,'[title="Dashboard Summary"][icon=calculator]'], [
                                 m('.grid.grid-cols-3-auto.gap-2.py-2',
                                     summaries.flatMap((s, i) => _viewSummaryRow(s, i, summaries.length))
                                 ),
@@ -171,7 +171,7 @@ function SeriesConfiguration() {
                                 ]),
                             ]),
 
-                            m(section, { title: 'Quick Add (+) Action', icon: 'bolt' }, [
+                            m([section,'[title="Quick Add (+) Action"][icon=bolt]'], [
                                 m(select, {
                                     value: cfg.quickAddAction ?? 'manual',
                                     onchange: e => {
