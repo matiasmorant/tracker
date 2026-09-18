@@ -1,6 +1,6 @@
-window.h2='h2.text-lg.font-bold';
-window.h3='h3.text-xs.text-quiet.uppercase.font-black.tracking-widest';
-window.h4='h4.text-xs.text-quiet.uppercase.font-bold.tracking-wide';
+window.h2='h2.text-lg.text-quiet.uppercase.font-bold.tracking-widest';
+window.h3='h3.text-sm.text-quiet.uppercase.font-bold.tracking-widest';
+window.h4='h4.text-xs.text-quiet.uppercase.font-bold.tracking-widest';
 window.icon=(name)=>`wa-icon[name=${name}]`
 
 const classAttrs = {
