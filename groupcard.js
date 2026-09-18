@@ -40,7 +40,7 @@ const GroupCard = () => {
             const seriesList = attrs.seriesList || [];
             if (!group || seriesList.length === 0) return null;
 
-            return m(".wa-stack.wa-gap-3xs.px-3.py-1.rounded-xl.border.shadow-sm.overflow-hidden.transition-all.hover:shadow-md", {
+            return m(".wa-stack.wa-gap-3xs.px-3.py-1.rounded-xl.border.shadow-md.overflow-hidden.transition-all.hover:shadow-lg", {
                 style: { borderColor: `${group.color}40`, backgroundColor: `${group.color}12` }
             }, [
                 m("h3.border-b.text-2xs.font-bold.uppercase.tracking-widest.truncate", { style: { color: group.color } }, group.name),
@@ -66,7 +66,7 @@ const GroupCard = () => {
                                             m("span.text-quiet", label)
                                         ]);
                                     })
-                                    : [m("span.text-xs.text-slate-300.italic.dark:text-slate-600", "No data")]
+                                    : [m("span.text-xs.text-quiet.italic", "No data")]
                                   )
                             )
                         ]),

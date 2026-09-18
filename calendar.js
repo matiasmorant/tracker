@@ -58,19 +58,14 @@ const DayEntries = {
             const displayValue = isTimeSeries
                 ? format.duration(day.entries[0].value)
                 : day.entries[0].value;
-            return m('.flex-1.flex.items-center.justify-center.text-brand.font-black.text-lg.hover:surface-lowered.rounded-lg.transition-colors',
-                displayValue
-            );
+            return m('.text-center.text-brand.font-black.text-lg', displayValue );
         }
 
-        return m('.space-y-1.overflow-y-auto.max-h-20.custom-scrollbar',
+        return m('.wa-stack.gap-1.overflow-y-auto.custom-scrollbar',
             day.entries.map(entry => {
                 const displayValue = isTimeSeries ? format.duration(entry.value) : entry.value;
-                return m('wa-badge[variant=brand][appearance=outlined].w-full',
-                    { 
-                        style: 'font-size: 10px; cursor: pointer; --wa-border-radius-small: 4px;',
-                        class: 'hover:opacity-80 transition-opacity'
-                    },
+                return m('wa-badge[variant=brand][appearance=outlined].w-full.cursor-pointer.text-xs.hover:opacity-80.transition-opacity',
+                    {  style: '--wa-border-radius-small: 4px;', },
                     displayValue
                 );
             })
@@ -80,23 +75,18 @@ const DayEntries = {
 
 const CalendarDay = {
     view({ attrs: { day, currentSeries, onDayClick } }) {
-        const baseClass = day.isCurrentMonth
-            ? 'surface-raised'
-            : 'surface-default text-quiet opacity-50';
 
-        return m('.h-32.border-b.border-r.border-slate-100.p-2.cursor-pointer.hover:surface-lowered.dark:border-slate-700',
+        return m('.wa-stack.gap-1.h-32.p-2.cursor-pointer.hover:surface-lowered',
             { 'data-date': day.dateString,
-              class: baseClass,
+              class: day.isCurrentMonth ? 'surface-raised' : 'surface-default opacity-50',
               onclick: () => onDayClick(day), },
-            m('span',
+            m('span.text-xs.w-fit',
                 { class: day.isToday
-                    ? 'bg-brand text-white w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold'
-                    : 'text-xs font-medium text-normal', },
+                    ? 'bg-brand text-white rounded-full p-1 font-bold'
+                    : 'font-medium text-normal', },
                 day.day
             ),
-            m('.mt-2.flex-1.flex.flex-col.min-h-0',
-                m(DayEntries, { day, currentSeries })
-            )
+            m(DayEntries, { day, currentSeries })
         );
     },
 };
@@ -138,21 +128,19 @@ const Calendar = {
             });
         };
 
-        return m('.surface-raised.rounded-2xl.shadow-sm.border.border-slate-200.overflow-hidden.dark:border-slate-700',
+        return m('.surface-raised.shadow-md.overflow-hidden',
 
             // Header
-            m('.p-4.border-b.border-slate-100.flex.items-center.justify-between.bg-slate-50\\/50.dark:border-slate-700.dark:bg-slate-800\\/50',
-                m('.wa-split.items-center',
-                    m('h3.text-lg.font-bold.text-normal', monthName),
-                    m('wa-button-group',
-                        m([button, '.brand.small'],
-                            { onclick: () => { state.calendarDate = subMonths(state.calendarDate, 1); }, },
-                            m(icon`chevron-left`)
-                        ),
-                        m([button, '.brand.small'],
-                            { onclick: () => { state.calendarDate = addMonths(state.calendarDate, 1); }, },
-                            m(icon`chevron-right`)
-                        )
+            m('.wa-split.items-center.p-4.surface-quiet.border-(b-solid b slate-100).dark:border-slate-700',
+                m(h2, monthName),
+                m('wa-button-group',
+                    m([button, '.brand.small'],
+                        { onclick: () => { state.calendarDate = subMonths(state.calendarDate, 1); }, },
+                        m(icon`chevron-left`)
+                    ),
+                    m([button, '.brand.small'],
+                        { onclick: () => { state.calendarDate = addMonths(state.calendarDate, 1); }, },
+                        m(icon`chevron-right`)
                     )
                 )
             ),
@@ -167,7 +155,7 @@ const Calendar = {
             ),
 
             // Day grid
-            m('.grid.grid-cols-7',
+            m('.grid.grid-cols-7.gap-px.bg-slate-100.dark:bg-slate-700.border-b.border-r.border-slate-100.dark:border-slate-700',
                 days.map(day =>
                     m(CalendarDay, {
                         key:        day.dateString,

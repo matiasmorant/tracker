@@ -99,15 +99,14 @@ const SeriesChartConfig = () => {
       onConfigUpdated = attrs.onConfigUpdated;
 
       if (!series) {
-        return m('.p-4.text-slate-500', 'Loading configuration...');
+        return m('.p-4.text-quiet', 'Loading configuration...');
       }
 
       const otherSeries = allSeries.filter(s => s.id !== series.id);
       const settings    = { ...DEFAULT_SETTINGS, ...chartSettings };
       const Sentence = '.wa-cluster.items-center.gap-2.text-sm.text-quiet';
 
-      return m('#configPanel.p-4',
-        m('.wa-stack.gap-4',
+      return m('#configPanel.wa-stack.gap-4.p-4.surface-lowered.dark:surface-raised',
 
           // ── Axis ──────────────────────────────────────────────────────────
           m([section,'[title=Axis][icon=ruler-combined]'],
@@ -187,8 +186,7 @@ const SeriesChartConfig = () => {
               onchange: onCompareChange,
             })
           )
-        )
-      );
+        );
     },
   };
 };

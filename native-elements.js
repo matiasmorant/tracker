@@ -1,6 +1,7 @@
-window.h2='h2.text-lg.font-bold';
-window.h3='h3.text-xs.text-quiet.uppercase.font-black.tracking-widest';
-window.h4='h4.text-xs.text-quiet.uppercase.font-bold.tracking-wide';
+window.h2='h2.text-(lg title)';
+window.h3='h3.text-(sm title)';
+window.h4='h4.text-(xs title)';
+window.Label='label.text-(xs title)';
 window.icon=(name)=>`wa-icon[name=${name}]`
 
 const classAttrs = {
@@ -79,8 +80,8 @@ window.section = {
 window.field = {
   view: ({ attrs, children }) => {
     const { label, ...rest } = attrs;
-    return m('.wa-stack.gap-1\\.5', rest, [
-      label && m(h4, label),
+    return m('.wa-cluster', rest, [
+      label && m(Label, label),
       children,
     ]);
   }

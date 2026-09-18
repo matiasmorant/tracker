@@ -129,12 +129,12 @@ function SeriesConfiguration() {
 
             return m('', [
                 loading
-                    ? m('.p-6.text-slate-500', [
+                    ? m('.p-6.text-quiet', [
                         m('wa-spinner'),
                         m('span.ml-2', 'Loading…'),
                       ])
                     : !series
-                    ? m('.p-6.text-slate-500', 'No series selected.')
+                    ? m('.p-6.text-quiet', 'No series selected.')
                     : m('wa-card[appearance=outlined]', [
                         m(h2+'[slot=header]', 'Configuration'),
 
@@ -143,10 +143,7 @@ function SeriesConfiguration() {
                             m(select, {
                                 label: 'Group',
                                 value: series.group ?? '',
-                                onchange: e => {
-                                    series.group = e.target.value;
-                                    _save();
-                                },
+                                onchange: e => { series.group = e.target.value; _save(); },
                                 options: [
                                     { value: '', label: 'No Group' },
                                     ...groups.map(g => ({ value: g.name, label: g.name })),
@@ -171,33 +168,35 @@ function SeriesConfiguration() {
                                 ]),
                             ]),
 
-                            m([section,'[title="Quick Add (+) Action"][icon=bolt]'], [
-                                m(select, {
-                                    value: cfg.quickAddAction ?? 'manual',
-                                    onchange: e => {
-                                        _ensureConfig();
-                                        series.config.quickAddAction = e.target.value;
-                                        _save();
-                                    },
-                                    options: [
-                                        { value: 'manual', label: 'Manual Entry Modal' },
-                                        ...(series.type === 'number' ? [{ value: 'increment', label: 'One-Click (+1)' }] : []),
-                                        ...(series.type === 'time' ? [
-                                            { value: 'currentTime', label: 'Stamp Current Time' },
-                                            { value: 'chronometer', label: 'Start/Stop Chronometer' },
-                                        ] : []),
-                                    ],
-                                }),
+                            m([section,'[title="Quick Add (+) Action"][icon=bolt]'],
+                                m('.wa-stack',
+                                    m(select, {
+                                        value: cfg.quickAddAction ?? 'manual',
+                                        onchange: e => {
+                                            _ensureConfig();
+                                            series.config.quickAddAction = e.target.value;
+                                            _save();
+                                        },
+                                        options: [
+                                            { value: 'manual', label: 'Manual' },
+                                            ...(series.type === 'number' ? [{ value: 'increment', label: '+1' }] : []),
+                                            ...(series.type === 'time' ? [
+                                                { value: 'currentTime', label: 'Stamp Current Time' },
+                                                { value: 'chronometer', label: 'Start/Stop Chronometer' },
+                                            ] : []),
+                                        ],
+                                    }),
 
-                                m([callout, '.neutral.filled'], 
-                                    m('p.text-xs.font-bold.text-slate-500.uppercase.mb-1', 'How it works'),
-                                    m('p.text-xs.text-slate-500.italic.leading-relaxed', 
-                                        'Sets the action triggered by the ',
-                                        m('strong.text-indigo-600', 'plus (+)'),
-                                        ' icon on your dashboard for this series.',
+                                    m([callout, '.neutral.filled'], 
+                                        m('p.text-xs.text-quiet.font-bold.uppercase.mb-1', 'How it works'),
+                                        m('p.text-xs.text-quiet', 
+                                            'Sets the action triggered by the ',
+                                            m('strong.text-brand', 'plus (+)'),
+                                            ' icon on your dashboard for this series.',
+                                        ),
                                     ),
-                                ),
-                            ]),
+                                )
+                            ),
                         ]),
                     ]),
             ]);
