@@ -104,7 +104,7 @@ const SeriesHistory = {
 
         return m('.bg-white.rounded-2xl.shadow-sm.border.overflow-hidden.border-slate-200.dark:bg-slate-800.dark:border-slate-700', [
             m('style', tableStyles),
-            m('.p-6.border-b.flex.justify-between.items-center.border-slate-100.dark:border-slate-700', [
+            m('.wa-split.items-center.p-4.surface-quiet.border-(b-solid b slate-100).dark:border-slate-700', [
                 m(h2, 'Data History'),
                 m([button, '.brand.small'], { onclick: () => onAddEntryClick?.({ series }) },
                     [ m(icon`plus`), 'Add Entry']

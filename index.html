@@ -46,6 +46,12 @@
               lg: '1024px',
               xl: '1280px',
               '2xl': '1536px',
+            },
+            colors: {
+                normal : 'var(--wa-color-text-normal)',
+                quiet  : 'var(--wa-color-text-quiet)',
+                link   : 'var(--wa-color-text-link)',
+                brand  : 'var(--wa-color-brand-on-quiet)',
             }
           },
         // transformers: [
@@ -65,6 +71,8 @@
           },
         ],
         shortcuts: [
+          ['text-title', 'text-quiet uppercase font-bold tracking-widest'],
+          ['surface-quiet', 'bg-slate-50/100 dark:bg-slate-800/50'], // this should be bg-lowered, it's the same as the surface-classes, but this has better colors
           ['text-2xs', 'text-[0.625rem]'],
           [/^grid-cols-(\d+)-auto$/, ([, n]) => `grid-cols-[${Array(+n).fill('auto').join('_')}]`],
           [/^masonry(?:-(\w+))+$/, ([full]) => {
@@ -108,6 +116,7 @@
     <script type="module" src="./theme-utils.js"></script>
 
     <style>
+        * { box-sizing: border-box; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         @media (max-width: 640px) {
@@ -140,10 +149,6 @@
             /*&:focus-within            */
         }
 
-        .text-normal  { color: var(--wa-color-text-normal); }
-        .text-quiet   { color: var(--wa-color-text-quiet); }
-        .text-link    { color: var(--wa-color-text-link); }
-        .text-brand    { color: var(--wa-color-brand-on-quiet); }
         .surface-raised   { background-color: var(--wa-color-surface-raised); }
         .surface-default  { background-color: var(--wa-color-surface-default); }
         .surface-lowered  { background-color: var(--wa-color-surface-lowered); }
@@ -177,7 +182,7 @@
             oninit: () => {Actions.loadSeries();  window.matchMedia('(min-width: 768px)').addEventListener('change', m.redraw);},
             view: () => {
                 return m(".h-full.flex.flex-col", { class: (State.theme === 'dark' ? 'dark' : '') }, [
-                    m("header.sticky.top-0.z-30.content-center.px-4.h-16.md:h-10",{style: 'background: var(--wa-color-surface-raised);box-shadow: var(--wa-shadow-s);'}, [
+                    m("header.sticky.top-0.z-30.content-center.px-4.h-16",{style: 'background: var(--wa-color-surface-raised);box-shadow: var(--wa-shadow-s);'}, [
                         State.view === 'list' ? m(ListHeader) : m(DetailHeader)
                     ]),
 

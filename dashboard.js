@@ -98,36 +98,31 @@ const Dashboard = () => {
                 color: g.color
             }));
 
-            return m(".space-y-2", [
+            return m(".wa-stack.gap-0.h-full", [
                 // Filter Header
-                m(".px-4.py-1.border-b.border-slate-200.flex.flex-wrap.items-center.gap-y-3.dark:border-slate-700", 
-                    { class: !showFilters ? 'gap-x-8' : '' },
-                    [
-                        m(".flex.items-center", [
-                            m("span#filter-toggle", {
-                                class: "text-2xs font-bold text-slate-400 tracking-widest dark:text-slate-500 cursor-pointer hover:text-indigo-600 transition-colors select-none",
-                                onclick: () => showFilters = !showFilters
-                            }, "FILTER"),
-                            
-                            showFilters && m(".filters-container.animate-fade-in", [
-                                m("multi-select.max-w-44.ml-2", {
-                                    items: JSON.stringify(groupsData),
-                                    "selected-ids": JSON.stringify(selectedGroups),
-                                    multi: true,
-                                    onchange: (e) => {
-                                        selectedGroups = e.detail.selection;
-                                        localStorage.setItem('chronos_selectedGroups', JSON.stringify(selectedGroups));
-                                    }
-                                })
-                            ])
-                        ])
-                    ]
-                ),
+                m(".wa-cluster.px-4.py-1.border-b.border-b-solid.border-slate-200.dark:border-slate-700", [
+                    m([Label,"#filter-toggle"], {
+                        class: "cursor-pointer hover:text-indigo-600 transition-colors select-none",
+                        onclick: () => showFilters = !showFilters
+                    }, "FILTER"),
+                    
+                    showFilters && m(".filters-container.animate-fade-in", [
+                        m("multi-select.max-w-44", {
+                            items: JSON.stringify(groupsData),
+                            "selected-ids": JSON.stringify(selectedGroups),
+                            multi: true,
+                            onchange: (e) => {
+                                selectedGroups = e.detail.selection;
+                                localStorage.setItem('chronos_selectedGroups', JSON.stringify(selectedGroups));
+                            }
+                        })
+                    ])
+                ]),
 
                 // Content Grid
                 groups.length === 0
-                ? m(".text-center.py-8.text-slate-500.dark:text-slate-400", "No groups found. Create some groups to get started!")
-                : m(".masonry-xs-md-lg.gap-3.*:mb-3.px-4",
+                ? m(".text-center.py-8.text-quiet", "No groups found. Create some groups to get started!")
+                : m(".masonry-xs-md-lg.gap-3.*:mb-3.p-4.h-full",
                     filteredGroups.length > 0
                         ? filteredGroups.map(group => {
                             const seriesList = groupSeriesData.get(group.name) || [];
@@ -140,7 +135,7 @@ const Dashboard = () => {
                                 onentryCreated: Actions.loadSeries
                             });
                         })
-                        : m(".column-span-full.text-center.py-8.text-slate-500.dark:text-slate-400", 
+                        : m(".column-span-full.text-center.py-8.text-quiet", 
                             series.length === 0 ? "No series found." : "No series match filters."
                         )
                 )

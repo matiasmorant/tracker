@@ -282,10 +282,7 @@ const SeriesChart = () => {
 
     view({ attrs }) {
       if (!series) {
-        return m('.flex.items-center.justify-center.gap-2.p-4.text-color-neutral-subtle',
-          m('wa-spinner'),
-          m('span', 'Loading…')
-        );
+        return m('.wa-cluster.p-6.text-quiet', [m('wa-spinner'), m('span','Loading…')] );
       }
 
       return m('.wa-stack.gap-0.dark:bg-slate-800.overflow-hidden.h-full',
@@ -297,10 +294,10 @@ const SeriesChart = () => {
         }),
 
         // ── Toolbar ────────────────────────────────────────────────────────
-        m('.px-4.py-0.border-b.border-slate-100.dark:border-slate-700.flex.justify-between.items-center',
+        m('.wa-cluster.px-4.py-0.border-b.border-slate-100.dark:border-slate-700',
           m([button, '.plain.small'], { onclick: handleToggleCollapsed, },
             m(icon(collapsed ? 'chevron-down' : 'chevron-up')),
-            collapsed ? 'Statistics' : 'Hide'
+            m(Label, collapsed ? 'Statistics' : 'Hide')
           )
         ),
 
