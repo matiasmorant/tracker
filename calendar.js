@@ -22,26 +22,14 @@ function buildCalendarDays(calendarDate, entries) {
     const monthEnd   = endOfMonth(calendarDate);
     const startDay   = getDay(monthStart);
     const daysInMonth = getDaysInMonth(calendarDate);
-    const days = [];
-
-    // Previous-month filler
     const prevMonthStart = subDays(monthStart, startDay);
-    for (let i = 0; i < startDay; i++) {
-        days.push(createDayObj(addDays(prevMonthStart, i), false, entries));
-    }
-
-    // Current month
-    for (let i = 0; i < daysInMonth; i++) {
-        days.push(createDayObj(addDays(monthStart, i), true, entries));
-    }
-
-    // Next-month filler (6-week grid = 42 cells)
     const totalCells = 42;
-    for (let i = 1; i <= totalCells - days.length; i++) {
-        days.push(createDayObj(addDays(monthEnd, i), false, entries));
-    }
 
-    return days;
+    return [
+    ..._.times(startDay, i => createDayObj(addDays(prevMonthStart, i), false, entries)),
+    ..._.times(daysInMonth, i => createDayObj(addDays(monthStart, i), true, entries)),
+    ..._.times(totalCells - (startDay + daysInMonth), i => createDayObj(addDays(monthEnd, i + 1), false, entries))
+    ];
 }
 
 // ---------------------------------------------------------------------------

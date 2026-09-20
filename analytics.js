@@ -82,19 +82,16 @@ export function calculateRunningMetric(entries, metric, windowSize) {
         return [];
     }
 
-    const result = [];
+    const midOffset = Math.floor((windowSize - 1) / 2);
 
-    for (let i = 0; i <= entries.length - windowSize; i++) {
-        const windowEntries = entries.slice(i, i + windowSize);
-        const midIdx         = Math.floor(i + (windowSize - 1) / 2);
-        const value          = calculateStat(windowEntries, metric);
+    return _.slide(entries, windowSize, (windowEntries) => {
+        const mid   = windowEntries[midOffset];
+        const value = calculateStat(windowEntries, metric);
 
-        if (value !== undefined && entries[midIdx]?.timestamp) {
-            result.push({ timestamp: entries[midIdx].timestamp, value });
-        }
-    }
-
-    return result;
+        return value !== undefined && mid?.timestamp
+            ? { timestamp: mid.timestamp, value }
+            : null;
+    }).filter(Boolean);
 }
 
 export function filterByRange(entries, range = 'all', customDays = 30) {

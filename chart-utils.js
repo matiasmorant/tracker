@@ -272,12 +272,8 @@ export function generateSmoothPath(points, xScale, yScale, tension = 0.2) {
   let pathData = `M ${getX(points[0])} ${getY(points[0])}`;
   
   if (tension > 0 && points.length > 2) {
-    for (let i = 1; i < points.length; i++) {
-      const p0 = points[Math.max(0, i - 2)];
-      const p1 = points[i - 1];
-      const p2 = points[i];
-      const p3 = points[Math.min(points.length - 1, i + 1)];
-      
+    const padded = [points[0], ...points, points[points.length - 1]];
+    pathData += _.slide(padded, 4, ([p0, p1, p2, p3]) => {
       const x0 = getX(p0), y0 = getY(p0);
       const x1 = getX(p1), y1 = getY(p1);
       const x2 = getX(p2), y2 = getY(p2);
@@ -288,12 +284,10 @@ export function generateSmoothPath(points, xScale, yScale, tension = 0.2) {
       const cp2x = x2 - (x3 - x1) / 6 * tension;
       const cp2y = y2 - (y3 - y1) / 6 * tension;
       
-      pathData += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x2} ${y2}`;
-    }
+      return ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x2} ${y2}`;
+    }).join('');
   } else {
-    for (let i = 1; i < points.length; i++) {
-      pathData += ` L ${getX(points[i])} ${getY(points[i])}`;
-    }
+    pathData += points.slice(1).map(p => ` L ${getX(p)} ${getY(p)}`).join('');
   }
   
   return pathData;
