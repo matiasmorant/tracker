@@ -68,3 +68,9 @@ export class Duration {
 }
 
 export const withDefaults = (obj, defaults) => _.defaultsDeep(_.pick(obj || {}, _.keys(defaults)), defaults);
+
+_.mixin({
+  slide: function(arr, size, fn) {
+    return _.times(arr.length - size + 1, (i) => fn(_.slice(arr, i, i + size)));
+  }
+});
