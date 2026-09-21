@@ -77,6 +77,19 @@ window.section = {
   }
 };
 
+window.panel = {
+  view: ({ attrs, children }) => {
+    const { title, actions, ...restAttrs } = attrs;
+    return m('.h-full.px-4.overflow-hidden.surface-lowered.dark:surface-raised', restAttrs, [
+      m('.wa-split.items-center.p-4', [
+        m(h2, title),
+        actions ? m('wa-button-group', actions) : null,
+      ]),
+      children,
+    ]);
+  }
+};
+
 window.field = {
   view: ({ attrs, children }) => {
     const { label, ...rest } = attrs;

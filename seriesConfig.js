@@ -127,93 +127,86 @@ function SeriesConfiguration() {
                 : [{ period: 'all', operation: 'mean' }];
             const previews  = getSummaryPreviews(series, entries);
 
-            return m('', [
-                loading
-                    ? m('.p-6.text-quiet', [
-                        m('wa-spinner'),
-                        m('span.ml-2', 'Loading…'),
-                      ])
-                    : !series
-                    ? m('.p-6.text-quiet', 'No series selected.')
-                    : m('wa-card[appearance=outlined]', [
-                        m(h2+'[slot=header]', 'Configuration'),
+            return loading
+            ? m('.wa-cluster.p-6.text-quiet', [ m('wa-spinner'), m('span','Loading…'), ])
+            : !series
+            ? m('.p-6.text-quiet', 'No series selected.')
+            : m([panel,'[title=Configuration]'], 
+                m('.masonry-md-lg.gap-3.*:mb-3', [
 
-                        m('.masonry-md-lg.gap-3.*:mb-3', [
+                    m([section,'[title="Main"]'], [
+                        m('.grid.grid-cols-2-auto.gap-2.py-2', [
+                            m(select, {
+                                label: 'Type',
+                                value: series.type ?? 'number',
+                                onchange: e => { series.type = e.target.value; _save(); },
+                                options: [
+                                    { value: 'number', label: 'Number' },
+                                    { value: 'time', label: 'Time' },
+                                ],
+                            }),
 
-                            m([section,'[title="Main"]'], [
-                                m('.grid.grid-cols-2-auto.gap-2.py-2', [
-                                    m(select, {
-                                        label: 'Type',
-                                        value: series.type ?? 'number',
-                                        onchange: e => { series.type = e.target.value; _save(); },
-                                        options: [
-                                            { value: 'number', label: 'Number' },
-                                            { value: 'time', label: 'Time' },
-                                        ],
-                                    }),
-
-                                    m(select, {
-                                        label: 'Group',
-                                        value: series.group ?? '',
-                                        onchange: e => { series.group = e.target.value; _save(); },
-                                        options: [
-                                            { value: '', label: 'No Group' },
-                                            ...groups.map(g => ({ value: g.name, label: g.name })),
-                                        ],
-                                    }),
-                                ]),
-                            ]),
-
-                            m([section,'[title="Dashboard Summary"][icon=calculator]'], [
-                                m('.grid.grid-cols-3-auto.gap-2.py-2',
-                                    summaries.flatMap((s, i) => _viewSummaryRow(s, i, summaries.length))
-                                ),
-                                m([button, '.plain.brand.small'], 
-                                    { onclick: _addSummary, }, 
-                                    m(icon`plus`),
-                                    'Add Summary',
-                                ),
-
-                                m([callout, '.brand.filled'], [
-                                    m(icon`eye`),
-                                    previews.length
-                                        ? previews.map(p => m('.text-sm.font-black.truncate', p))
-                                        : m('.text-sm.italic', 'No Data'),
-                                ]),
-                            ]),
-
-                            m([section,'[title="Quick Add (+) Action"][icon=bolt]'],
-                                m('.wa-stack',
-                                    m(select, {
-                                        value: cfg.quickAddAction ?? 'manual',
-                                        onchange: e => {
-                                            _ensureConfig();
-                                            series.config.quickAddAction = e.target.value;
-                                            _save();
-                                        },
-                                        options: [
-                                            { value: 'manual', label: 'Manual' },
-                                            ...(series.type === 'number' ? [{ value: 'increment', label: '+1' }] : []),
-                                            ...(series.type === 'time' ? [
-                                                { value: 'currentTime', label: 'Stamp Current Time' },
-                                                { value: 'chronometer', label: 'Start/Stop Chronometer' },
-                                            ] : []),
-                                        ],
-                                    }),
-
-                                    m([callout, '.neutral.filled'], 
-                                        m('p.text-xs.text-quiet.font-bold.uppercase.mb-1', 'How it works'),
-                                        m('p.text-xs.text-quiet', 
-                                            'Sets the action triggered by the ',
-                                            m('strong.text-brand', 'plus (+)'),
-                                            ' icon on your dashboard for this series.',
-                                        ),
-                                    ),
-                                )
-                            ),
+                            m(select, {
+                                label: 'Group',
+                                value: series.group ?? '',
+                                onchange: e => { series.group = e.target.value; _save(); },
+                                options: [
+                                    { value: '', label: 'No Group' },
+                                    ...groups.map(g => ({ value: g.name, label: g.name })),
+                                ],
+                            }),
                         ]),
                     ]),
-            ]);
+
+                    m([section,'[title="Dashboard Summary"][icon=calculator]'], [
+                        m('.grid.grid-cols-3-auto.gap-2.py-2',
+                            summaries.flatMap((s, i) => _viewSummaryRow(s, i, summaries.length))
+                        ),
+                        m([button, '.plain.brand.small'], 
+                            { onclick: _addSummary, }, 
+                            m(icon`plus`),
+                            'Add Summary',
+                        ),
+
+                        m([callout, '.brand.filled'], [
+                            m(icon`eye`),
+                            previews.length
+                                ? previews.map(p => m('.text-sm.font-black.truncate', p))
+                                : m('.text-sm.italic', 'No Data'),
+                        ]),
+                    ]),
+
+                    m([section,'[title="Quick Add (+) Action"][icon=bolt]'],
+                        m('.wa-stack',
+                            m(select, {
+                                value: cfg.quickAddAction ?? 'manual',
+                                onchange: e => {
+                                    _ensureConfig();
+                                    series.config.quickAddAction = e.target.value;
+                                    _save();
+                                },
+                                options: [
+                                    { value: 'manual', label: 'Manual' },
+                                    ...(series.type === 'number' ? [{ value: 'increment', label: '+1' }] : []),
+                                    ...(series.type === 'time' ? [
+                                        { value: 'currentTime', label: 'Stamp Current Time' },
+                                        { value: 'chronometer', label: 'Start/Stop Chronometer' },
+                                    ] : []),
+                                ],
+                            }),
+
+                            m([callout, '.neutral.filled'], 
+                                m('p.text-xs.text-quiet.font-bold.uppercase.mb-1', 'How it works'),
+                                m('p.text-xs.text-quiet', 
+                                    'Sets the action triggered by the ',
+                                    m('strong.text-brand', 'plus (+)'),
+                                    ' icon on your dashboard for this series.',
+                                ),
+                            ),
+                        )
+                    ),
+                ]),
+            );
         },
     };
 }
