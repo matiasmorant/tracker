@@ -116,22 +116,19 @@ const Calendar = {
             });
         };
 
-        return m('.surface-raised.shadow-md.overflow-hidden',
-
-            // Header
-            m('.wa-split.items-center.p-4.surface-quiet.border-(b-solid b slate-100).dark:border-slate-700',
-                m(h2, monthName),
-                m('wa-button-group',
-                    m([button, '.brand.small'],
-                        { onclick: () => { state.calendarDate = subMonths(state.calendarDate, 1); }, },
-                        m(icon`chevron-left`)
-                    ),
-                    m([button, '.brand.small'],
-                        { onclick: () => { state.calendarDate = addMonths(state.calendarDate, 1); }, },
-                        m(icon`chevron-right`)
-                    )
-                )
-            ),
+        return m(panel, {
+            title: monthName,
+            actions: [
+                m([button, '.brand.small'],
+                    { onclick: () => { state.calendarDate = subMonths(state.calendarDate, 1); }, },
+                    m(icon`chevron-left`)
+                ),
+                m([button, '.brand.small'],
+                    { onclick: () => { state.calendarDate = addMonths(state.calendarDate, 1); }, },
+                    m(icon`chevron-right`)
+                ),
+            ],
+        }, [
 
             // Day-of-week headers
             m('.grid.grid-cols-7.border-b.border-slate-100.dark:border-slate-700',
@@ -153,7 +150,7 @@ const Calendar = {
                     })
                 )
             )
-        );
+        ]);
     },
 };
 

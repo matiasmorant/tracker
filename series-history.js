@@ -102,14 +102,15 @@ const SeriesHistory = {
     view({ attrs: { series, onAddEntryClick } }) {
         if (!series) return null;
 
-        return m('.bg-white.rounded-2xl.shadow-sm.border.overflow-hidden.border-slate-200.dark:bg-slate-800.dark:border-slate-700', [
-            m('style', tableStyles),
-            m('.wa-split.items-center.p-4.surface-quiet.border-(b-solid b slate-100).dark:border-slate-700', [
-                m(h2, 'Data History'),
+        return m(panel, {
+            title: 'Data History',
+            actions: [
                 m([button, '.brand.small'], { onclick: () => onAddEntryClick?.({ series }) },
                     [ m(icon`plus`), 'Add Entry']
                 )
-            ]),
+            ],
+        }, [
+            m('style', tableStyles),
             m('#table-container.w-full')
         ]);
     }
