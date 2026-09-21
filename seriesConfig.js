@@ -140,15 +140,29 @@ function SeriesConfiguration() {
 
                         m('.masonry-md-lg.gap-3.*:mb-3', [
 
-                            m(select, {
-                                label: 'Group',
-                                value: series.group ?? '',
-                                onchange: e => { series.group = e.target.value; _save(); },
-                                options: [
-                                    { value: '', label: 'No Group' },
-                                    ...groups.map(g => ({ value: g.name, label: g.name })),
-                                ],
-                            }),
+                            m([section,'[title="Main"]'], [
+                                m('.grid.grid-cols-2-auto.gap-2.py-2', [
+                                    m(select, {
+                                        label: 'Type',
+                                        value: series.type ?? 'number',
+                                        onchange: e => { series.type = e.target.value; _save(); },
+                                        options: [
+                                            { value: 'number', label: 'Number' },
+                                            { value: 'time', label: 'Time' },
+                                        ],
+                                    }),
+
+                                    m(select, {
+                                        label: 'Group',
+                                        value: series.group ?? '',
+                                        onchange: e => { series.group = e.target.value; _save(); },
+                                        options: [
+                                            { value: '', label: 'No Group' },
+                                            ...groups.map(g => ({ value: g.name, label: g.name })),
+                                        ],
+                                    }),
+                                ]),
+                            ]),
 
                             m([section,'[title="Dashboard Summary"][icon=calculator]'], [
                                 m('.grid.grid-cols-3-auto.gap-2.py-2',
