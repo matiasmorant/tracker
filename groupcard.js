@@ -36,14 +36,15 @@ const GroupCard = () => {
         },
         onremove: () => stopTimer(),
         view: ({attrs}) => {
-            const group = JSON.parse(attrs.group);
             const seriesList = attrs.seriesList || [];
-            if (!group || seriesList.length === 0) return null;
+            const group = attrs.group ? JSON.parse(attrs.group) : null;
+            if (seriesList.length === 0) return null;
 
-            return m(".wa-stack.wa-gap-3xs.px-3.py-1.card.border.transition-all.hover:shadow-lg", {
+            return m(".wa-stack.wa-gap-3xs.px-3.py-1.card.border.border-solid.transition-all.hover:shadow-lg", {
+                class: attrs.class,
                 style: { borderColor: `${group.color}40`, backgroundColor: `${group.color}12` }
             }, [
-                m("h3.border-b.text-2xs.font-bold.uppercase.tracking-widest.truncate", { style: { color: group.color } }, group.name),
+                group && m("h3.text-(center 2xs).font-bold.uppercase.tracking-widest.truncate", { style: { color: group.color } }, group.name),
 
                 seriesList.map(series => {
                     const isRunning = db.isChrono(series) && db.isRunning(series);
@@ -55,8 +56,8 @@ const GroupCard = () => {
                             m("span.font-bold.text-sm.text-normal.truncate", series.name),
                             ...(isRunning 
                                 ? [m(Summary+".animate-pulse", [
-                                    m("span.text-red-600.dark:text-red-400", getRunningTime(series)),
-                                    m("span.text-red-400.dark:text-red-300", "Running")
+                                    m("span.text-red-(600 dark:400)", getRunningTime(series)),
+                                    m("span.text-red-(400 dark:300)", "Running")
                                   ])]
                                 : (series.summaries?.length > 0 
                                     ? series.summaries.map(s => {
@@ -66,7 +67,7 @@ const GroupCard = () => {
                                             m("span.text-quiet", label)
                                         ]);
                                     })
-                                    : [m("span.text-xs.text-quiet.italic", "No data")]
+                                    : [m("span.text-(xs quiet).italic", "No data")]
                                   )
                             )
                         ]),

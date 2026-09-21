@@ -2,6 +2,7 @@ import db from './db.js';
 import { format } from './utils.js';
 import { calculateSeriesSummary } from './analytics.js';
 import {PeriodSelector, StatSelect} from './period-selector.js'
+import GroupCard from './groupcard.js';
 
 function getSummaryPreviews(series, entries) {
     if (!series || !entries.length) return [];
@@ -126,6 +127,8 @@ function SeriesConfiguration() {
                 ? cfg.summaries
                 : [{ period: 'all', operation: 'mean' }];
             const previews  = getSummaryPreviews(series, entries);
+            const previewSeries = { ...series, summaries: previews };
+            const group = series?.group ? groups.find(g => g.name === series.group) : null;
 
             return loading
             ? m('.wa-cluster.p-6.text-quiet', [ m('wa-spinner'), m('span','Loading…'), ])
@@ -133,6 +136,13 @@ function SeriesConfiguration() {
             ? m('.p-6.text-quiet', 'No series selected.')
             : m([panel,'[title=Configuration]'], 
                 m('.masonry-md-lg.gap-3.*:mb-3', [
+
+
+                    m([section,'[title=Preview][icon=eye]'],
+                        m([GroupCard,'.mx-1/6.zoom-200'], {
+                            group: group ? JSON.stringify(group) : null,
+                            seriesList: [previewSeries],
+                        })),
 
                     m([section,'[title="Main"]'], [
                         m('.grid.grid-cols-2-auto.gap-2.py-2', [
@@ -167,13 +177,6 @@ function SeriesConfiguration() {
                             m(icon`plus`),
                             'Add Summary',
                         ),
-
-                        m([callout, '.brand.filled'], [
-                            m(icon`eye`),
-                            previews.length
-                                ? previews.map(p => m('.text-sm.font-black.truncate', p))
-                                : m('.text-sm.italic', 'No Data'),
-                        ]),
                     ]),
 
                     m([section,'[title="Quick Add (+) Action"][icon=bolt]'],
