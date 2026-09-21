@@ -83,8 +83,6 @@ const CalendarDay = {
 // Main Calendar component
 // ---------------------------------------------------------------------------
 
-const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
 /**
  * Calendar
  *
@@ -130,17 +128,9 @@ const Calendar = {
             ],
         }, [
 
-            // Day-of-week headers
-            m('.grid.grid-cols-7.border-b.border-slate-100.dark:border-slate-700',
-                DAYS_OF_WEEK.map(day =>
-                    m('.py-3.text-center.text-xs.font-bold.text-quiet.uppercase.tracking-widest',
-                        day
-                    )
-                )
-            ),
-
-            // Day grid
-            m('.grid.grid-cols-7.gap-px.bg-slate-100.dark:bg-slate-700.border-b.border-r.border-slate-100.dark:border-slate-700',
+            // Single grid: day-of-week headers + day grid
+            m('.grid.grid-cols-7.gap-px.bg-slate-100.dark:bg-slate-700.card', [
+                ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(day => m([Label,'.py-3.text-center.surface-raised'], day )),
                 days.map(day =>
                     m(CalendarDay, {
                         key:        day.dateString,
@@ -149,7 +139,7 @@ const Calendar = {
                         onDayClick: handleDayClick,
                     })
                 )
-            )
+            ])
         ]);
     },
 };

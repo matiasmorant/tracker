@@ -111,7 +111,7 @@ const SeriesHistory = {
             ],
         }, [
             m('style', tableStyles),
-            m('#table-container.w-full')
+            m('#table-container.w-full.card')
         ]);
     }
 };
