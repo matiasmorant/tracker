@@ -104,7 +104,7 @@ const SeriesChartConfig = () => {
 
       const otherSeries = allSeries.filter(s => s.id !== series.id);
       const settings    = { ...DEFAULT_SETTINGS, ...chartSettings };
-      const Sentence = '.wa-cluster.items-center.gap-2.text-sm.text-quiet';
+      const Sentence = '.wa-cluster.items-center.gap-2.text-(sm quiet)';
 
       return m('#configPanel.wa-stack.gap-4.p-4.surface-lowered.dark:surface-raised',
 
