@@ -71,6 +71,7 @@ function initTable({attrs, state, dom}) {
         resizableColumnFit: false,
         placeholder: 'No historical data available.',
         columns: buildColumns(isTime, attrs),
+        rowHeight: 43,
     });
 
     state.table.on('tableBuilt', () => {
