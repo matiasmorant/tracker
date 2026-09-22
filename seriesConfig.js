@@ -135,8 +135,7 @@ function SeriesConfiguration() {
             : !series
             ? m('.p-6.text-quiet', 'No series selected.')
             : m([panel,'[title=Configuration]'], 
-                m('.masonry-md-lg.gap-3.*:mb-3', [
-
+                m('.masonry-md.gap-3.*:mb-3', [
 
                     m([section,'[title=Preview][icon=eye]'],
                         m([GroupCard,'.mx-1/6.zoom-200'], {

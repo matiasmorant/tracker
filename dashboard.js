@@ -122,7 +122,7 @@ const Dashboard = () => {
                 // Content Grid
                 groups.length === 0
                 ? m(".text-(center quiet).py-8", "No groups found. Create some groups to get started!")
-                : m(".masonry-xs-md-lg.gap-3.*:mb-3.p-4.h-full",
+                : m(".masonry-2xs.gap-3.*:mb-3.p-4.h-full",
                     filteredGroups.length > 0
                         ? filteredGroups.map(group => {
                             const seriesList = groupSeriesData.get(group.name) || [];

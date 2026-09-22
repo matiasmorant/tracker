@@ -75,15 +75,12 @@
           ['card', 'rounded-xl shadow-md overflow-hidden'],
           ['surface-quiet', 'bg-slate-50/100 dark:bg-slate-800/50'], // this should be bg-lowered, it's the same as the surface-classes, but this has better colors
           ['text-2xs', 'text-[0.625rem]'],
+          ['columns-2xs', 'columns-[18rem]'],
           [/^grid-cols-(\d+)-auto$/, ([, n]) => `grid-cols-[${Array(+n).fill('auto').join('_')}]`],
-          [/^masonry(?:-(\w+))+$/, ([full]) => {
-            const [, ...bps] = full.split('-')
-            return [
-                'columns-1',
-                ...bps.map((bp, i) => `${bp}:columns-${i+2}`),
-                '*:break-inside-avoid'
-            ].join(' ')
-          }],
+          [/^masonry-(.+)$/, ([, width]) => [
+            `columns-${width}`,
+            '*:break-inside-avoid'
+          ].join(' ')],
         ],
       }
 
