@@ -294,7 +294,7 @@ const SeriesChart = () => {
         }),
 
         // ── Toolbar ────────────────────────────────────────────────────────
-        m('.wa-cluster.px-4.py-0.border-b.border-slate-100.dark:border-slate-700',
+        m('.wa-cluster.px-4.py-0.border-(b slate-(100 dark:700))',
           m([button, '.plain.small'], { onclick: handleToggleCollapsed, },
             m(icon(collapsed ? 'chevron-down' : 'chevron-up')),
             m(Label, collapsed ? 'Statistics' : 'Hide')
