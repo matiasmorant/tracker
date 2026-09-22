@@ -62,7 +62,13 @@ const vgToken = (cls) => {
 
     const inner = str.slice(openParenIdx + 1, closeParenIdx)
     const expandedInner = expand(inner)
-    const expanded = expandedInner.split(/\s+/).map(c => prefix + type + c).join(' ')
+    const expanded = expandedInner.split(/\s+/).map(c => {
+      if (type === '-' && c.includes(':')) {
+        const colonIdx = c.lastIndexOf(':')
+        return c.slice(0, colonIdx + 1) + prefix + type + c.slice(colonIdx + 1)
+      }
+      return prefix + type + c
+    }).join(' ')
 
     const result = str.slice(0, startIdx) + expanded + str.slice(closeParenIdx + 1)
     return expand(result)

@@ -86,6 +86,18 @@ test('vgToken: prefix group', () => {
   assert.equal(vgToken('text-(sm md lg)'), 'text-sm text-md text-lg')
 })
 
+test('vgToken: prefix applied inside variant', () => {
+  assert.equal(vgToken('text-(black dark:white)'), 'text-black dark:text-white')
+})
+
+test('vgToken: prefix applied inside nested variant group', () => {
+  assert.equal(vgToken('text-(x dark:(sm lg))'), 'text-x dark:text-sm dark:text-lg')
+})
+
+test('vgToken: prefix applied inside stacked variants', () => {
+  assert.equal(vgToken('text-(sm:hover:white)'), 'sm:hover:text-white')
+})
+
 test('vgToken: nested variant then prefix', () => {
   assert.equal(vgToken('hover:(text-(white sm))'), 'hover:text-white hover:text-sm')
 })
@@ -115,6 +127,10 @@ test('vg: prefix group', () => {
   assert.equal(vg('text-(sm md lg)'), 'text-sm text-md text-lg')
 })
 
+test('vg: prefix applied inside variant', () => {
+  assert.equal(vg('px-4 text-(black dark:white) mt-2'), 'px-4 text-black dark:text-white mt-2')
+})
+
 test('vg: mixed variant and prefix groups', () => {
   assert.equal(vg('hover:(text-(white sm))'), 'hover:text-white hover:text-sm')
 })
@@ -139,6 +155,10 @@ test('vgs: variant group in selector', () => {
 
 test('vgs: prefix group in selector', () => {
   assert.equal(vgs('div.text-(sm md)'), 'div.text-sm.text-md')
+})
+
+test('vgs: prefix applied inside variant in selector', () => {
+  assert.equal(vgs('div.text-(sm dark:md)'), 'div.text-sm.dark:text-md')
 })
 
 test('vgs: preserves #id', () => {

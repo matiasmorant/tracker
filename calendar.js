@@ -129,7 +129,7 @@ const Calendar = {
         }, [
 
             // Single grid: day-of-week headers + day grid
-            m('.grid.grid-cols-7.gap-px.bg-slate-100.dark:bg-slate-700.card', [
+            m('.grid.grid-cols-7.gap-px.bg-slate-(100 dark:700).card', [
                 ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(day => m([Label,'.py-3.text-center.surface-raised'], day )),
                 days.map(day =>
                     m(CalendarDay, {

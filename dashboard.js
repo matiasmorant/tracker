@@ -100,7 +100,7 @@ const Dashboard = () => {
 
             return m(".wa-stack.gap-0.h-full", [
                 // Filter Header
-                m(".wa-cluster.px-4.py-1.border-b.border-b-solid.border-slate-200.dark:border-slate-700", [
+                m(".wa-cluster.px-4.py-1.border-(b b-solid slate-(200 dark:700))", [
                     m([Label,"#filter-toggle"], {
                         class: "cursor-pointer hover:text-indigo-600 transition-colors select-none",
                         onclick: () => showFilters = !showFilters
@@ -121,7 +121,7 @@ const Dashboard = () => {
 
                 // Content Grid
                 groups.length === 0
-                ? m(".text-center.py-8.text-quiet", "No groups found. Create some groups to get started!")
+                ? m(".text-(center quiet).py-8", "No groups found. Create some groups to get started!")
                 : m(".masonry-xs-md-lg.gap-3.*:mb-3.p-4.h-full",
                     filteredGroups.length > 0
                         ? filteredGroups.map(group => {
@@ -135,7 +135,7 @@ const Dashboard = () => {
                                 onentryCreated: Actions.loadSeries
                             });
                         })
-                        : m(".column-span-full.text-center.py-8.text-quiet", 
+                        : m(".column-span-full.text-(center quiet).py-8", 
                             series.length === 0 ? "No series found." : "No series match filters."
                         )
                 )
