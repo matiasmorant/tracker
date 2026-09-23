@@ -31,15 +31,54 @@
     <script type="module" src="https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.14.0/dist-cdn/webawesome.loader.js"></script>
 
     <script type="module">
-      import presetWind from 'https://esm.sh/@unocss/preset-wind'
+      // for TW4, there are these issues, which I solved prefixing classes with "un-":
+      // github.com/unocss/unocss/issues/4989 
+      // github.com/shoelace-style/webawesome/discussions/2278
+      import presetWind4 from 'https://esm.sh/@unocss/preset-wind4'
       // transformers only work with build step
       // import transformerVariantGroup from 'https://esm.sh/@unocss/transformer-variant-group'
       // import transformerDirectives from 'https://esm.sh/@unocss/transformer-directives'
 
+       // Called once per [property, value] tuple, e.g. ['--spacing', '0.25rem']
+      // or ['--default-font-family', 'var(--font-sans)'].
+      // Mutates in place — the array is the same object the preset stringifies.
+      function prefixWind4ThemeVariable(prefix = 'un-') {
+          return (utility) => {
+          const [property, value] = utility
+
+           if (!property?.startsWith('--')) return
+
+           if (!property.startsWith(`--${prefix}`)) {
+              utility[0] = `--${prefix}${property.slice(2)}`
+          }
+
+           if (typeof value === 'string') {
+              utility[1] = value.replace(
+              /var\(\s*(--[\w-]+)/g,
+              (_, name) =>
+                  name.startsWith('--wa-') || name.startsWith(`--${prefix}`)
+                  ? `var(${name}`
+                  : `var(--${prefix}${name.slice(2)}`,
+              )
+          }
+          }
+      }
+
       window.__unocss = {
-        presets: [presetWind()],
+        presets: [
+            presetWind4({
+                variablePrefix: 'un-',
+                preflights: {
+                    reset: false, // Disables the global CSS reset ( *, ::before, ::after, etc. ) otherwise makes radio button group look wrong
+                theme: {
+                    mode: 'on-demand',
+                    process: prefixWind4ThemeVariable('un-'),
+                },
+                },
+            }),
+        ],
           theme: {
-            breakpoints: {
+            breakpoint: {
               xs: '400px',
               sm: '640px',
               md: '768px',
@@ -54,6 +93,16 @@
                 brand  : 'var(--wa-color-brand-on-quiet)',
             }
           },
+        processors: [
+            {
+                name: 'prefix-var-references',
+                order: 20,
+                process(css, { layer }) {
+                if (layer === 'theme') return css
+                return css.replace(/var\(--(?!un-|wa-)([^,)]+)/g, 'var(--un-$1')
+                },
+            },
+        ],
         // transformers: [
         //     transformerVariantGroup(),
         //     transformerDirectives(),
@@ -73,7 +122,11 @@
         shortcuts: [
           ['text-title', 'text-quiet uppercase font-bold tracking-widest'],
           ['card', 'rounded-xl shadow-md overflow-hidden'],
-          ['surface-quiet', 'bg-slate-50/100 dark:bg-slate-800/50'], // this should be bg-lowered, it's the same as the surface-classes, but this has better colors
+          ['surface-quiet', 'bg-slate-50 dark:bg-slate-800/50'], // this should be bg-lowered, it's the same as the surface-classes, but this has better colors
+          ['surface-raised', 'bg-[var(--wa-color-surface-raised)]'],
+          ['surface-default', 'bg-[var(--wa-color-surface-default)]'],
+          ['surface-lowered', 'bg-[var(--wa-color-surface-lowered)]'],
+          ['column-span-full', '[column-span:all]'],
           ['text-2xs', 'text-[0.625rem]'],
           ['columns-2xs', 'columns-[18rem]'],
           [/^grid-cols-(\d+)-auto$/, ([, n]) => `grid-cols-[${Array(+n).fill('auto').join('_')}]`],
@@ -238,7 +291,7 @@
                     m(DurationPickerModal),
 
                     State.toast.show ? m("div", { class: "fixed bottom-5 right-5 z-[100]" }, [
-                        m("div", { class: "bg-slate-800 text-white px-6 py-3 rounded-xl shadow-lg flex items-center space-x-3 dark:bg-slate-700" }, [
+                        m("div", { class: "bg-slate-800 text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-3 dark:bg-slate-700" }, [
                             m("span", State.toast.message),
                             m("button", { onclick: () => State.toast.show = false, class: "text-slate-400" }, "×")
                         ])
