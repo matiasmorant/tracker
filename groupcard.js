@@ -7,7 +7,6 @@ const addClass = (child, injected) => {
   return { ...child, attrs: { ...rest, class: `${injected} ${existing}` } };
 };
 
-// const Summary = ".wa-cluster.wa-gap-0.items-baseline.*:first:text-xs.*:first:font-black.*:last:text-2xs.*:last:font-bold.*:last:uppercase.*:last:ml-1";
 const Summary = ".wa-cluster.wa-gap-0.items-baseline.*:first:(text-xs font-black).*:last:(text-2xs font-bold uppercase ml-1)";
 
 const GroupCard = () => {
@@ -40,7 +39,7 @@ const GroupCard = () => {
             const group = attrs.group ? JSON.parse(attrs.group) : null;
             if (seriesList.length === 0) return null;
 
-            return m(".wa-stack.wa-gap-3xs.px-3.py-1.card.border.border-solid.transition-all.hover:shadow-lg", {
+            return m(".wa-stack.wa-gap-3xs.px-3.py-1.card.border-(1 solid).transition-all.hover:shadow-lg", {
                 class: attrs.class,
                 style: { borderColor: `${group.color}40`, backgroundColor: `${group.color}12` }
             }, [

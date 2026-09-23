@@ -24,8 +24,8 @@ const ListHeader = {
 
         return m('.wa-split', [
             m('.wa-cluster', [
-                m(icon`arrow-trend-up` + '.size-12.rounded-lg.text-white.text-2xl[style=background-color:var(--wa-color-brand-fill-loud)]'),
-                m('h1.text-xl.font-bold.tracking-tight', 'Chronos'),
+                m(icon`arrow-trend-up` + '.size-12.rounded-lg.text-(white 2xl)[style=background-color:var(--wa-color-brand-fill-loud)]'),
+                m(h1, 'Chronos'),
             ]),
             m('.wa-cluster', [
                 m([button, '.filled'], { 'data-dialog': 'open group-dialog'  }, 'Groups'),
@@ -33,7 +33,7 @@ const ListHeader = {
                 m('wa-dropdown', [
                     m([button, '.plain[slot=trigger]'], m(icon`ellipsis-vertical`)),
                     m('wa-dropdown-item[disabled]',
-                        m('span.text-xs.font-bold.uppercase.tracking-widest', 'Transfer')
+                        m(Label, 'Transfer')
                     ),
                     m('wa-dropdown-item', { onclick: Actions.exportData }, [
                         m(icon`download`+'[slot=icon]'), 'Export JSON',

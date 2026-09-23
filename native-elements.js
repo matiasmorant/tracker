@@ -1,3 +1,4 @@
+window.h1='h1.text-(xl title)'
 window.h2='h2.text-(lg title)';
 window.h3='h3.text-(sm title)';
 window.h4='h4.text-(xs title)';

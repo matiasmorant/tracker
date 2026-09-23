@@ -1,6 +1,6 @@
 const PeriodSelector = {
   view({ attrs: { settings, onSettingChange } }) {
-    return m(".flex.gap-3.items-start.sm:items-center", [
+    return m(".flex.gap-3.items-(start sm:center)", [
 
       m(select, {
         value: settings.range,
@@ -17,12 +17,12 @@ const PeriodSelector = {
       }),
 
       settings.range === "custom"
-        ? m("[placeholder=Days].flex.items-center.space-x-1", [
+        ? m("[placeholder=Days].flex.items-center.gap-1", [
             m("wa-input[type=number][size=small].w-14.part-base:px-1", {
               value: settings.customDays,
               oninput: (e) => onSettingChange("customDays", e.target.value),
             }),
-            m("span.text-xs.font-bold.text-quiet.uppercase.tracking-tight", "Days"),
+            m(Label, "Days"),
           ])
         : null,
 
