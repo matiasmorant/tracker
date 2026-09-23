@@ -43,25 +43,20 @@
       // or ['--default-font-family', 'var(--font-sans)'].
       // Mutates in place — the array is the same object the preset stringifies.
       function prefixWind4ThemeVariable(prefix = 'un-') {
+         const propRe = new RegExp(`^--(?!${prefix})(?!wa-)([\\w-]+)`)
+         const refRe  = new RegExp(`var\\(\\s*(--(?!${prefix})(?!wa-)([\\w-]+))`, 'g')
+   
           return (utility) => {
           const [property, value] = utility
 
-           if (!property?.startsWith('--')) return
-
-           if (!property.startsWith(`--${prefix}`)) {
-              utility[0] = `--${prefix}${property.slice(2)}`
-          }
-
+           if (typeof property === 'string') {
+             utility[0] = property.replace(propRe, `--${prefix}$1`)
+           }
+   
            if (typeof value === 'string') {
-              utility[1] = value.replace(
-              /var\(\s*(--[\w-]+)/g,
-              (_, name) =>
-                  name.startsWith('--wa-') || name.startsWith(`--${prefix}`)
-                  ? `var(${name}`
-                  : `var(--${prefix}${name.slice(2)}`,
-              )
-          }
-          }
+             utility[1] = value.replace(refRe, `var(--${prefix}$2`)
+           }
+        }
       }
 
       window.__unocss = {
