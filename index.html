@@ -39,36 +39,12 @@
       // import transformerVariantGroup from 'https://esm.sh/@unocss/transformer-variant-group'
       // import transformerDirectives from 'https://esm.sh/@unocss/transformer-directives'
 
-       // Called once per [property, value] tuple, e.g. ['--spacing', '0.25rem']
-      // or ['--default-font-family', 'var(--font-sans)'].
-      // Mutates in place — the array is the same object the preset stringifies.
-      function prefixWind4ThemeVariable(prefix = 'un-') {
-         const propRe = new RegExp(`^--(?!${prefix})(?!wa-)([\\w-]+)`)
-         const refRe  = new RegExp(`var\\(\\s*(--(?!${prefix})(?!wa-)([\\w-]+))`, 'g')
-   
-          return (utility) => {
-          const [property, value] = utility
-
-           if (typeof property === 'string') {
-             utility[0] = property.replace(propRe, `--${prefix}$1`)
-           }
-   
-           if (typeof value === 'string') {
-             utility[1] = value.replace(refRe, `var(--${prefix}$2`)
-           }
-        }
-      }
-
       window.__unocss = {
         presets: [
             presetWind4({
                 variablePrefix: 'un-',
                 preflights: {
                     reset: false, // Disables the global CSS reset ( *, ::before, ::after, etc. ) otherwise makes radio button group look wrong
-                theme: {
-                    mode: 'on-demand',
-                    process: prefixWind4ThemeVariable('un-'),
-                },
                 },
             }),
         ],
@@ -93,7 +69,7 @@
                 name: 'prefix-var-references',
                 order: 20,
                 process(css, { layer }) {
-                if (layer === 'theme') return css
+                if (layer === 'theme') return css.replace(/--/g, '--un-')
                 return css.replace(/var\(--(?!un-|wa-)([^,)]+)/g, 'var(--un-$1')
                 },
             },
