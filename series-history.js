@@ -112,7 +112,7 @@ const SeriesHistory = {
             ],
         }, [
             m('style', tableStyles),
-            m('#table-container.w-full.card')
+            m('#table-container.card')
         ]);
     }
 };

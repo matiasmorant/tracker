@@ -81,7 +81,7 @@ window.section = {
 window.panel = {
   view: ({ attrs, children }) => {
     const { title, actions, ...restAttrs } = attrs;
-    return m('.h-full.px-4.overflow-hidden.surface-lowered.dark:surface-raised', restAttrs, [
+    return m('.h-full.contain-strict.px-4.overflow-hidden.surface-lowered.dark:surface-raised', restAttrs, [
       m('.wa-split.items-center.p-4', [
         m(h2, title),
         actions ? m('wa-button-group', actions) : null,
