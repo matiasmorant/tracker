@@ -1,6 +1,7 @@
 import db from './db.js';
 import {PeriodSelector} from './period-selector.js';
 import MultiSelect from './multiselect.js';
+import MultiSelectWa from './multiselect-wa.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -72,7 +73,7 @@ const SeriesChartConfig = () => {
 
   // ── event handlers ────────────────────────────────────────────────────────
 
-  const onAnalysisChange      = e      => { analysisSelection              = e.detail.selection;            save(); };
+  const onAnalysisChange      = sel    => { analysisSelection              = [...sel];                      save(); };
   const onPeriodChange        = e      => { chartSettings.period           = e.target.value;                save(); };
   const onRunningMetricChange = e      => { chartSettings.runningMetric    = e.target.value;                save(); };
   const onWindowChange        = e      => { chartSettings.window           = parseInt(e.target.value) || 7; save(); };
@@ -135,12 +136,10 @@ const SeriesChartConfig = () => {
             m('.wa-stack.gap-9',
               m(Sentence,
                 analysisSelection.length > 0 ? 'Show' : 'Add Statistic',
-                m('multi-select', {
-                  'data-role': 'analysis-select',
-                  items: JSON.stringify(METRICS.map(({ id, label, color }) => ({ id, label, color }))),
-                  'selected-ids': JSON.stringify(analysisSelection),
-                  multi: true,
-                  onchange: onAnalysisChange,
+                m([MultiSelectWa,'[placeholder="Select statistic"][data-setting=analysisSelection].max-w-68'], {
+                  options:          METRICS.map(({ id, label, color }) => ({ value: id, label, color })),
+                  selectedIds:       analysisSelection,
+                  onchange:          onAnalysisChange,
                 }),
                 analysisSelection.length > 0 && [
                   'for each',
