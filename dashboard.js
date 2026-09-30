@@ -2,6 +2,7 @@ import { format } from './utils.js';
 import { calculateSeriesSummary } from './analytics.js';
 import db from './db.js';
 import GroupCard from './groupcard.js';
+import MultiSelect from './multiselect.js';
 import { State, Actions } from './mithril-state-actions.js';
 import EntryModal from './entry-modal.js';
 
@@ -107,12 +108,12 @@ const Dashboard = () => {
                     }, "FILTER"),
                     
                     showFilters && m(".filters-container.animate-fade-in", [
-                        m("multi-select.max-w-44", {
-                            items: JSON.stringify(groupsData),
-                            "selected-ids": JSON.stringify(selectedGroups),
+                        m([MultiSelect, ".max-w-44"], {
+                            items: groupsData,
+                            selectedIds: selectedGroups,
                             multi: true,
-                            onchange: (e) => {
-                                selectedGroups = e.detail.selection;
+                            onchange: (selection) => {
+                                selectedGroups = selection;
                                 localStorage.setItem('chronos_selectedGroups', JSON.stringify(selectedGroups));
                             }
                         })

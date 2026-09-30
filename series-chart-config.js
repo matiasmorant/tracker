@@ -1,5 +1,6 @@
 import db from './db.js';
 import {PeriodSelector} from './period-selector.js';
+import MultiSelect from './multiselect.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -75,7 +76,7 @@ const SeriesChartConfig = () => {
   const onPeriodChange        = e      => { chartSettings.period           = e.target.value;                save(); };
   const onRunningMetricChange = e      => { chartSettings.runningMetric    = e.target.value;                save(); };
   const onWindowChange        = e      => { chartSettings.window           = parseInt(e.target.value) || 7; save(); };
-  const onCompareChange       = e      => { chartSettings.compareSeriesIds = e.detail.selection;            save(); };
+  const onCompareChange       = sel    => { chartSettings.compareSeriesIds = sel;                           save(); };
   const onSettingChange       = (k, v) => { chartSettings[k]               = v;                             save(); };
 
   // ── component ─────────────────────────────────────────────────────────────
@@ -180,9 +181,9 @@ const SeriesChartConfig = () => {
 
           // ── Compare with other series ────────────────────────────────────
           m([section,'[title="Compare with other series"][icon=code-compare]'],
-            m('multi-select[multi][data-role=compare-select]', {
-              items: JSON.stringify(otherSeries.map(({ id, name }) => ({ id, label: name }))),
-              'selected-ids': JSON.stringify(settings.compareSeriesIds ?? []),
+            m(MultiSelect, {
+              items: otherSeries.map(({ id, name }) => ({ id, label: name })),
+              selectedIds: settings.compareSeriesIds ?? [],
               onchange: onCompareChange,
             })
           )
