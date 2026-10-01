@@ -73,6 +73,12 @@ const cx = memoize((arr) => {
   return withAttrs(component, extraAttrs)
 })
 
+const dom = (...args) => {
+  const container = document.createElement('div')
+  window.m.render(container, window.m(...args))
+  return container.firstElementChild
+}
+
 window.m = (...args) => {
   if (Array.isArray(args[0])) args[0] = cx(args[0])
 
@@ -85,4 +91,4 @@ window.m = (...args) => {
   return _m(...args)
 }
 
-Object.assign(window.m, _m)
+Object.assign(window.m, _m, { dom })

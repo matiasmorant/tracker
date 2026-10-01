@@ -46,7 +46,7 @@ function buildColumns(isTime, { onEntryUpdated, onDeleteEntryClick }) {
         {
             title: '', field: 'id', headerSort: false,
             hozAlign: 'right', width: 20, resizable: false,
-            formatter: () => `<wa-button appearance="plain" variant="danger" size="small"><wa-icon name="trash" label="Delete entry"></wa-icon></wa-button>`,
+            formatter: () => m.dom([button, '.plain.danger.small'], m(icon`trash`)),
             cellClick: (e, cell) => {
                 const entry = cell.getData();
                 onDeleteEntryClick?.(entry);
